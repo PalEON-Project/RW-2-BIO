@@ -178,3 +178,39 @@ plot_sig(post, site, mvers, sig_d=FALSE)
 
 #########################################################################################################################################
 
+beta = post[[1]][[get_names(post[[1]],'beta')]]#sapply(post, function(x) x[[get_names(x,'beta')]])
+colMeans(beta)
+beta = melt(beta)
+colnames(beta) =c('iter', 'tree', 'value')
+
+ggplot(data=beta) + 
+  geom_point(aes(x=tree, y=value)) + 
+  theme_bw()
+ggsave(file=paste0(figure_dir, '/beta_',  site , '_', mvers  ,'.pdf'))
+
+
+beta_t = post[[1]][[get_names(post[[1]],'beta_t')]]#sapply(post, function(x) x[[get_names(x,'beta')]])
+colMeans(beta_t)
+beta_t = melt(beta_t)
+colnames(beta_t) =c('iter', 'year', 'value')
+
+ggplot(data=beta_t) + 
+  geom_point(aes(x=year, y=value)) + 
+  theme_bw()
+ggsave(file=paste0(figure_dir, '/beta_',  site , '_', mvers  ,'.pdf'))
+
+
+# b1 = sapply(post, function(x) x[,get_cols(x,'b1')][burn:nrow(x)])
+# colMeans(b1)
+# b1 = melt(b1)
+# colnames(b1) =c('iter', 'model', 'value')
+# 
+# b = rbind(data.frame(b0, par=rep('b0')),
+#           data.frame(b1, par=rep('b1')))
+# 
+# b$model = models[b$model]
+# 
+# ggplot(data=b) + geom_line(aes(x=iter, y=value, colour=factor(model))) + facet_grid(par~., scales="free_y")+ 
+#   labs(colour='Data')
+# ggsave(file=paste0('figures/', figures_dir, '/b_trace_',  location , '_', mvers  ,'.pdf'))
+
