@@ -1,0 +1,70 @@
+"Lyford Plot 1",,"Harvard Forest, MA",,,"Dates: 05/06/2013, 11/03/2014, 06/19/2015",,,,,,
+,,,,,,,,,,,
+"Lyford plot layout",,"Census center: -400S, -300W",,,,,,,,,
+,,"GPS center:  42.53065 N, -72.18346 W",,,,,,,,,
+"NW: 33","NE: 32",,,,,,,,,,
+"SW: 43","SE: 42",,,,,,,,,,
+,,,,,,,,,,,
+"Site","Tree Number","Species","Canopy","Status","DBH","Distance","Azimuth","Tag","DistTop","AzTop","Decay"
+"LF1",1,"TSCA","suppressed","Li",18.1,7.6,20,2693,"NA","NA","NA"
+"LF1",2,"QURU","dominant","Li",66,7.2,36,2703,"NA","NA","NA"
+"LF1",3,"ACRU","suppressed","Li",22.3,7.5,52,2716,"NA","NA","NA"
+"LF1",4,"ACRU","intermediate","Li",30.4,10.6,48,2719,"NA","NA","NA"
+"LF1",5,"ACRU","suppressed","Li",15.6,9.7,44,2714,"NA","NA","NA"
+"LF1",6,"ACRU","suppressed","Lo",12,9.7,44,2711,11.2,22,2
+"LF1",7,"BEAL","intermediate","Li",30,11.9,78,2740,"NA","NA","NA"
+"LF1",8,"TSCA","suppressed","Li",14.6,6.1,96,5936,"NA","NA","NA"
+"LF1",9,"FAGR","dominant","Li",33.9,3.3,112,3561,"NA","NA","NA"
+"LF1",10,"ACRU","dominant","Li",29.4,8.4,136,3571,"NA","NA","NA"
+"LF1",11,"ACRU","suppressed","Li",20.6,12.8,142,3582,"NA","NA","NA"
+"LF1",12,"QURU","dominant","Li",59,7.8,210,3850,"NA","NA","NA"
+"LF1",13,"QURU","intermediate","Li",43,4.3,190,3867,"NA","NA","NA"
+"LF1",14,"NA","suppressed","dead",23.6,8.4,226,3844,"NA","NA","NA"
+"LF1",15,"QURU","intermediate","Li",49.4,12.4,234,3820,"NA","NA","NA"
+"LF1",16,"QURU","codominant","Li",41.9,12,218,3839,"NA","NA","NA"
+"LF1",17,"FAGR","suppressed","Li",10.3,3.2,266,3877,"NA","NA","NA"
+"LF1",18,"ACRU","codominant","Li",26,3.4,346,3026,"NA","NA","NA"
+"LF1",19,"TSCA","suppressed","Li",10.4,6.4,294,5501,"NA","NA","NA"
+"LF1",20,"QURU","dominant","Li",69,9.5,276,2994,"NA","NA","NA"
+"LF1",21,"BEAL","suppressed","Li",20.1,11.1,302,2990,"NA","NA","NA"
+"LF1",22,"QURU","dominant","Li",67.5,13.3,10,3034,"NA","NA","NA"
+"LF1",23,"PIST","suppressed","Li",26.9,19.8,16,2689,"NA","NA","NA"
+"LF1",24,"TSCA","suppressed","Li",23.4,18.3,31,2726,"NA","NA","NA"
+"LF1",25,"BEAL","codominant","Li",34,20,39,2751,"NA","NA","NA"
+"LF1",26,"TSCA","suppressed","Li",23.7,13.3,45,2729,"NA","NA","NA"
+"LF1",27,"TSCA","suppressed","Li",20.1,17.4,77,2768,"NA","NA","NA"
+"LF1",28,"TSCA","intermediate","Li",21.4,13.3,85,2756,"NA","NA","NA"
+"LF1",29,"BEAL","codominant","Sn",36.5,16.4,98,2778,17.4,106,2
+"LF1",30,"QURU","codominant","Li",44.6,18.1,131,3623,"NA","NA","NA"
+"LF1",31,"QURU","suppressed","Li",28.6,16.3,138,3608,"NA","NA","NA"
+"LF1",32,"QURU","dominant","Li",63.2,13.3,148,3588,"NA","NA","NA"
+"LF1",33,"QURU","codominant","Li",50.6,19.7,143,3610,"NA","NA","NA"
+"LF1",34,"BELE","suppressed","Li",27.4,19.7,164,3574,"NA","NA","NA"
+"LF1",35,"ACRU","suppressed","Li",28.1,13.8,201,3855,"NA","NA","NA"
+"LF1",36,"QURU","codominant","Li",37.5,18.6,191,3856,"NA","NA","NA"
+"LF1",37,"QURU","codominant","Li",39.5,15,222,3839,"NA","NA","NA"
+"LF1",38,"FAGR","suppressed","Li",38.8,14.8,261,3810,"NA","NA","NA"
+"LF1",39,"ACRU","suppressed","Li",21.7,19.6,274,3771,"NA","NA","NA"
+"LF1",40,"QURU","codominant","Li",53.9,14.3,275,3800,"NA","NA","NA"
+"LF1",41,"QURU","codominant","Li",43.2,15.4,282,3793,"NA","NA","NA"
+"LF1",42,"QURU","codominant","Li",53.4,17.8,296,2946,"NA","NA","NA"
+"LF1",43,"ACRU","suppressed","Li",21,13.4,315,2981,"NA","NA","NA"
+"LF1",44,"ACRU","codominant","Lo",25.8,3.5,322,3926,6.7,160,1
+"LF1",45,"NA","codominant","Lo",42.1,17,350,"NA",4.8,290,3
+"LF1",46,"NA","NA","Sh",37.2,9.6,262,"NA","NA","NA",5
+"LF1",47,"NA","NA","Sh",53.7,7.9,264,"NA","NA","NA",5
+"LF1",49,"NA","NA","Sh",45.2,19.1,57,"NA","NA","NA",5
+"LF1",50,"NA","NA","Sh",33.5,14.3,62,"NA","NA","NA",5
+"LF1",51,"NA","NA","Sh",58.5,3.9,97,"NA","NA","NA",5
+"LF1",52,"ACRU","codominant","Lo",23.7,2.5,242,3871,13.7,282,1
+"LF1",53,"NA","NA","St",53.9,14.4,282,"NA","NA","NA",4
+"LF1",54,"NA","NA","Sh",43.2,10.7,244,"NA","NA","NA",5
+"LF1",55,"NA","NA","Sh",51.7,15.9,244,"NA","NA","NA",5
+"LF1",56,"QURU","NA","Sh",34,14.1,184,"NA","NA","NA",5
+"LF1",57,"QURU","suppressed","Lo",14.6,6.1,258,3847,8.2,172,3
+"LF1",58,"NA","NA","Sh",34.3,15.6,147,"NA","NA","NA",5
+"LF1",59,"NA","NA","Sh",23.5,18.8,150,"NA","NA","NA",5
+"LF1",60,"NA","NA","Sh",34.6,16.3,126,"NA","NA","NA",5
+"LF1",62,"NA","NA","Sh",42.6,15.1,84,"NA","NA","NA",5
+"LF1",63,"NA","NA","Sh",33.3,17.6,100,"NA","NA","NA",5
+"LF1",64,"NA","NA","Sh",52.8,4.3,100,"NA","NA","NA",5
