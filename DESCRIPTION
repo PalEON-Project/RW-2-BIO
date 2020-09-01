@@ -1,0 +1,9 @@
+Package: RW2BIO
+Type: Package
+Title: Estimation of Aboveground Biomass from Tree Ring and Census Data
+Version: 2.0
+Date: 2020-09-01
+Author: Andria Dawson, Marissa Kivi, Alyssa Willson, probably more 
+Maintainer: Andria Dawson <andria.dawson@gmail.com> 
+Description: This workflow employs a statistical model to estimate annual aboveground biomass at varying scales based on tree-ring measurements, as well as census data when available. 
+License: MIT

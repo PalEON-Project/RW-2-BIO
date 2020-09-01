@@ -93,7 +93,7 @@ censusSpp = left_join(censusAdd, treeMetaOrig, by = 'id')
 # need to check to make sure we lined up trees correctly - where do we have the species wrong?
 speciescheck = censusSpp %>% filter(!is.na(Species))
 wrongs = which(speciescheck$species != speciescheck$Species)
-speciescheck[wrongs,] # we see 7 trees were the species differ
+speciescheck[wrongs,] # we see 7 trees where the species differ
 
 # here genus is correct for both and DBHs follow logical increasing trend over time, but species differs
 # here we assume the most recent species assessment is correct

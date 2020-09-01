@@ -13,8 +13,7 @@ data {
   int<lower=0> idx_Tr[N_Tr, 3]; // indicates first and last value index for each tree ID
   int<lower=0> Xobs2X[N_Xobs];  // maps increment measurements to estimated values 
 }
-transformed data {
-}
+
 parameters {
   real beta0;
   real beta[N_Tr];
@@ -24,11 +23,11 @@ parameters {
   real<lower=1e-6> sig_x;
   real<lower=1e-6> sig_x_obs;
   real<lower=1e-6, upper=80> D0[N_Tr];
-  vector<lower=1e-6>[N_X] X;
+  vector<lower=1e-6> [N_X] X;
 }
 transformed parameters {
     // process evolution
-  vector<lower=1e-6>[N_X] D;
+  vector<lower=1e-6> [N_X] D;
 
   for (tree in 1:N_Tr){
     D[idx_Tr[tree,2]] = D0[tree] + 2.0 * X[idx_Tr[tree,2]] / 10.0;
