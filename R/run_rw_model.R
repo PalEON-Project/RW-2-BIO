@@ -10,14 +10,14 @@ run_rw_model <- function(census_site, site, mvers,
   ##############################################
   
   library(rstan)
+  library(gridExtra)
+  library(ggplotify)
   
   # Create directories if needed
   site_dir <- file.path('sites',site)
-  if (!file.exists(file.path(site_dir,'output')))   dir.create(file.path(site_dir,'output'))
-  if (!file.exists(file.path(site_dir,'figures')))   dir.create(file.path(site_dir,'figures'))
-
+  
   # load built dataset 
-  dat = readRDS(file.path('sites',site,'data','built',paste0('tree_data_', site ,'_STAN_',mvers,'_', dvers, '.RDS')))
+  dat = readRDS(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'input',paste0('tree_data_', site ,'_STAN_',mvers,'_', dvers, '.RDS')))
   
   ########################################################################
   ################ 2. Run RW + census model if applicable ################
@@ -33,47 +33,58 @@ run_rw_model <- function(census_site, site, mvers,
     fit <- sampling(compiled, 
                     data = dat, 
                     iter = 5000, 
-                    chains = 1,
+                    chains = 3,
                     verbose=TRUE)
     rm(compiled)
+    
+  ########################################################################
+  ################ 3. RW + Census Model MCMC diagnostics  ################
+  ########################################################################
+    
     post=rstan::extract(fit)
     rm(fit)
     
     # save as RDS file 
-    saveRDS(post, file = paste0('sites/', site, '/output/ring_model_t_pdbh_STAN_', site, '_', mvers, '_', dvers, '.RDS'))
+    saveRDS(post, file = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'output', paste0('ring_model_t_pdbh_STAN_', site, '_', mvers, '_', dvers, '.RDS')))
   
     # generate a quick figure to roughly check model output  
     X2taxon = sapply(dat$X2C, function(id){dat$allTrees$taxon[which(dat$allTrees$stat_id == id)]})
-    output = data.frame(D = apply(post$D[(dim(post$D)[1]-keep+1):dim(post$D)[1],], 2, mean), 
-                        year = dat$X2year_C, 
-                        tree = dat$X2C, 
-                        taxon = X2taxon)
-    col_names = names(post)
-    sig_d_obs = mean(post[[which(col_names=="sig_d_obs")]][(dim(post$D)[1]-keep+1):dim(post$D)[1]])
+    allDs = grep('D\\[',variables)
+    D = matrix(NA,1,length(allDs))
+    for (i in 1:nchains){
+      D = rbind(D,post[(niter-keep+1):niter,i,allDs])
+    }
+    D = D[-1,]
+    output = data.frame(D = apply(D, 2, mean), year = dat$X2year_C, tree = dat$X2C, taxon = dat$Tr$taxon[dat$X2taxon])
+    col_names = names(post[1,1,])
+    
+    # median is better measure of center here due to distribution skewness
+    sig_d_obs = median(post[[which(col_names=="sig_d_obs")]])
     rm(post)
     
+    # plot estimated diameter for all individuals over time 
     pl = ggplot(output) + 
       geom_line(aes(x = year, y = D, group = tree, color = tree)) +
       facet_wrap(~taxon) + 
       labs(x = 'Year', y = 'Diameter (cm)', title = 'Estimated Diameter over Time') + 
       theme(legend.position = 'none')
-    ggsave(pl, filename = file.path('sites',site,'figures','estimated_species_growth_census.jpg'))
+    ggsave(pl, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','estimated_species_growth_census.jpg'))
     
     rm(output)
   }
 
   ######################################################
-  ################ 3. Run RW only model ################
+  ################ 4. Run RW only model ################
   ######################################################
   
   # if we do not have census data for this site, we have to obtain mean measurement error for DBH 
   # from a site that has both of these datasets (i.e. Harvard Forest)
   # TO DO: this needs to be automated I think so that we can adjust which site we want to use
   if (!census_site){
-    out = readRDS('sites/HARVARD/output/ring_model_t_pdbh_STAN_HARVARD_v2.0_082020.RDS')
+    out = readRDS('sites/HARVARD/runs/v2.0_082020/output/ring_model_t_pdbh_STAN_HARVARD_v2.0_082020.RDS')
     
-    # extract measurement error from dataset and find mean 
-    dat$sig_d_obs = mean(out$sig_d_obs[(length(out$sig_d_obs)-keep+1):length(out$sig_d_obs)])
+    # extract measurement error from dataset and find median (better measure of center due to skewness of distribution)
+    dat$sig_d_obs = median(out$sig_d_obs)
     rm(out)
     
   # otherwise we use the value found in the model above 
@@ -88,23 +99,151 @@ run_rw_model <- function(census_site, site, mvers,
   fit <- sampling(compiled, 
                   data = dat, 
                   iter = 5000, 
-                  chains = 1,
+                  chains = 3,
                   verbose=TRUE)
   rm(compiled)
-  post=rstan::extract(fit)
+  
+  ##############################################################
+  ################ 5. RW only MCMC diagnostics  ################
+  ##############################################################
+  
+  # diagnostic 1 : rhat
+  mcmc_diags = list()
+  trk_ind = 1
+  rhat_val = rstan::stan_rhat(fit)
+  mcmc_diags[[trk_ind]] = rhat_val
+  trk_ind = trk_ind + 1
+  rm(rhat_val)
+  
+  # diagnostic 2 : ess
+  summary_val = summary(fit)
+  ess = summary_val$summary[,9]
+  
+  # add bar plot for singular parameters
+  inds = which(names(ess) %in% c('beta0','beta_sd','beta_t_sd','sig_x','sig_x_obs'))
+  ess_singular = data.frame(names = names(ess)[inds], ess = ess[inds])
+  pl1 = ggplot(ess_singular) + 
+    geom_col(aes(x = names, y = ess)) + 
+    geom_hline(yintercept = 100, color = 'red') + 
+    labs(x = 'parameters', y = 'effective sample size', title = 'Effective Sample Size for Model Parameters')
+  mcmc_diags[[trk_ind]] = pl1
+  trk_ind = trk_ind + 1
+  rm(pl1, ess_singular)
+  
+  # add histogram of ess for all beta_trees 
+  inds = grep('beta\\[', names(ess))
+  ess_betas = data.frame(ess = ess[inds])
+  pl2 = ggplot(ess_betas) + 
+    geom_histogram(aes(x = ess)) + 
+    geom_vline(xintercept = 100, color = 'red') + 
+    labs(x = 'effective sample size', title = 'effective sample size for beta trees')
+  mcmc_diags[[trk_ind]] = pl2
+  trk_ind = trk_ind + 1
+  rm(ess_betas, pl2)
+  
+  # add histogram of ess for all beta_years
+  inds = grep('beta_t\\[', names(ess))
+  ess_beta_ts = data.frame(ess = ess[inds])
+  pl3 = ggplot(ess_beta_ts) + 
+    geom_histogram(aes(x = ess)) + 
+    geom_vline(xintercept = 100, color = 'red') + 
+    labs(x = 'effective sample size', title = 'effective sample size for beta years')
+  mcmc_diags[[trk_ind]] = pl3
+  trk_ind = trk_ind + 1
+  rm(ess_beta_ts, pl3)
+  
+  # add histogram for increment estimates 
+  inds = grep('X\\[', names(ess))
+  ess_Xs = data.frame(ess = ess[inds])
+  pl4 = ggplot(ess_Xs) + 
+    geom_histogram(aes(x = ess)) + 
+    geom_vline(xintercept = 100, color = 'red') + 
+    labs(x = 'effective sample size', title = 'effective sample size for increments')
+  mcmc_diags[[trk_ind]] = pl4
+  trk_ind = trk_ind + 1
+  rm(ess_Xs, pl4)
+  
+  # add histogram for D0 values 
+  inds = grep('D0\\[', names(ess))
+  ess_D0s = data.frame(ess = ess[inds])
+  pl5 = ggplot(ess_D0s) + 
+    geom_histogram(aes(x = ess)) + 
+    geom_vline(xintercept = 100, color = 'red') + 
+    labs(x = 'effective sample size', title = 'effective sample size for D0 values')
+  mcmc_diags[[trk_ind]] = pl5
+  trk_ind = trk_ind + 1
+  rm(ess_D0s, pl5)
+
+  # get organized values for MCMC chains so we can make trace plots and also save
+  post=rstan::extract(fit, permuted = FALSE)
+  variables = names(post[1,1,])
   rm(fit)
+  #rm(fit, summary_val)
+  
+  # diagnostic 3 : trace plots 
+  # first, for the singulars 
+  nchains = dim(post)[2]
+  niter = dim(post)[1]
+  for (par in c('beta0','beta_sd','beta_t_sd','sig_x','sig_x_obs')){
+    temp.ind = which(variables == par)
+    temp.data = reshape2::melt(post[,,temp.ind])
+    pl.temp = ggplot(temp.data) + 
+      geom_line(aes(x = iterations, y = value, group = as.factor(chains), color = as.factor(chains))) + 
+      labs(x = 'iteration', y = 'value', title = paste0('trace plot for ',par), 
+           color = 'chain')
+    mcmc_diags[[trk_ind]] = pl.temp
+    trk_ind = trk_ind + 1
+  }
+  
+  # then, for all beta trees 
+  for (btr in 1:dat$N_Tr){
+    temp.ind = which(variables == paste0('beta[',btr,']'))
+    temp.data = reshape2::melt(post[,,temp.ind])
+    pl.temp = ggplot(temp.data) + 
+      geom_line(aes(x = iterations, y = value, group = as.factor(chains), color = as.factor(chains))) + 
+      labs(x = 'iteration', y = 'value', title = paste0('trace plot for beta ',btr), 
+           color = 'chain')
+    mcmc_diags[[trk_ind]] = pl.temp
+    trk_ind = trk_ind + 1
+  }
+  
+  # lastly, for all beta years 
+  for (byr in 1:dat$N_years){
+    temp.ind = which(variables == paste0('beta_t[',byr,']'))
+    temp.data = reshape2::melt(post[,,temp.ind])
+    pl.temp = ggplot(temp.data) + 
+      geom_line(aes(x = iterations, y = value, group = as.factor(chains), color = as.factor(chains))) + 
+      labs(x = 'iteration', y = 'value', title = paste0('trace plot for beta year ',byr), 
+           color = 'chain')
+    mcmc_diags[[trk_ind]] = pl.temp
+    trk_ind = trk_ind + 1
+  }
+  
+  pdf(file.path('sites',site,'figures','MCMC_diagnostics.pdf'), onefile = TRUE)
+  for (i in seq(length(mcmc_diags))) {
+    grid.arrange(mcmc_diags[[i]])
+  }
+  dev.off()
+  rm(mcmc_diags)
   
   # save as RDS file 
-  saveRDS(post, file = paste0('sites/', site, '/output/ring_model_t_pdbh_sigd_STAN_', site, '_', mvers,'_', dvers, '.RDS'))
+  saveRDS(post, file = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'output',paste0('ring_model_t_pdbh_sigd_STAN_', site, '_', mvers,'_', dvers, '.RDS')))
   
   # generate a quick figure to roughly check model output 
-  output = data.frame(D = apply(post$D[(dim(post$D)[1]-keep+1):dim(post$D)[1],], 2, mean), year = dat$X2year, tree = dat$X2Tr, taxon = dat$Tr$taxon[dat$X2Tr])
+  allDs = grep('D\\[',variables)
+  D = matrix(NA,1,length(allDs))
+  for (i in 1:nchains){
+    D = rbind(D,post[(niter-keep+1):niter,i,allDs])
+  }
+  D = D[-1,]
+  output = data.frame(D = apply(D, 2, mean), year = dat$X2year, tree = dat$X2Tr, taxon = dat$Tr$taxon[dat$X2Tr])
   rm(post) 
   
+  # plot estimated diameter for all individuals over time
   pl = ggplot(output) + 
     geom_line(aes(x = year, y = D, group = tree, color = tree)) +
     facet_wrap(~taxon) + 
     labs(x = 'Year', y = 'Diameter (cm)', title = 'Estimated Diameter over Time') + 
     theme(legend.position = 'none')
-  ggsave(pl, filename = file.path('sites',site,'figures','estimated_species_growth.jpg'))
+  ggsave(pl, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','estimated_species_growth.jpg'))
 }

@@ -1,57 +1,80 @@
 
-## FIXING 2 RED OAKS
+library(dplR)
+library(plyr)
+library(dplyr)
 
-to_fix = read.tucson('sites/HARVARD/data/raw/rwl/LF_QURU.rwl')
+# Adjusting RWL file to allow for three digit IDs
+rwl_dir = 'sites/HARVARD/data/raw/past/rwl_original/'
+rwFiles <- list.files(rwl_dir)
+rwFiles <- rwFiles[grep(".rwl$", rwFiles)]
 
-# 143, LF3061, change start date from 63 to 88 (add 25)
-which(!(is.na(to_fix[,176])))
-temp_save = to_fix[59:93,176]
-to_fix[,176] = NA
-to_fix[84:118, 176] = temp_save
-to_fix[,176]
+for (file in rwFiles){
+  
+  # read in Tucson
+  X = read.tucson(paste0(rwl_dir,file))
+  
+  # adjust ID names 
+  ids = names(X)
+  ids_new = sapply(ids, 
+                   function(x){
+                     paste0(substr(x, 1, 3), '0',substr(x, 4, 6))
+                   })
+  names(X) = ids_new
+  
+  # rewrite file to a new RWL file
+  write.tucson(X, 
+               fname = paste0('sites/HARVARD/data/raw/rwl/',file),
+               long.names = TRUE)
+}
 
-# 144, LF3072, change start date from 92 to 70 (subtract 22)
-which(!(is.na(to_fix[,177])))
-temp_save = to_fix[31:100,177]
-to_fix[,177] = NA
-to_fix[25:94, 177] = temp_save
-to_fix[,177]
+# Now, let's just look for Zombie trees because the 20 meter plots were not adjusted like the 13 m version
+# first let's read in the RWL data so we know where we have data (ATTENTION: these are the reformatted RWL files)
+# we need the IDS and the last year with data 
+rwFiles <- list.files('sites/HARVARD/data/raw/rwl')
+rwFiles <- rwFiles[grep(".rwl$", rwFiles)]
+rwData <- list()
+for(fn in rwFiles) {
+  id <- gsub(".rw", "", fn)
+  # Insert the contents of each file into the rwData list
+  rwData[[id]] <- t((read.tucson(file.path('sites/HARVARD/data/raw/rwl', fn))))  # rows are tree, cols are times
+}
+incr = ldply(rwData, rbind)
+incr = incr[,c(".id", sort(colnames(incr)[2:ncol(incr)]))]
+rownames(incr) = as.vector(unlist(lapply(rwData, rownames)))
+incr[,1] = rownames(incr)
+incr_data = melt(incr)
+colnames(incr_data) = c('id', 'year', 'incr')
+incr_data$year = as.vector(incr_data$year)
+incr_data$id = substr(incr_data$id, 1, 6)
+incr_data = incr_data %>% filter(!is.na(incr))
+RWinfo = incr_data %>% group_by(id) %>% 
+  summarize(lastyr = max(year))
+rm(incr_data, incr, rwData)
 
-which(!(is.na(to_fix[,178])))
-temp_save = to_fix[31:78,178]
-to_fix[,178] = NA
-to_fix[25:72, 178] = temp_save
-to_fix[,178]
+treeMetaOrig = read.csv('sites/HARVARD/data/raw/past/LyfordAllPlots.csv', skip = 3, stringsAsFactors = FALSE) %>% 
+  mutate(id = Tag) %>% dplyr::select(Site, Species, DBH, id, Tree.Number, Status) %>% filter(Status == 'Li')
+treeMetaOrig$id = rep(NA, nrow(treeMetaOrig))
+for (i in 1:nrow(treeMetaOrig)){
+  num = treeMetaOrig$Tree.Number[i]
+  if (num < 10) treeMetaOrig$id[i] = paste0(treeMetaOrig$Site[i],'00',num)
+  if (num < 100 & num > 9) treeMetaOrig$id[i] = paste0(treeMetaOrig$Site[i],'0',num)
+  if (num > 99) treeMetaOrig$id[i] = paste0(treeMetaOrig$Site[i],num)
+}
 
-write.tucson(to_fix, 'sites/HARVARD/data/raw/rwl/LF_QURU.rwl', long.names = TRUE)
+RWinfo.red = RWinfo %>% filter(lastyr < 2012)
 
-## FIXING 2 RED MAPLES
+# any row in the following data frame that has treeMeta information is a zombie because it was recorded as alive at coring, 
+# but seems dead according to the RW data 
+left_join(RWinfo.red, treeMetaOrig, by = c('id'))
+# we need to fill in zeros for growth LF2040, which is a red maple 
 
-to_fix = read.tucson('sites/HARVARD/data/raw/rwl/LF_ACRU.rwl')
+ACRU <- read.tucson('sites/HARVARD/data/raw/rwl/LF_ACRU.rwl')
+first.ind = which(rownames(ACRU) == '2001')
+second.ind = which(rownames(ACRU) == '2012')
+ACRU[first.ind:second.ind,which(substr(colnames(ACRU),1,6) == 'LF2040')[1]] = 0
+ACRU[,which(substr(colnames(ACRU),1,6) == 'LF2040')]
 
-# 78, LF2040, add in zeros for recent years... still alive, just add to one column
-which(is.na(to_fix[,64]))
-to_fix[141:154,64] = 0
-to_fix[,64]
-
-# 104, LF3016, change start date from 108 to 115 (add 7)
-which(!(is.na(to_fix[,81])))
-temp_save = to_fix[71:147,81]
-to_fix[,81] = NA
-to_fix[79:155, 81] = temp_save
-to_fix[,81]
-
-write.tucson(to_fix, 'sites/HARVARD/data/raw/rwl/LF_ACRU.rwl', long.names = TRUE)
-
-## FIXING 1 YELLOW BIRCH
-
-to_fix = to_fix = read.tucson('sites/HARVARD/data/raw/rwl/LF_BEAL.rwl')
-
-# 27, LF1029, change start date from 89 to 92 (add 3)
-which(!(is.na(to_fix[,8])))
-temp_save = to_fix[7:79,8]
-to_fix[,8] = NA
-to_fix[10:82, 8] = temp_save
-to_fix[,8]
-
-write.tucson(to_fix, 'sites/HARVARD/data/raw/rwl/LF_BEAL.rwl', long.names = TRUE)
+# save again 
+write.tucson(ACRU, 
+             fname = 'sites/HARVARD/data/raw/rwl/LF_ACRU.rwl',
+             long.names = TRUE)

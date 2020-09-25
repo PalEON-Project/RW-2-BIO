@@ -5,7 +5,7 @@
 ## DBH, and location within the plot. The CSV file should be in the same format as that of the sample CSV file available at (INSERT REPO URL). 
 
 build_data <- function(site, dvers, mvers, prefix, 
-                       census_site, cutoff = 1900){
+                       census_site, finalyr = NA, cutoff = 1900){
    
   # Prepare workspace 
   library(plotrix)
@@ -18,13 +18,15 @@ build_data <- function(site, dvers, mvers, prefix,
   
   # Create save folders for data 
   site_dir <- file.path('sites',site)
-  if (!file.exists(file.path(site_dir,'data','built')))   dir.create(file.path(site_dir,'data','built'), recursive = TRUE)
-  if (!file.exists(file.path(site_dir,'output')))   dir.create(file.path(site_dir,'output'))
-  if (!file.exists(file.path(site_dir,'figures')))   dir.create(file.path(site_dir,'figures'))
+  if (!file.exists(file.path(site_dir,'runs')))   dir.create(file.path(site_dir,'runs'))
+  if (!file.exists(file.path(site_dir,'runs',paste0(mvers,'_',dvers))))   dir.create(file.path(site_dir,'runs',paste0(mvers,'_',dvers)))
+  if (!file.exists(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'output')))   dir.create(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'output'))
+  if (!file.exists(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'input')))   dir.create(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'input'))
+  if (!file.exists(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures')))   dir.create(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures'))
   
   rwl_dir = file.path('sites',site,'data','raw','rwl')
   meta_loc = file.path('sites',site,'data','raw',paste0(site,'_treeMeta_',dvers,'.csv'))
-  RDS_loc = file.path('sites',site,'data','built',paste0('tree_data_', site ,'_STAN_',mvers,'_', dvers, '.RDS'))
+  RDS_loc = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'input',paste0('tree_data_', site ,'_STAN_',mvers,'_', dvers, '.RDS'))
   
   if (census_site){
     census_loc = file.path('sites',site,'data','raw',paste0(site,'_census_',dvers,'.csv'))
@@ -62,7 +64,9 @@ build_data <- function(site, dvers, mvers, prefix,
   
   # Remove NA values right away to quicken processing (only keep the series for which trees were alive/existed)
   # Also remove all increment values for before the determined cut off year, which has a default value of 1900
-  incr_data = incr_data %>% mutate(year = as.numeric(year)) %>% filter(!is.na(incr), year >= cutoff)
+  # Also remove all data that comes after the first year of full data (some sites have multiple years of coring)
+  if (is.na(finalyr)) finalyr = max(incr_data$year)
+  incr_data = incr_data %>% mutate(year = as.numeric(year)) %>% filter(!is.na(incr), year >= cutoff, year <= finalyr)
   
   # Assign core ID to each core
   incr_data$id = substr(incr_data$id, 1, len)
@@ -94,8 +98,8 @@ build_data <- function(site, dvers, mvers, prefix,
   if (census_site){
     census = read.csv(census_loc, stringsAsFactors = FALSE) %>% 
       filter(species %in% unique(treeMeta$species))
-    census_long = melt(census, id=c('site', 'ID', 'species', 'distance'))
-    colnames(census_long) = c('site', 'ID', 'species', 'distance','year', 'dbh')
+    census_long = melt(census, id=c('site', 'ID', 'species', 'distance', 'finalCond'))
+    colnames(census_long) = c('site', 'ID', 'species', 'distance','finalCond','year', 'dbh')
     
     # remove NA years and reformat census year column
     census_long = census_long %>% 
@@ -138,10 +142,11 @@ build_data <- function(site, dvers, mvers, prefix,
   # Order by tree and year 
   incr_data = incr_data %>% arrange(stat_id, year)
   
-  # Data frame of the first and last year of observation (years corresponding to first and last increment) for each tree
+  # Data frame of the first and last year of observation for each tree
+  # First year for all years is the first year of data (which will tend to be the cutoff year)
   year_idx = data.frame(stat_id = as.numeric(aggregate(year~stat_id, data=incr_data, FUN=min, na.rm=TRUE)[,1]),
-                        year_start=as.numeric(aggregate(year~stat_id, data=incr_data, FUN=min, na.rm=TRUE)[,2]), 
                         year_end=as.numeric(aggregate(year~stat_id, incr_data, max)[,2]))
+  year_idx$year_start = rep(year_start, length(year_idx$stat_id))
   
   #########################################################
   ################ 4. Organize RW DBH data ################
@@ -178,9 +183,6 @@ build_data <- function(site, dvers, mvers, prefix,
   
   if (census_site){
     
-    # Need to get median increment value for stand
-    medInc = median(incr_data$incr)
-    
     # Need to adjust dates of census data 
     census_long$year = as.numeric(census_long$year) - year_start + 1
     
@@ -197,29 +199,15 @@ build_data <- function(site, dvers, mvers, prefix,
       # check to see if in census 
       in.C = ifelse(stat %in% census_long$stat_id, TRUE, FALSE)
       
-      # if in both, determine earliest and latest date with available data 
+      # if in both, determine latest date with available data 
       # if RW ends before the last census measurement, we need to enable smoothing 
       # last year will be either:
       # (1) year before first census without that tree if it is not in all censuses or
       # (2) last year with recorded data if after last census 
       if (in.RW & in.C){
         
-        firstyr = min(min(census_long$year[which(census_long$stat_id == stat)]), 
-                      year_idx$year_start[year_idx$stat_id == stat])
-        
-        
-        # if census comes first, we need to map to until the tree would be about 5 cm based on median increment 
-        if(firstyr != year_idx$year_start[year_idx$stat_id == stat]){
-          
-          # get first census 
-          firstCensus = min(which(which(years %in% census_years) %in% unique(census_long$year[which(census_long$stat_id == stat)])))
-          
-          # track diameter back each year using median increment in order to figure out a reasonable year that the tree would have DBH less than 5 cm. 
-          firstDBH = (census_long %>% filter(stat_id == stat, year == which(years == census_years[firstCensus])))$dbh
-          subtracts = firstDBH - (c(1:(which(years == census_years[firstCensus])-1)) * (2 * medInc/10))
-          firstyr = ifelse(length(which(subtracts <= 5)) == 0, 1, which(years == census_years[firstCensus]) - min(which(subtracts <= 5)))
-          if (firstyr == 0) print('zero as first year')
-        }
+        # first year is always first year of available data (tends to be cutoff)
+        firstyr = 1
         
         # what was the last census this tree was in?
         lastCensus = max(which(which(years %in% census_years) %in% as.numeric(census_long$year[which(census_long$stat_id == stat)])))
@@ -229,50 +217,45 @@ build_data <- function(site, dvers, mvers, prefix,
         if ((which(years %in% census_years)[lastCensus]) < lastData){
           lastyr = lastData
           
-        # otherwise, we need to determine if it was present in the most recent census; OW it is the year before the first missed census
+        # we will stochastically pick death year for trees in processing, always run up until first year of coring, 
+        # which should be the variable "finalyr"
         }else{
+          # if in last census, use last year of data (deal with in processing)
           if(lastCensus == length(census_years)){
             lastyr = length(years)
+          # if not in last census, use year before first census where the tree is missing and mark for smoothing 
           }else{
             lastyr = which(years == (census_years[lastCensus+1] - 1))
+            census_long$finalCond[which(census_long$stat_id == stat)] = 'dead'
           }
         }
       }
       
       # if only in RW, use year_idx 
       if (in.RW & !in.C){
-        firstyr = year_idx$year_start[year_idx$stat_id == stat]
+        firstyr = 1
         lastyr = year_idx$year_end[year_idx$stat_id == stat]
       }
       
-      # if only in census, first year is determined by subtracting the first census DBH value by the average ring width increment until 
-      # the DBH is 5 cm or less 
-      # last year is either:
+      # if only in census, last year is either:
         # (1) year before first census date without that tree if it is not in all censuses or 
-        # (2) last year with recorded data (died sometime between coring and last census)
+        # (2) final year if in last census (will use firstCond later to determine if smoothing needed) 
       # this allows us to perform mortality smoothing in processing the model output
       if (!in.RW & in.C){
         
-        # get first census 
-        firstCensus = min(which(which(years %in% census_years) %in% unique(census_long$year[which(census_long$stat_id == stat)])))
-        
-        # track diameter back each year using median increment in order to figure out a reasonable year that the tree would have DBH less than 5 cm. 
-        # choose the most recent year between that year and 1960
-        firstDBH = (census_long %>% filter(stat_id == stat, year == which(years == census_years[firstCensus])))$dbh
-        subtracts = firstDBH - (c(1:(which(years == census_years[firstCensus])-1)) * (2 * medInc/10))
-        firstyr = ifelse(length(which(subtracts <= 5)) == 0, 1, which(years == census_years[firstCensus]) - min(which(subtracts <= 5)))
-        if (firstyr == 0) print('zero as first year')
+        # first year is going to be the first year with any data (tends to be cutoff)
+        firstyr = 1
         
         # determine the last year with census data 
         lastCensus = max(which(which(years %in% census_years) %in% unique(census_long$year[which(census_long$stat_id == stat)])))
         
-        # if tree was in most recent census, run it until end of ring width data
+        # if tree was in most recent census
         if (lastCensus == length(census_years)){
           lastyr = length(years)
-          
-        # otherwise, run it until the year before the next census
+        # otherwise, run it until the year before the next census and mark for smoothing
         }else{
           lastyr = which(years == (census_years[lastCensus+1] - 1))
+          census_long$finalCond[which(census_long$stat_id == stat)] = 'dead'
         }
       }
       
@@ -361,6 +344,7 @@ build_data <- function(site, dvers, mvers, prefix,
     X2year_C = X_data_C$year
     X2C = X_data_C$stat_id
     
+
     # Maps observed values of RW to respective RW estimate index for RW + Census model 
     Xobs2X_C = sapply((1:length(incr_data$id)),
                     function(ind){
@@ -503,7 +487,7 @@ build_data <- function(site, dvers, mvers, prefix,
   D0s = data.frame(D0 = D0s, stat_id = trees)
   
   # check range of predicted D0s 
-  if (min(D0s$D0) < -2 | max(D0s$D0) > 80) print('warning: estimated D0 value outside of model range')
+  if (min(D0s$D0) < -30 | max(D0s$D0) > 80) print('warning: estimated D0 value outside of model range')
   
   # PLOT 1: Look at values of D0 to see if diameter prior range is reasonable
   pl1 = ggplot(D0s) + 
@@ -511,10 +495,10 @@ build_data <- function(site, dvers, mvers, prefix,
     labs(x = 'Estimated D0 value', 
          title = paste0('Histogram of D0 Values (', 
                         min(D0s$D0), ', ', max(D0s$D0), ')')) + 
-    xlim(-10,100) + 
+    xlim(-40,100) + 
     geom_vline(xintercept = 80, color = 'red') + 
-    geom_vline(xintercept = -3, color = 'red')
-  ggsave(pl1, filename = file.path(site_dir,'figures','D0_histogram.jpg'))
+    geom_vline(xintercept = -30, color = 'red')
+  ggsave(pl1, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','D0_histogram.jpg'))
   
   # PLOT 2: Check to make sure growth makes sense 
   pl2 = ggplot(incr_data) + 
@@ -522,13 +506,14 @@ build_data <- function(site, dvers, mvers, prefix,
     facet_wrap(~as.factor(taxon)) + 
     labs(y = 'diameter (cm)', title = 'Species Growth over Time') + 
     theme(legend.position = 'none')
-  ggsave(pl2, filename = file.path(site_dir,'figures','species_growth_check.jpg'))
+  ggsave(pl2, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','species_growth_check.jpg'))
   
   # Now, we need to check the D0 assumption for the census data
   if (census_site){
     
     # Then, we are going to determine what the D0 value would be in 1960 for each of the trees
     # based on their most recent census measurement
+    medInc = median(incr_data$incr)
     
     # Let's just consider those trees without RW data because we already checked the other trees
     census_only = allTrees$stat_id[which(!(allTrees$stat_id %in% unique(incr_data$stat_id)))]
@@ -554,17 +539,17 @@ build_data <- function(site, dvers, mvers, prefix,
     D0s_census = data.frame(D0 = D0s_census, stat_id = census_only)
     
     # check range of predicted D0s 
-    if (min(D0s_census$D0) < -2 | max(D0s_census$D0) > 80) print('warning: estimated D0 value outside of model range for census')
+    if (min(D0s_census$D0) < -30 | max(D0s_census$D0) > 80) print('warning: estimated D0 value outside of model range for census')
     
     pl3 = ggplot(D0s_census) + 
       geom_histogram(aes(x = D0), binwidth = 1) + 
       labs(x = 'Estimated D0 value', 
            title = paste0('Histogram of D0 Values - Census (', 
                           min(D0s_census$D0), ', ', max(D0s_census$D0), ')')) + 
-      xlim(-10,100) + 
+      xlim(-40,100) + 
       geom_vline(xintercept = 80, color = 'red') + 
-      geom_vline(xintercept = -3, color = 'red')
-    ggsave(pl3, filename = file.path(site_dir,'figures','D0_histogram_census.jpg'))
+      geom_vline(xintercept = -30, color = 'red')
+    ggsave(pl3, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','D0_histogram_census.jpg'))
   }
 }
 

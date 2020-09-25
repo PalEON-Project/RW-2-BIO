@@ -9,4 +9,4 @@ site = 'HARVARD'
 prefix = 'LF' # from ring width tree IDs 
 census_site = TRUE # has census information available 
 nest = 'double' 
-finalyr = 2011 # last year of reliable 
+finalyr = 2012 # last year of reliable 

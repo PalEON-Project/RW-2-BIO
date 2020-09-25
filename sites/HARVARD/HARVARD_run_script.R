@@ -6,9 +6,10 @@
 #####################################################
 ################ 0. Set up workspace ################
 #####################################################
+library(RW2BIO)
 
 rm(list=ls())
-setwd('/Users/marissakivi/Desktop/RW-2-BIO')
+setwd('/Users/marissakivi/Desktop/PalEON/RW-2-BIO')
 
 # Load config file 
 source('sites/HARVARD/config.R')
@@ -40,7 +41,6 @@ rm(treeMeta, census)
 ################ 2. Build data ################
 ###############################################
 
-source('R/build_data.R')
 build_data(site = site, 
            dvers = dvers, 
            mvers = mvers, 
@@ -52,7 +52,6 @@ build_data(site = site,
 ##############################################
 
 # Run STAN model(s)
-source('R/run_model.R') 
 run_model(census_site = census_site,
           site = site, 
           mvers = mvers, 
@@ -63,7 +62,6 @@ run_model(census_site = census_site,
 ###################################################
 
 # Process STAN output(s) 
-source('R/process_rw_model.R')
 process_rw_model(census_site = census_site,
                  mvers = mvers, 
                  dvers = dvers, 

@@ -1,6 +1,10 @@
 ################################################
 ################ HARVARD FOREST ################
 ################################################
+library(dplR)
+library(plyr)
+library(dplyr)
+library(reshape2)
 
 # reformatting ring width metadata csv
 treeMeta = read.csv('sites/HARVARD/data/raw/past/LyfordAllPlots.csv', skip = 3, 
@@ -76,7 +80,7 @@ for (i in 1:nrow(censusFull)){
 }
 
 rownames(temp.matrix) = treeids
-census_melt = melt(temp.matrix) %>% filter(!is.na(value))
+census_melt = reshape2::melt(temp.matrix) %>% filter(!is.na(value))
 colnames(census_melt) = c('id','year','dbh')
 
 censusFix = dcast(census_melt, id ~ year, value.var = 'dbh')
@@ -87,7 +91,7 @@ censusAdd = left_join(censusFix,
                       censusFull %>% mutate(id = Tag) %>% dplyr::select(block, species, id, xsite, ysite),
                       by = 'id')
 treeMetaOrig = read.csv('sites/HARVARD/data/raw/past/LyfordAllPlots.csv', skip = 3, stringsAsFactors = FALSE) %>% 
-  mutate(id = Tag) %>% dplyr::select(Site, Species, DBH, id, Tree.Number)
+  mutate(id = Tag) %>% dplyr::select(Site, Species, DBH, id, Tree.Number, Status)
 censusSpp = left_join(censusAdd, treeMetaOrig, by = 'id')
 
 # need to check to make sure we lined up trees correctly - where do we have the species wrong?
@@ -116,7 +120,6 @@ sites = sapply(blocks,
                function(b){
                  sitecheck$Site[which(sitecheck$block == b)[1]]
                })
-
 
 # need to determine distance from plot center in feet based on xsite and ysite for each plot
 censusSite = censusSpp %>% filter(block %in% blocks)
@@ -154,8 +157,7 @@ plot3$Tree.Number[nas] = seq((max(plot3$Tree.Number,na.rm = TRUE)+1), (max(plot3
 
 # recompile list and convert distance from feet to meters; filter out all census trees that are outside of plot
 # this data frame will therefore only contain trees relevant to the RW plots
-censusFinal = rbind(plot1, plot2, plot3) %>% mutate(distance = distance * 0.3048) %>%
-  dplyr::select(-block,-xsite, -ysite, -Site, -Species, -DBH)
+censusFinal = rbind(plot1, plot2, plot3)
 
 # now we need to reformat IDs for trees
 for (i in seq_along(censusFinal$site)){
@@ -167,7 +169,88 @@ for (i in seq_along(censusFinal$site)){
 }
 
 # remove tree number column
-censusFinal = censusFinal %>% mutate(ID = id) %>% dplyr::select(-Tree.Number, -id)
+censusFinal = censusFinal %>% mutate(ID = id) %>% dplyr::select(-Tree.Number,-id) 
+
+# there are some gaps between the census data and the ring width data which we need to tell the model about 
+# some trees are missing from the ring width data which should have been included according to the sampling design
+# let's find them so we can tell the model if these trees should be considered dead by the coring year or if they 
+# were likely alive 
+
+# first let's read in the RWL data so we know where we have data (ATTENTION: these are the reformatted RWL files)
+# we need the IDS and the last year with data 
+rwFiles <- list.files('sites/HARVARD/data/raw/rwl')
+rwFiles <- rwFiles[grep(".rwl$", rwFiles)]
+rwData <- list()
+for(fn in rwFiles) {
+  id <- gsub(".rw", "", fn)
+  # Insert the contents of each file into the rwData list
+  rwData[[id]] <- t((read.tucson(file.path('sites/HARVARD/data/raw/rwl', fn))))  # rows are tree, cols are times
+}
+incr = ldply(rwData, rbind)
+incr = incr[,c(".id", sort(colnames(incr)[2:ncol(incr)]))]
+rownames(incr) = as.vector(unlist(lapply(rwData, rownames)))
+incr[,1] = rownames(incr)
+incr_data = melt(incr)
+colnames(incr_data) = c('id', 'year', 'incr')
+incr_data$year = as.vector(incr_data$year)
+incr_data$id = substr(incr_data$id, 1, 6)
+incr_data = incr_data %>% filter(!is.na(incr))
+RWinfo = incr_data %>% group_by(id) %>% 
+  summarize(lastyr = max(year))
+rm(incr_data, incr, rwData)
+
+# now, let's just take a look at the census trees that are present in the final census 
+Cinfo = censusFinal %>% mutate(D11 = as.numeric(D11)) %>% filter(!is.na(D11))
+
+# we need to find all the trees where either 
+# (1) the census data says the tree lived after the RW data  
+# (2) the tree is not in the RW data but should have been according to sampling design
+KeepIDs = c() 
+for (i in 1:nrow(Cinfo)){
+  IDnow = Cinfo$ID[i]
+  
+  # in RW data?
+  if (IDnow %in% RWinfo$id){
+    
+    # is the final year of RW data on or after 2011?
+    finalyr = RWinfo$lastyr[which(RWinfo$id == IDnow)]
+    if (finalyr < 2011) KeepIDs = c(KeepIDs, IDnow)
+    
+  }else{
+    # too small?
+    if (Cinfo$D11[i] < 10) next
+    # too small for outer ring?
+    if ((Cinfo$D11[i] < 20) & (Cinfo$distance[i] > 13)) next
+
+    KeepIDs = c(KeepIDs, IDnow)
+  }
+}
+
+# look closer at these marked IDS 
+Cinfo %>% filter(ID %in% KeepIDs)
+
+# these trees were likely measured outside of the plot in the coring year so should be considered alive 
+# 1070 (too small for outer ring, distance ~ 13m)
+# 2139 (measured outside of the plot area, distance ~ 20m) 
+# 2170 (measured outside of the plot area, distance ~ 20m)
+# 3106 (measured outside of the plot area, distance ~ 20m)
+
+# this tree was marked in the RW metadata as missing RW data, but still alive at time of coring 
+# 3036
+
+# these trees were noted as dead in the ring width data, so died between 2011 and coring year
+# 1014, 2027, 2045, 3016
+
+# these trees have no clear reason for why they wouldn't be in the RW data, so we assume they died 
+# 1130, 2126
+
+# therefore, let's create another data column that tells the model what to do with these trees in terms of their 
+# condition in the coring year 
+# NOTE: by making all other trees
+censusFinal$finalCond = rep('alive',nrow(censusFinal))
+censusFinal$finalCond[which(censusFinal$ID %in% c('LF1014','LF2027','LF2045','LF3016','LF1130','LF2126'))] = 'dead'
+
+censusFinal = censusFinal %>% dplyr::select(-block, -Species, -ysite, -xsite, -Status, -DBH, -Site)
 
 any(is.na(censusFinal$site))
 any(is.na(censusFinal$ID))
