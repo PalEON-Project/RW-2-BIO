@@ -3,5 +3,6 @@
 .RData
 .Ruserdata
 
-sites/*/data/built/
-sites/*/output/
+sites/*/runs/*
+sites/*/output/*
+sites/*/figures/*
