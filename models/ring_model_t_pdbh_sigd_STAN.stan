@@ -22,12 +22,12 @@ parameters {
   real<lower=0> beta_t_sd;
   real<lower=1e-6> sig_x;
   real<lower=1e-6> sig_x_obs;
-  real<lower=1e-6, upper=80> D0[N_Tr];
+  real<lower=-30, upper=80> D0[N_Tr];
   vector<lower=1e-6> [N_X] X;
 }
 transformed parameters {
     // process evolution
-  vector<lower=1e-6> [N_X] D;
+  vector<lower=-30> [N_X] D;
 
   for (tree in 1:N_Tr){
     D[idx_Tr[tree,2]] = D0[tree] + 2.0 * X[idx_Tr[tree,2]] / 10.0;

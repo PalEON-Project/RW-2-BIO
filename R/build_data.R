@@ -146,7 +146,7 @@ build_data <- function(site, dvers, mvers, prefix,
   # First year for all years is the first year of data (which will tend to be the cutoff year)
   year_idx = data.frame(stat_id = as.numeric(aggregate(year~stat_id, data=incr_data, FUN=min, na.rm=TRUE)[,1]),
                         year_end=as.numeric(aggregate(year~stat_id, incr_data, max)[,2]))
-  year_idx$year_start = rep(year_start, length(year_idx$stat_id))
+  year_idx$year_start = rep(1, length(year_idx$stat_id))
   
   #########################################################
   ################ 4. Organize RW DBH data ################
@@ -460,7 +460,7 @@ build_data <- function(site, dvers, mvers, prefix,
   for (t in seq_along(trees)){
     
     stat = trees[t] 
-    yrs = sort(unique((incr_data %>% filter(stat_id == stat))$year), decreasing = TRUE)
+    yrs = rev(seq(1,max((incr_data %>% filter(stat_id == stat))$year)))
     Dlast = Tr$dbh[which(Tr$stat_id == stat)]
     
     D[which((incr_data$stat_id == stat) & (incr_data$year == yrs[1]))] = Dlast
@@ -473,10 +473,14 @@ build_data <- function(site, dvers, mvers, prefix,
       
       yrnow = yrs[y]
       Dnow = Dnow - (2 * incr_now / 10)
-      D[which((incr_data$stat_id == stat) & (incr_data$year == yrnow))] = Dnow
       
-      # adjust this year's increment for next year 
-      incr_now = min(incr_data$incr[which((incr_data$stat_id == stat) & (incr_data$year == yrnow))])
+      # if year has increment data we need to save it 
+      if (length(which((incr_data$stat_id == stat) & (incr_data$year == yrnow))) > 0){
+        D[which((incr_data$stat_id == stat) & (incr_data$year == yrnow))] = Dnow
+        incr_now = min(incr_data$incr[which((incr_data$stat_id == stat) & (incr_data$year == yrnow))])
+      }else{
+        incr_now = median(incr_data$incr)
+      }
     }
   
     # get approximate D0 value for tree

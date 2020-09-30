@@ -27,12 +27,12 @@ parameters {
   real<lower=1e-6> sig_x; // in likelihood of X vals 
   real<lower=1e-6> sig_x_obs; // in likelihood for increments
   real<lower=0> sig_d_obs; // in likelihood for diameters 
-  real<lower=1e-6, upper=80> D0[N_C]; // starting diameter values 
+  real<lower=-30, upper=80> D0[N_C]; // starting diameter values 
   vector<lower=1e-6>[N_X_C] X; // estimated annual incrememnts 
 }
 transformed parameters {
     // process evolution
-  vector<lower=1e-6>[N_X_C] D;
+  vector<lower=-30>[N_X_C] D;
 
     // increment diameters from D0 according to estimated Xs
   for (tree in 1:N_C){
@@ -55,7 +55,7 @@ model{
   beta_t_sd ~ uniform(1e-6, 1000);
     
   for(tree in 1:N_C) {
-    D0[tree] ~ uniform(-3,80);
+    D0[tree] ~ uniform(-30,80);
     beta[tree] ~ normal(beta0, beta_sd);
   }
   
