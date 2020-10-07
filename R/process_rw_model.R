@@ -4,7 +4,7 @@
 ## It will automatically process the data with and without the sampling correction depending on the site configuration file.
 
 process_rw_model <- function(census_site, mvers, dvers, site, nest,
-                             finalyr = NULL, keep = 250, plot_radius = NULL){
+                             finalyr = NULL, plot_radius = NULL){
   
   ###############################################################
   ################ 1. Prepare workspace and data ################
@@ -38,9 +38,20 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
   for (i in 1:length(fnames)) {
     fname_model = fnames[i]
     out = readRDS(paste0(output_dir,'/', fname_model))
-    post[[i]] = out$D[(dim(out$D)[1]-keep+1):(dim(out$D)[1]),]
+    
+    # get all array slices for diameters 
+    variables = names(out[1,1,])
+    allDs = grep('D\\[',variables)
+    
+    # we need to put into matrix for use in processing, some compile info from all chains
+    out.temp = out[,,allDs]
+    out = out.temp[,1,]
+    for (j in 2:ncol(out.temp)){
+      out = rbind(out, out.temp[,j,])
+    }
+    post[[i]] = out
   }  
-  rm(out)
+  rm(out, out.temp, allDs, variables)
   
   # load built data for site 
   dat = readRDS(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'input',paste0('tree_data_', site ,'_STAN_',mvers,'_', dvers, '.RDS')))
@@ -53,6 +64,8 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
   plot = Tr$plot 
   years = dat$years
   distance = Tr$distance
+  
+  keep = nrow(post[[1]])
   
   if (is.null(finalyr)) finalyr = max(years)
   
@@ -479,7 +492,8 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
     group_by(model, plot, taxon, year) %>%
     summarize(ab025 = quantile(ab, 0.025),
               ab50 = quantile(ab, 0.5),
-              ab975 = quantile(ab, 0.975))
+              ab975 = quantile(ab, 0.975)) %>% 
+    ungroup()
   
   sum_plot = agb_taxa %>%
     group_by(model, plot, year, iter) %>%
@@ -492,19 +506,21 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
   
   data_pft_plot = data_melt %>% 
     group_by(year, plot, taxon) %>% 
-    summarize(ab = sum(value))
+    summarize(ab = sum(value)) %>%
+    ungroup()
   
   data_plot = data_melt %>%
     group_by(year, plot) %>%
-    summarize(ab = sum(value))
+    summarize(ab = sum(value)) %>% 
+    ungroup()
   
   # figure to compare biomass by PFT for each plot 
-  pl1 = ggplot() + 
-    geom_line(data = agb_plot, aes(x = year, y = ab50, group = taxon, color = taxon)) + 
-    geom_ribbon(data = agb_plot, aes(x = year, ymin = ab025, ymax = ab975, 
-                                     fill = taxon, group = taxon, color = taxon), alpha = 0.4) +
-    #geom_line(data = data_pft_plot, aes(x = year, y = ab, group = taxon)) +
+  pl1 = ggplot(data = left_join(agb_plot, data_pft_plot, by = c('plot','taxon','year'))) + 
     facet_grid(~plot~as.factor(model)) + 
+    geom_line(aes(x = year, y = ab50, group = taxon, color = taxon)) + 
+    geom_ribbon(aes(x = year, ymin = ab025, ymax = ab975, 
+                                     fill = taxon, group = taxon, color = taxon), alpha = 0.4) +
+    geom_line(aes(x = year, y = ab, group = taxon)) +
     theme_bw() + 
     labs(x = 'Year', y = 'Biomass (Mg/ha)', color = 'Species', fill = 'Species',
          title = 'Aboveground Biomass by PFT')

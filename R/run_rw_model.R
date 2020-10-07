@@ -166,7 +166,7 @@ run_rw_model <- function(census_site, site, mvers,
     # this is a big file, so let's just save the iterations we need 
     postTemp = post[seq(dim(post)[1]-pool+1, dim(post)[1], pool/(keep/nchains)),,]
     post = postTemp
-    rm(postTemp)
+    rm(postTemp,ess)
     
     # save as RDS file 
     saveRDS(post, file = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'output', paste0('ring_model_t_pdbh_STAN_', site, '_', mvers, '_', dvers, '.RDS')))
@@ -220,7 +220,7 @@ run_rw_model <- function(census_site, site, mvers,
 
   # compile STAN model
   compiled <- stan_model(file = paste0('models/ring_model_t_pdbh_sigd_STAN.stan'))
-  
+
   # fit and extract values
   fit <- sampling(compiled, 
                   data = dat, 
@@ -344,7 +344,7 @@ run_rw_model <- function(census_site, site, mvers,
     trk_ind = trk_ind + 1
   }
   
-  pdf(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','MCMC_diagnostics.pdf'), onefile = TRUE)
+  pdf(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','RW_MCMC_diagnostics.pdf'), onefile = TRUE)
   for (i in seq(length(mcmc_diags))) {
     grid.arrange(mcmc_diags[[i]])
   }
@@ -367,7 +367,7 @@ run_rw_model <- function(census_site, site, mvers,
   allDs = grep('D\\[',variables)
   D = matrix(NA,1,length(allDs))
   for (i in 1:nchains){
-    D = rbind(D,post[(niter-keep+1):niter,i,allDs])
+    D = rbind(D,post[,i,allDs])
   }
   D = D[-1,]
   output = data.frame(D = apply(D, 2, mean), year = dat$X2year, tree = dat$X2Tr, taxon = dat$Tr$taxon[dat$X2Tr])

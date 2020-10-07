@@ -400,7 +400,7 @@ build_data <- function(site, dvers, mvers, prefix,
   #####################################################
   ################ 4. Save as RDS file ################
   #####################################################
-  
+   
   if (census_site){
     saveRDS(list(N_Xobs = N_Xobs, 
                  N_years = N_years, 

@@ -48,7 +48,7 @@ model{
   beta_t_sd ~ uniform(1e-6, 1000);
     
   for(tree in 1:N_Tr) {
-    D0[tree] ~ uniform(-3, 80);
+    D0[tree] ~ uniform(-30, 80);
     beta[tree] ~ normal(beta0, beta_sd);
   }
   
