@@ -5,7 +5,7 @@
 ## DBH, and location within the plot. The CSV file should be in the same format as that of the sample CSV file available at (INSERT REPO URL). 
 
 build_data <- function(site, dvers, mvers, prefix, 
-                       census_site, finalyr = NA, cutoff = 1900){
+                       census_site, cutoff = 1900){
    
   # Prepare workspace 
   library(plotrix)
@@ -65,8 +65,7 @@ build_data <- function(site, dvers, mvers, prefix,
   # Remove NA values right away to quicken processing (only keep the series for which trees were alive/existed)
   # Also remove all increment values for before the determined cut off year, which has a default value of 1900
   # Also remove all data that comes after the first year of full data (some sites have multiple years of coring)
-  if (is.na(finalyr)) finalyr = max(incr_data$year)
-  incr_data = incr_data %>% mutate(year = as.numeric(year)) %>% filter(!is.na(incr), year >= cutoff, year <= finalyr)
+  incr_data = incr_data %>% mutate(year = as.numeric(year)) %>% filter(!is.na(incr), year >= cutoff)
   
   # Assign core ID to each core
   incr_data$id = substr(incr_data$id, 1, len)
@@ -217,8 +216,8 @@ build_data <- function(site, dvers, mvers, prefix,
         if ((which(years %in% census_years)[lastCensus]) < lastData){
           lastyr = lastData
           
-        # we will stochastically pick death year for trees in processing, always run up until first year of coring, 
-        # which should be the variable "finalyr"
+        # we will stochastically pick death year for trees in processing, always run up until first year of coring 
+        # which in this case will just be the last year of data 
         }else{
           # if in last census, use last year of data (deal with in processing)
           if(lastCensus == length(census_years)){
