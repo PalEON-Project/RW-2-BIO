@@ -29,7 +29,7 @@ any(is.na(treeMeta$species))
 any(is.na(treeMeta$dbh))
 any(is.na(treeMeta$distance))
 
-write.csv(treeMeta, 'sites/HARVARD/data/raw/HARVARD_treeMeta_082020.csv', row.names = FALSE)
+write.csv(treeMeta, 'sites/HARVARD/data/raw/HARVARD_treeMeta_102020.csv', row.names = FALSE)
 
 # reformatting census data 
 censusFull = read.csv('sites/HARVARD/data/raw/past/hf032-01-tree.csv', 
@@ -257,4 +257,4 @@ any(is.na(censusFinal$ID))
 any(is.na(censusFinal$species))
 any(is.na(censusFinal$distance))
 
-write.csv(censusFinal, 'sites/HARVARD/data/raw/HARVARD_census_082020.csv', row.names = FALSE)
+write.csv(censusFinal, 'sites/HARVARD/data/raw/HARVARD_census_102020.csv', row.names = FALSE)

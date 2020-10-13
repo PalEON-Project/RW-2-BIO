@@ -9,9 +9,9 @@ run_rw_model <- function(census_site, site, mvers,
   ################ 1. Load data ################
   ##############################################
   
-  library(rstan)
-  library(gridExtra)
-  library(ggplotify)
+  #library(rstan)
+  #library(gridExtra)
+  #library(ggplotify)
   
   # Create directories if needed
   site_dir <- file.path('sites',site)

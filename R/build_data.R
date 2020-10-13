@@ -8,13 +8,14 @@ build_data <- function(site, dvers, mvers, prefix,
                        census_site, cutoff = 1900){
    
   # Prepare workspace 
-  library(plotrix)
-  library(dplR)
-  library(fields)
-  library(reshape2)
-  library(dplyr)
-  library(plyr)
-  library(ggplot2)
+  # Had to comment these out for submitting on ND campus cluster (stupid issues with loading packages)
+  #library(plotrix)
+  #library(dplR)
+  #library(fields)
+  #library(reshape2)
+  #library(dplyr)
+  #library(plyr)
+  #library(ggplot2)
   
   # Create save folders for data 
   site_dir <- file.path('sites',site)

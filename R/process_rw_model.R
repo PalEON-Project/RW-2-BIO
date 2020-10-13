@@ -11,10 +11,10 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
   ###############################################################
   
   # load needed libraries
-  library(ggplot2)
-  library(reshape2)
-  library(abind)
-  library(dplyr)
+  #library(ggplot2)
+  #library(reshape2)
+  #library(abind)
+  #library(dplyr)
   
   # create save folders for data 
   site_dir <- file.path('sites',site)

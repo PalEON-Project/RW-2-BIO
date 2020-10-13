@@ -1,7 +1,7 @@
 # Harvard Forest Configuration File
 
 # data details
-dvers = '082020'
+dvers = '102020'
 mvers = 'v2.0'
 
 # site details
