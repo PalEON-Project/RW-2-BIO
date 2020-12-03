@@ -8,7 +8,7 @@ setwd('~/RW-2-BIO')
 load('/sites/HARVARD/inst/config.R')
 
 # load needed function
-source('R/processs_rw_model.R')
+source('R/process_rw_model.R')
 
 # prepare workspace 
 require(ggplot2)

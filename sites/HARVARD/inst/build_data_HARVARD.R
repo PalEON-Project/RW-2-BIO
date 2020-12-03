@@ -5,18 +5,21 @@
 setwd('~/RW-2-BIO')
 
 # load model run details 
-load('/sites/HARVARD/inst/config.R')
+source('sites/HARVARD/inst/config.R')
 
 # load needed function
 source('R/build_data.R')
+
+.libPaths('~/Rlibs')
 
 # prepare workspace 
 require(plotrix)
 require(dplR)
 require(fields)
+
 require(reshape2)
-require(dplyr)
 require(plyr)
+require(dplyr)
 require(ggplot2)
 
 # run step 

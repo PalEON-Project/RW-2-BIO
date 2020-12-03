@@ -5,15 +5,17 @@
 setwd('~/RW-2-BIO')
 
 # load model run details 
-load('/sites/HARVARD/inst/config.R')
+source('sites/HARVARD/inst/config.R')
 
 # load needed function
 source('R/run_rw_model.R')
 
+.libPaths('~/Rlibs')
+
 # prepare workspace 
-require(rstan)
-require(gridExtra)
-require(ggplotify)
+library(rstan)
+library(gridExtra)
+library(ggplotify)
 
 # run step 
 run_rw_model(census_site = census_site, 

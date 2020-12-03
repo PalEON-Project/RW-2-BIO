@@ -8,4 +8,4 @@
 module load R
 #module load netcdf/4.7.0/intel/18.0
 
-R CMD BATCH ~/RW-2-BIO/sites/HARVARD/inst/process_model.R  output_process_HARVARD.out
+R CMD BATCH ~/RW-2-BIO/sites/HARVARD/inst/process_model_HARVARD.R  output_process_HARVARD.out
