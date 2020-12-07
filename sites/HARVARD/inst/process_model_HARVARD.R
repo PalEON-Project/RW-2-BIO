@@ -5,14 +5,17 @@
 setwd('~/RW-2-BIO')
 
 # load model run details 
-load('/sites/HARVARD/inst/config.R')
+source('sites/HARVARD/inst/config.R')
 
 # load needed function
 source('R/process_rw_model.R')
 
+require(reshape2)
+
+.libPaths('~/Rlibs')
+
 # prepare workspace 
 require(ggplot2)
-require(reshape2)
 require(abind)
 require(dplyr)
 
