@@ -3,18 +3,14 @@
 ## This script processes the output of the stat model into a format that is generally useful in PalEON and for the PEcAn workflow
 ## It will automatically process the data with and without the sampling correction depending on the site configuration file.
 
+# Need to add plot_radius if no sampling correction 
+
 process_rw_model <- function(census_site, mvers, dvers, site, nest,
                              finalyr = NULL, plot_radius = NULL){
   
   ###############################################################
   ################ 1. Prepare workspace and data ################
   ###############################################################
-  
-  # load needed libraries
-  #library(ggplot2)
-  #library(reshape2)
-  #library(abind)
-  #library(dplyr)
   
   # create save folders for data 
   site_dir <- file.path('sites',site)

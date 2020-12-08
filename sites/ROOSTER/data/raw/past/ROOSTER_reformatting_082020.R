@@ -2,6 +2,8 @@
 ################ ROOSTER HILL ################
 ##############################################
 
+library(dplyr)
+
 # reformatting tree meta data 
 file = 'sites/ROOSTER/data/raw/past/RoosterHillAllPlots.csv'
 treeMeta = read.csv(file, skip = 3) %>% 
