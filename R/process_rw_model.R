@@ -40,7 +40,11 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
     allDs = grep('D\\[',variables)
     
     # we need to put into matrix for use in processing, some compile info from all chains
-    out.temp = out[,,allDs]
+    pool = 500
+    nchains = 3
+    keep = 300 
+    out.temp = out[seq(dim(out)[1]-pool+1, dim(out)[1], pool/(keep/nchains)),,allDs]
+    
     out = out.temp[,1,]
     for (j in 2:ncol(out.temp)){
       out = rbind(out, out.temp[,j,])
