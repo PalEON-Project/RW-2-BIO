@@ -184,7 +184,8 @@ run_rw_model <- function(census_site, site, mvers,
     D = D[-1,]
     output = data.frame(D = apply(D, 2, mean), year = dat$X2year_C, tree = dat$X2C, taxon = X2taxon_C)
     
-    # median is better measure of center here due to distribution skewness
+    
+    # median is better measure of center here due to distribution skewness:
     sig_d_obs = median(sig_d_obs)
     rm(post)
     
@@ -207,10 +208,14 @@ run_rw_model <- function(census_site, site, mvers,
   # from a site that has both of these datasets (i.e. Harvard Forest)
   # TO DO: this needs to be automated I think so that we can adjust which site we want to use
   if (!census_site){
-    out = readRDS('sites/HARVARD/runs/v2.0_082020/output/ring_model_t_pdbh_STAN_HARVARD_v2.0_082020.RDS')
+    out = readRDS('sites/HARVARD/runs/v2.0_102020/output/ring_model_t_pdbh_STAN_HARVARD_v2.0_102020.RDS')
     
     # extract measurement error from dataset and find median (better measure of center due to skewness of distribution)
-    dat$sig_d_obs = median(out$sig_d_obs)
+    needed = which(names(out[1,1,]) == 'sig_d_obs')
+    all = c(out[,1,needed], out[,2,needed], out[,3,needed])
+    dat$sig_d_obs = median(all)
+    print(needed)
+    print(all) 
     rm(out)
     
   # otherwise we use the value found in the model above 
