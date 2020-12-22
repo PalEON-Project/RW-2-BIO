@@ -164,9 +164,10 @@ run_rw_model <- function(census_site, site, mvers,
     #################################################################
     
     # this is a big file, so let's just save the iterations we need 
-    postTemp = post[seq(dim(post)[1]-pool+1, dim(post)[1], pool/(keep/nchains)),,]
-    post = postTemp
-    rm(postTemp,ess)
+    #postTemp = post[seq(dim(post)[1]-pool+1, dim(post)[1], pool/(keep/nchains)),,]
+    #post = postTemp
+    #rm(postTemp,ess)
+    rm(ess)
     
     # save as RDS file 
     saveRDS(post, file = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'output', paste0('ring_model_t_pdbh_STAN_', site, '_', mvers, '_', dvers, '.RDS')))
@@ -361,9 +362,9 @@ run_rw_model <- function(census_site, site, mvers,
   #############################################################
   
   # this is a big file, so let's just save the iterations we need 
-  postTemp = post[seq(dim(post)[1]-pool+1, dim(post)[1], pool/(keep/nchains)),,]
-  post = postTemp
-  rm(postTemp)
+  #postTemp = post[seq(dim(post)[1]-pool+1, dim(post)[1], pool/(keep/nchains)),,]
+  #post = postTemp
+  #rm(postTemp)
   
   # save as RDS file 
   saveRDS(post, file = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'output',paste0('ring_model_t_pdbh_sigd_STAN_', site, '_', mvers,'_', dvers, '.RDS')))
