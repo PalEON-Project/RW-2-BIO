@@ -6,7 +6,8 @@
 # Need to add plot_radius if no sampling correction 
 
 process_rw_model <- function(census_site, mvers, dvers, site, nest,
-                             finalyr = NULL, plot_radius = NULL){
+                             finalyr = NULL, plot_radius = NULL, 
+                             keep = 300, pool = 500, nchains = 3){
   
   ###############################################################
   ################ 1. Prepare workspace and data ################
@@ -40,9 +41,6 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
     allDs = grep('D\\[',variables)
     
     # we need to put into matrix for use in processing, some compile info from all chains
-    pool = 500
-    nchains = 3
-    keep = 300 
     out.temp = out[seq(dim(out)[1]-pool+1, dim(out)[1], pool/(keep/nchains)),,allDs]
     
     out = out.temp[,1,]
@@ -63,10 +61,7 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
   taxon = Tr$taxon
   plot = Tr$plot 
   years = dat$years
-  distance = Tr$distance
-  
-  keep = nrow(post[[1]])
-  
+
   if (is.null(finalyr)) finalyr = max(years)
   
   if (census_site){

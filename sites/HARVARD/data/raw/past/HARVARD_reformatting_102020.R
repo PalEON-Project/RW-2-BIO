@@ -113,8 +113,6 @@ censusSpp = censusSpp %>% filter(id != 1006)
 
 # determine which blocks from census are relevant to the RW data plots
 sitecheck = censusSpp %>% filter(!is.na(Site))
-
-# need to check to make sure we lined up trees correctly - where do we have the species wrong?
 blocks = unique(sitecheck$block)
 sites = sapply(blocks, 
                function(b){
@@ -124,7 +122,10 @@ sites = sapply(blocks,
 # need to determine distance from plot center in feet based on xsite and ysite for each plot
 censusSite = censusSpp %>% filter(block %in% blocks)
 
-# we can also add ID numbers in here
+# here we determine the distance from the plot center for each tree in the relevant blocks
+# distance is converted to feet and then we remove any tree that is farther than 20 meters 
+# then we add tree.numbers to the individuals that do not have id numbers now
+
 # first for plot 1 (-300, -400)
 plot1 = censusSite %>% filter(block %in% c('SW32','SW33','SW42','SW43')) %>%
   mutate(distance = sqrt((ysite+400)^2 + (xsite+300)^2), 
@@ -155,7 +156,6 @@ plot3 = censusSite %>% filter(block %in% c('SE51','SE61','SW50','SW60')) %>%
 nas = which(is.na(plot3$Tree.Number))
 plot3$Tree.Number[nas] = seq((max(plot3$Tree.Number,na.rm = TRUE)+1), (max(plot3$Tree.Number,na.rm = TRUE)+length(nas)))
 
-# recompile list and convert distance from feet to meters; filter out all census trees that are outside of plot
 # this data frame will therefore only contain trees relevant to the RW plots
 censusFinal = rbind(plot1, plot2, plot3)
 
