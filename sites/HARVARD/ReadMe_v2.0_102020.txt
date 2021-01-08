@@ -1,4 +1,4 @@
-ReadMe file written by Marissa Kivi on 2021-01
+ReadMe file written by Marissa Kivi (2021-01)
 
 -------------------
 GENERAL INFORMATION
@@ -28,7 +28,7 @@ Input Files:
 2. 8 RWL files from two plots 
 3. HARVARD_census_102020.csv
 
-There are two foundational datasets used in the processing of these biomass estimates. The first is a tree ring dataset collected by ------ at the Harvard Forest Research Area that was uploaded on 20 April 2016 to the PalEON Wiki website as "version 2". Three 20m plots were measured following a double-nested design (https://paleon.geography.wisc.edu/doku.php/working_groups;npp_protocols). The following species were included in the final ring width dataset: 
+There are two foundational datasets used in the processing of these biomass estimates. The first is a tree ring dataset collected by the Harvard Forest Research Area that was uploaded on 20 April 2016 to the PalEON Wiki website as "version 2". Three 20m plots were measured following a double-nested design (https://paleon.geography.wisc.edu/doku.php/working_groups;npp_protocols). The following species were included in the final ring width dataset: 
 
 - ACRU = red maple (Acer rubrum) 
 - BEAL = yellow birch (Betula alleghaniensis) 
@@ -76,7 +76,7 @@ METHODOLOGY
 
 Using the available tree-ring and diameter estimates for trees at the site, we fit and sampled from a STAN statistical model that estimates annual diameter for each individual in the dataset. We, then, used the diameter estimations to estimate aboveground biomass for each individual. For more detailed information on the statistical model, see the STAN model documentation in the model repository. 
 
-For this site, we ran the STAN RW + Census model and the STAN RW only model. 3 chains were run for both models with 5000 iterations. Looking at the figures, we noted convergence within the final *** iterations, and we thinned these final iterations from all three chains, taking only 300 values for estimating aboveground biomass. The final model samples are processed to give individual-level diameter and biomass estimates and species-level biomass estimates for the site. 
+For this site, we ran the STAN RW + Census model and the STAN RW only model. 3 chains were run for both models with 5000 iterations. The two models differ in that the RW + Census model is further constrained by the measured diameters from the census information, while the RW only model is only contained by information from the tree ring data. Looking at the figures, we noted better convergence within the final 500 iterations, and we thinned these final iterations from all three chains, taking only 300 values for estimating aboveground biomass. The final model samples are processed to give individual-level diameter and biomass estimates and species-level biomass estimates for the site. 
 
 Biomass was estimated using taxa-level allometric equations given by Chojnacky et. al (2014) that estimate aboveground biomass (AB; in Kg) from diameter at breast height (DBH; in cm). The equation is as follows, where BO and B1 are estimated for a wide array of tree taxa: AB = exp(B0 + B1 * log(DBH)). We used the file titled "acronym_to_chojnacky_v0.1.csv" to match the species from the tree ring dataset to the Chojnacky coefficients. (Chojnacky, D.C., L.S. Heath, and J.C. Jenkins (2014). Updated generalized biomass equations for North American tree species. Forestry (87): 129-151.)
 
@@ -90,33 +90,48 @@ Individual aboveground biomass increment estimates were determined by calculatin
 OUTPUT DATA 
 ------------
 
-Data time range: 1900 - ****
+Data time range: 1900 - 2012
 
 Number of iterations: 300 
 
 File list: 
-1. DBH_STAN_ROOSTER_v2.0_102020.RDS
-2. AGB_STAN_ROOSTER_v2.0_102020.RDS
-3. AGBI_STAN_ROOSTER_v2.0_102020.RDS
-4. AGB_TAXA_STAN_ROOSTER_v2.0_102020.RDS
+1. DBH_STAN_HARVARD_v2.0_102020.RDS
+2. AGB_STAN_HARVARD_v2.0_102020.RDS
+3. AGBI_STAN_HARVARD_v2.0_102020.RDS
+4. AGB_TAXA_STAN_HARVARD_v2.0_102020.RDS
 
-1. DBH_STAN_ROOSTER_v2.0_102020.RDS: This file contains the estimates of annual tree diameter at breast height (cm) for all sampled individuals for all years and iterations from the STAN model results.  
+Variable descriptions: 
+- tree: tree ID 
+- year: year pertaining to estimate
+- iter: # of drawn iteration 
+- value: value of estimate 
+- plot: tree ring in which the individual tree was located
+- taxon: USDA species code for individual 
+- model: STAN model used to create the estimate (RW only or RW + Census) 
+- type: estimate type 
+- ab: aboveground biomass estimate 
 
-Number of observations: 
-Number of columns:  
+1. DBH_STAN_HARVARD_v2.0_102020.RDS: This file contains the estimates of annual tree diameter at breast height (cm) for all sampled individuals for all years and iterations from the STAN model results.  
 
-2. AGB_STAN_ROOSTER_v2.0_102020.RDS: This file contains the estimates of aboveground biomass (Kg) for all sampled individuals for all years and iterations based on the diameter estimates given in the above file. 
+Number of observations: 14,085,900
+Number of columns: 8
+Included data columns: tree, year, iter, value, plot, taxon, model, type
 
-Number of observations: 
-Number of columns: 
+2. AGB_STAN_HARVARD_v2.0_102020.RDS: This file contains the estimates of aboveground biomass (Kg) for all sampled individuals for all years and iterations based on the diameter estimates given in the above file. 
 
-3. AGBI_STAN_ROOSTER_v2.0_102020.RDS: This file contains the estimates of aboveground biomass increment (Kg/year) for all sampled individuals for all years and iterations based on the difference in aboveground biomass between years as given in the above file. 
+Number of observations: 13,492,065
+Number of columns: 8
+Included data columns: tree, year, iter, value, plot, taxon, model, type
 
-Number of observations: 
-Number of columns: 
+3. AGBI_STAN_HARVARD_v2.0_102020.RDS: This file contains the estimates of aboveground biomass increment (Kg/year) for all sampled individuals for all years and iterations based on the difference in aboveground biomass between years as given in the above file. 
 
-4. AGB_TAXA_STAN_ROOSTER_v2.0_102020.RDS: This file contains estimates of species-level aboveground biomass (Mg/ha) across all species for all plots measured for the site for all iterations. The sampling correction described above was applied to produce the results in this file. Therefore, class sizes were appropriately weighted to account for biomass lost due to the sampling design. 
+Number of observations: 13,382,225
+Number of columns: 8
+Included data columns: tree, year, iter, value, plot, taxon, model, type
 
-Number of observations: 
-Number of columns: 
+4. AGB_TAXA_STAN_HARVARD_v2.0_102020.RDS: This file contains estimates of species-level aboveground biomass (Mg/ha) across all species for all plots measured for the site for all iterations. The sampling correction described above was applied to produce the results in this file. Therefore, class sizes were appropriately weighted to account for biomass lost due to the sampling design. 
+
+Number of observations: 1,260,545  
+Number of columns: 6
+Included data columns: taxon, year, plot, iter, model, ab
 
