@@ -25,4 +25,5 @@ process_rw_model(census_site = census_site,
                  dvers = dvers, 
                  site = site, 
                  nest = nest, 
-                 finalyr = finalyr)
+                 finalyr = finalyr,
+	         pool = 500)
