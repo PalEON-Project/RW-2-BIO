@@ -7,7 +7,7 @@
 
 process_rw_model <- function(census_site, mvers, dvers, site, nest,
                              finalyr = NULL, plot_radius = NULL, 
-                             keep = 300, pool = 500, nchains = 3){
+                             keep = 300, pool = 2500, nchains = 3){
   
   ###############################################################
   ################ 1. Prepare workspace and data ################
