@@ -1,7 +1,7 @@
 # Goose Egg Configuration File
 
 # data details
-dvers = '082020'
+dvers = '012021'
 mvers = 'v2.0'
 
 # site details
