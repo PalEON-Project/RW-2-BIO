@@ -77,6 +77,10 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
   
   # match species acronyms to level3a available species/pfts 
   choj = read.csv('data/acronym_to_chojnacky_v0.1.csv', stringsAsFactors = FALSE)
+
+  # use HAVI (average of all hardwoods) for those species not found in chojnacky equations
+  gen = choj[which(choj$acronym == 'HAVI'),]
+
   if (!census_site){
     choj = choj %>% filter(acronym %in% unique(taxon))
   }else{
@@ -103,7 +107,12 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
     # get equation coefficients based on taxon
     beta0 = choj$beta0[which(choj$acronym == taxon[t])]
     beta1 = choj$beta1[which(choj$acronym == taxon[t])]
-    
+   
+    if (length(beta0)==0){
+      beta0 = gen$beta0
+      beta1 = gen$beta1
+    }  
+ 
     # use biomass equation to estimate biomass from diameter
     agb_array[t,,] = exp(beta0 + beta1 * log(dbh_array[t,,]))
   }
