@@ -451,6 +451,13 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
     # then determine biomass based on chojnacky equations for this species
     beta0 = choj$beta0[which(choj$acronym == taxon_now)]
     beta1 = choj$beta1[which(choj$acronym == taxon_now)]
+    
+    # use general if value doesn't exist for the taxon
+    if (length(beta0)==0){
+      beta0 = gen$beta0
+      beta1 = gen$beta1
+    }  
+    
     agb_data[i,] = exp(beta0 + beta1 * log(dbh_data[i,]))
   }
   
