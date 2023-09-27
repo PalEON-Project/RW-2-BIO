@@ -7,7 +7,7 @@
 
 process_rw_model <- function(census_site, mvers, dvers, site, nest,
                              finalyr = NULL, plot_radius = NULL, 
-                             keep = 300, pool = 2500, nchains = 3){
+                             keep = 250, pool = 250, nchains = 3){
   
   ###############################################################
   ################ 1. Prepare workspace and data ################
@@ -15,7 +15,7 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
   
   # create save folders for data 
   site_dir <- file.path('sites',site)
-
+  
   # decide how many models you need
   if (census_site){
     fnames = paste0(c('ring_model_t_pdbh_sigd_STAN', 'ring_model_t_pdbh_STAN'), '_', 
@@ -25,13 +25,14 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
     fnames = paste0(c('ring_model_t_pdbh_sigd_STAN'), '_', site, '_',mvers,'_',dvers,'.RDS')
     models = c('Model RW')
   }
-
+  
   # extract stat model output 
   output_dir = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'output')
   nmodels = length(fnames)
   
   # we only need "D" for diameter and we only need the iterations that we are planning to keep
   post = list()
+  post_rw = list()
   for (i in 1:length(fnames)) {
     fname_model = fnames[i]
     out = readRDS(paste0(output_dir,'/', fname_model))
@@ -39,15 +40,25 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
     # get all array slices for diameters 
     variables = names(out[1,1,])
     allDs = grep('D\\[',variables)
+    allRWs = grep('X\\[',variables)
     
     # we need to put into matrix for use in processing, some compile info from all chains
     out.temp = out[seq(dim(out)[1]-pool+1, dim(out)[1], pool/(keep/nchains)),,allDs]
+    out.temp.rw = out[seq(dim(out)[1]-pool+1, dim(out)[1], pool/(keep/nchains)),,allRWs]
     
-    out = out.temp[,1,]
-    for (j in 2:ncol(out.temp)){
-      out = rbind(out, out.temp[,j,])
+    if(nchains>1){
+      out = out.temp[,1,]
+      out.rw = out.temp.rw[,1,]
+      for (j in 2:ncol(out.temp)){
+        out = rbind(out, out.temp[,j,])
+        out.rw = rbind(out.rw, out.temp.rw[,j,])
+      }
+      post[[i]] = out
+      post_rw[[i]] = out.rw
+    } else {
+      post[[i]] = out.temp
+      post_rw[[i]] = out.temp.rw
     }
-    post[[i]] = out
   }  
   rm(out, out.temp, allDs, variables)
   
@@ -61,7 +72,11 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
   taxon = Tr$taxon
   plot = Tr$plot 
   years = dat$years
-
+  year_lo = min(years)
+  year_hi = max(years)
+  
+  list2env(dat, envir = globalenv())
+  
   if (is.null(finalyr)) finalyr = max(years)
   
   if (census_site){
@@ -77,16 +92,157 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
   
   # match species acronyms to level3a available species/pfts 
   choj = read.csv('data/acronym_to_chojnacky_v0.1.csv', stringsAsFactors = FALSE)
-
+  
   # use HAVI (average of all hardwoods) for those species not found in chojnacky equations
   gen = choj[which(choj$acronym == 'HAVI'),]
-
+  
   if (!census_site){
     choj = choj %>% filter(acronym %in% unique(taxon))
   }else{
     choj = choj %>% filter(acronym %in% unique(taxon_C))
   }
   
+  #####################################################
+  ################ 1a. Plot model and data ############
+  #####################################################
+  
+  pdf(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','tree_growth_model_data.pdf'), width=10, height=6)
+  # pdf(paste0('figures/dbh_vs_year_estimated_', model, '.pdf'), width=10, height=6)
+  
+  # first for RW only model (no census)
+  # dbh_array = array(NA, dim = c(N_Tr, N_years, keep))
+  
+  for (tree in 1:N_Tr){
+    
+    print(tree)
+    
+    # determine which estimates correspond to this tree
+    inds = which(X2Tr == tree)
+    yrinds = X2year[inds]
+    
+    # extract diameter data
+    # dbh_array[t,yrinds,] = t(post[[1]][,inds])
+    
+    dbh_iter = t(post[[1]][,inds])
+    dbh_iter = data.frame(dbh_iter)
+    dbh_iter = data.frame(year=years[yrinds], dbh_iter)
+    
+    dbh_mean = apply(dbh_iter[,2:ncol(dbh_iter)], 1, mean, na.rm=TRUE)
+    dbh_quant = t(apply(dbh_iter[,2:ncol(dbh_iter)], 1, 
+                              function(x) quantile(x, c(0.025, 0.5, 0.975), na.rm=TRUE)))
+    
+    dbh_tree = data.frame(d_mean = dbh_mean, 
+                          d_median = dbh_quant[,2], 
+                          d_lo = dbh_quant[,1], 
+                          d_hi = dbh_quant[,3], 
+                          year = years[yrinds])
+    
+    idx_d_obs = which(Tr$stat_id == tree)
+    
+    dbh_obs = data.frame(d_obs = Tr$dbh[idx_d_obs],
+                         year = years[Tr$year[idx_d_obs]])
+    
+    stem_id = Tr$id[idx_d_obs[1]]
+    
+    # Create a text
+    grob <- grobTree(textGrob(paste0('Tree ', tree, '; Stem ID ', stem_id, '; Species ', taxon[tree] ), x=0.05,  y=0.9, hjust=0,
+                              gp=gpar(col="black", fontsize=22)))
+    
+    p1 <- ggplot() +
+      # geom_line(data=dbh_tree, aes(x=year, y=d_mean)) +
+      geom_ribbon(data=dbh_tree, aes(x=year, ymin=d_lo, ymax=d_hi), fill='lightgrey') +
+      geom_line(data=dbh_tree, aes(x=year, y=d_median)) +
+      geom_point(data=dbh_obs, aes(x=year, y=d_obs), size=2) +
+      # geom_dog(data=dbh_obs, aes(x=year, y=d_obs, dog='glasses'), size=2) +
+      # ylim(c(0,500)) +
+      xlab('year') +
+      ylab('dbh (cm)') +
+      xlim(c(year_lo, year_hi)) +
+      theme_bw(16)  +
+      # ggtitle(paste0('Tree ', i)) +
+      annotation_custom(grob)
+    
+    # print(p1)
+    
+    # stem_id = core2stemids[i]
+    # species_id = species_ids[core2species[i]]
+    
+    inds = which(X2Tr == tree)
+    yrinds = X2year[inds]
+    
+    # extract diameter data
+    # dbh_array[t,yrinds,] = t(post[[1]][,inds])
+    
+    rw_iter = t(post_rw[[1]][,inds])
+    rw_iter = data.frame(rw_iter)
+    rw_iter = data.frame(year=years[yrinds], rw_iter)
+    
+    rw_mean = apply(rw_iter[,2:ncol(rw_iter)], 1, mean, na.rm=TRUE)
+    rw_quant = t(apply(rw_iter[,2:ncol(rw_iter)], 1, 
+                        function(x) quantile(x, c(0.025, 0.5, 0.975), na.rm=TRUE)))
+    
+    rw_tree = data.frame(x_mean = rw_mean, 
+                         x_median = rw_quant[,2], 
+                         x_lo = rw_quant[,1], 
+                         x_hi = rw_quant[,3], 
+                         year = years[yrinds])
+    
+    idx_rw_obs = which(Xobs$stat_id == tree)
+    
+    rw_obs = data.frame(x_obs = Xobs$incr[idx_rw_obs],
+                        year = years[Xobs$year[idx_rw_obs]])
+    
+    # Create a text
+    grob <- grobTree(textGrob(paste0('Tree ', tree, '; Stem ID ', stem_id, '; Species ', taxon[tree] ), x=0.05,  y=0.9, hjust=0,
+                              gp=gpar(col="black", fontsize=22)))
+    
+    p2 <- ggplot() +
+      # geom_line(data=dbh_tree, aes(x=year, y=d_mean)) +
+      geom_ribbon(data=rw_tree, aes(x=year, ymin=x_lo, ymax=x_hi), fill='lightgrey') +
+      geom_line(data=rw_tree, aes(x=year, y=x_median)) +
+      geom_point(data=rw_obs, aes(x=year, y=x_obs), size=2) +
+      # geom_dog(data=rw_obs, aes(x=year, y=x_obs, dog='glasses'), size=2) +
+      # ylim(c(0,500)) +
+      xlab('year') +
+      ylab('rw (mm)') +
+      xlim(c(year_lo, year_hi)) +
+      theme_bw(16)  #+
+      # ggtitle(paste0('Tree ', i)) +
+      # annotation_custom(grob)
+    
+    # print(p2)
+    
+    grid.arrange(p1, p2, nrow = 2)
+    
+    
+  }
+  dev.off()
+  
+  # # next for RW + Census Model (if applicable)
+  # if (census_site){
+  #   
+  #   dbh_array_C = array(NA, dim = c(N_C, N_years, keep))
+  #   agb_array_C = array(NA, dim = c(N_C, N_years, keep))
+  #   
+  #   for (t in 1:N_C){
+  #     
+  #     # determine which estimates correspond to this tree
+  #     inds = which(X2C == t)
+  #     yrinds = X2year_C[inds]
+  #     
+  #     # extract diameter data
+  #     dbh_array_C[t,yrinds,] = t(post[[2]][,inds])
+  #     
+  #     # get equation coefficients based on taxon
+  #     beta0 = choj$beta0[which(choj$acronym == taxon_C[t])]
+  #     beta1 = choj$beta1[which(choj$acronym == taxon_C[t])]
+  #     
+  #     # use biomass equation to estimate biomass from diameter
+  #     agb_array_C[t,,] = exp(beta0 + beta1 * log(dbh_array_C[t,,]))
+  #   }
+  # }
+  # 
+  # 
   #####################################################
   ################ 2. Estimate biomass ################
   #####################################################
@@ -107,12 +263,12 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
     # get equation coefficients based on taxon
     beta0 = choj$beta0[which(choj$acronym == taxon[t])]
     beta1 = choj$beta1[which(choj$acronym == taxon[t])]
-   
+    
     if (length(beta0)==0){
       beta0 = gen$beta0
       beta1 = gen$beta1
     }  
- 
+    
     # use biomass equation to estimate biomass from diameter
     agb_array[t,,] = exp(beta0 + beta1 * log(dbh_array[t,,]))
   }
@@ -142,18 +298,18 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
   }
   
   rm(post)
-
+  
   ####################################################################
   ################ 3. Remove biomass from small trees ################
   ####################################################################
-
+  
   # first for RW only model
   for (tree in 1:N_Tr){
     for (year in 1:N_years){
       
       # determine mean DBH for this year and tree
       dbh_mean = mean(dbh_array[tree, year, ], na.rm=TRUE)
-  
+      
       # if smaller than 5 cm., eliminate the data 
       if (is.na(dbh_mean) | dbh_mean >= 5) next
       dbh_array[tree, year, ] = rep(NA, keep)
@@ -205,8 +361,8 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
       
       # loop through all iterations and stochastically choose the last year the tree lived  
       for (k in 1:keep){
-       lYr = sample(timeRange, 1)
-       if (lYr != dYr) agb_array_C[id,((lYr+1):dYr),k] = rep(NA, length(c((lYr+1):dYr)))
+        lYr = sample(timeRange, 1)
+        if (lYr != dYr) agb_array_C[id,((lYr+1):dYr),k] = rep(NA, length(c((lYr+1):dYr)))
       }
     }
   }
@@ -249,7 +405,7 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
   ###################################################################
   ################ 6. Organize data into data frames ################
   ###################################################################
-
+  
   # melt down dbh_array to data frame
   dbh_melt = melt(dbh_array)
   colnames(dbh_melt) = c('tree','year','iter','value')
@@ -302,6 +458,42 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
   agb_melt = agb_melt %>% filter(year <= finalyr)
   abi_melt = abi_melt %>% filter(year <= finalyr)
   dbh_melt = dbh_melt %>% filter(year <= finalyr)
+  
+  pdf(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','tree_agb_model.pdf'), width=10, height=6)
+  for (tree in 1:N_Tr){
+    
+    print(tree)
+    
+    agb_tree = agb_melt[which(agb_melt$tree == tree),]
+    agb_tree_quants = agb_tree %>% 
+      group_by(tree, year) %>%
+      summarize(agb_mean = mean(value, na.rm=TRUE),
+                agb_median = quantile(value, c(0.5)),
+                agb_lo = quantile(value, c(0.025)),
+                agb_hi = quantile(value, c(0.975)), .groups = 'keep') 
+    
+    species_id = agb_tree$taxon[1]  
+    stem_id = Tr$id[which(Tr$stat_id == tree)]  
+    
+    grob <- grobTree(textGrob(paste0('Tree ', tree, '; Stem ID ', stem_id, '; Species ', species_id ), x=0.05,  y=0.9, hjust=0,
+                              gp=gpar(col="black", fontsize=22)))
+    
+    p1 = ggplot() +
+      geom_ribbon(data = agb_tree_quants, aes(x = year, ymin = agb_lo, ymax = agb_hi), fill='lightgrey') +
+      geom_line(data=agb_tree_quants, aes(x=year, y=agb_median)) +
+      xlab('year') +
+      ylab('agb (kg)') +
+      xlim(c(year_lo, year_hi)) +
+      theme_bw(16)  +
+      # ggtitle(paste0('Tree ', i)) +
+      annotation_custom(grob)
+    
+    print(p1)
+    
+  }
+  dev.off()
+  
+  
   
   ####################################################################
   ################ 7. Save individual-level RDS files ################
@@ -397,20 +589,96 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
     #rm(agb_melt_C, agb_array_C)
   }
   
+  
+  # first for RW only model
+  abi = apply(agb_array, c(1,3), function(x) diff(x))
+  abi = aperm(abi, c(2, 1, 3))
+  abi_melt = melt(abi)
+  colnames(abi_melt) = c('tree', 'year', 'iter', 'value')
+  abi_melt = abi_melt %>% filter(!is.na(value))
+  abi_melt$year = years[abi_melt$year]
+  abi_melt$plot = plot[abi_melt$tree]
+  abi_melt$taxon = taxon[abi_melt$tree]
+  abi_melt$model = rep("Model RW", nrow(abi_melt))
+  abi_melt$type = rep('abi',nrow(abi_melt))
+  rm(abi)
+
+  # then for RW + census model
+  if (census_site){
+    abi_C = apply(agb_array_C, c(1,3), function(x) diff(x))
+    abi_C = aperm(abi_C, c(2, 1, 3))
+    abi_melt_C = melt(abi_C)
+    colnames(abi_melt_C) = c('tree', 'year', 'iter', 'value')
+    abi_melt_C = abi_melt_C %>% filter(!is.na(value))
+    abi_melt_C$year = years[abi_melt_C$year]
+    abi_melt_C$plot = plot_C[abi_melt_C$tree]
+    abi_melt_C$taxon = taxon_C[abi_melt_C$tree]
+    abi_melt_C$model = rep("Model RW + Census", nrow(abi_melt_C))
+    abi_melt_C$type = rep('abi',nrow(abi_melt_C))
+    abi_melt = rbind(abi_melt, abi_melt_C)
+    rm(abi_C,abi_melt_C)
+  }
+  
+  pdf(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','tree_agb_model_fix.pdf'), width=10, height=6)
+  for (tree in 1:N_Tr){
+    
+    print(tree)
+    
+    agb_tree = agb_melt[which(agb_melt$tree == tree),]
+    agb_tree_quants = agb_tree %>% 
+      group_by(tree, year) %>%
+      summarize(agb_mean = mean(value, na.rm=TRUE),
+                agb_median = quantile(value, c(0.5)),
+                agb_lo = quantile(value, c(0.025)),
+                agb_hi = quantile(value, c(0.975)), .groups = 'keep') 
+    
+    species_id = agb_tree$taxon[1]  
+    stem_id = Tr$id[which(Tr$stat_id == tree)]  
+    
+    grob <- grobTree(textGrob(paste0('Tree ', tree, '; Stem ID ', stem_id, '; Species ', species_id ), x=0.05,  y=0.9, hjust=0,
+                              gp=gpar(col="black", fontsize=22)))
+    
+    p1 = ggplot() +
+      geom_ribbon(data = agb_tree_quants, aes(x = year, ymin = agb_lo, ymax = agb_hi), fill='lightgrey') +
+      geom_line(data=agb_tree_quants, aes(x=year, y=agb_median)) +
+      xlab('year') +
+      ylab('agb (Mg/ha)') +
+      xlim(c(year_lo, year_hi)) +
+      theme_bw(16)  +
+      # ggtitle(paste0('Tree ', i)) +
+      annotation_custom(grob)
+    
+    print(p1)
+    
+  }
+  dev.off()
+  
+  
   ##############################################################################
   ################ 9. Save taxon-level total aboveground biomass ################
   ##############################################################################
-
+  
   # sum annual biomass across taxa for each year, iteration, and plot 
   # also remove incomplete final years if applicable
   agb_taxa = agb_melt %>%
     filter(year <= finalyr) %>%
     group_by(taxon, year, plot, iter, model) %>% 
-    summarize(ab = sum(value))
+    summarize(ab = sum(value), .groups='keep')
+  
+  # sum annual biomass across taxa for each year, iteration, and plot 
+  # also remove incomplete final years if applicable
+  abi_taxa = abi_melt %>%
+    filter(year <= finalyr) %>%
+    group_by(taxon, year, plot, iter, model) %>% 
+    summarize(abi = sum(value), .groups='keep')
   
   # save file
   filename4 = file.path(output_dir,paste0('AGB_TAXA_STAN_',site,'_',mvers,'_',dvers))
   saveRDS(agb_taxa, paste0(filename4,'.RDS'))
+  
+  # save file
+  filename4b = file.path(output_dir,paste0('AGBI_TAXA_STAN_',site,'_',mvers,'_',dvers))
+  saveRDS(agb_taxa, paste0(filename4b,'.RDS'))
   
   #####################################################################################################
   ################ 10. Calculate approximate diameters from measured DBH and increments ################
@@ -480,7 +748,7 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
     agb_data[idx_med,] = agb_data[idx_med,] * mid_factor
     agb_data[idx_large,] = agb_data[idx_large,] * outer_factor
   }
-
+  
   # melt to data frames
   data_melt = melt(agb_data)
   colnames(data_melt) = c("tree", "year", "value")
@@ -503,26 +771,28 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
     group_by(model, plot, taxon, year) %>%
     summarize(ab025 = quantile(ab, 0.025),
               ab50 = quantile(ab, 0.5),
-              ab975 = quantile(ab, 0.975)) %>% 
+              ab975 = quantile(ab, 0.975), 
+              .groups = 'keep') %>% 
     ungroup()
   
   sum_plot = agb_taxa %>%
     group_by(model, plot, year, iter) %>%
-    summarize(ab = sum(ab)) %>%
+    summarize(ab = sum(ab), .groups = 'keep') %>%
     ungroup() %>% 
     group_by(model, plot, year) %>%
     summarize(ab025 = quantile(ab, 0.025),
               ab50 = quantile(ab, 0.5),
-              ab975 = quantile(ab, 0.975))
+              ab975 = quantile(ab, 0.975), 
+              .groups = 'keep')
   
   data_pft_plot = data_melt %>% 
     group_by(year, plot, taxon) %>% 
-    summarize(ab = sum(value)) %>%
+    summarize(ab = sum(value), .groups = 'keep') %>%
     ungroup()
   
   data_plot = data_melt %>%
     group_by(year, plot) %>%
-    summarize(ab = sum(value)) %>% 
+    summarize(ab = sum(value), .groups = 'keep') %>% 
     ungroup()
   
   # figure to compare biomass by PFT for each plot 
@@ -530,43 +800,89 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
     facet_grid(~plot~as.factor(model)) + 
     geom_line(aes(x = year, y = ab50, group = taxon, color = taxon)) + 
     geom_ribbon(aes(x = year, ymin = ab025, ymax = ab975, 
-                                     fill = taxon, group = taxon, color = taxon), alpha = 0.4) +
+                    fill = taxon, group = taxon, color = taxon), alpha = 0.4) +
     geom_line(aes(x = year, y = ab, group = taxon)) +
     theme_bw() + 
     labs(x = 'Year', y = 'Biomass (Mg/ha)', color = 'Species', fill = 'Species',
          title = 'Aboveground Biomass by PFT')
+  print(pl1)
   ggsave(pl1, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_pft_AGB.jpg'))
+  
+  # determine quantiles for graphing 
+  abi_plot = abi_taxa %>%
+    group_by(model, plot, taxon, year) %>%
+    summarize(abi025 = quantile(abi, 0.025),
+              abi50 = quantile(abi, 0.5),
+              abi975 = quantile(abi, 0.975), 
+              .groups = 'keep') %>% 
+    ungroup()
+  
+  abi_sum_plot = abi_taxa %>%
+    group_by(model, plot, year, iter) %>%
+    summarize(abi = sum(abi), .groups = 'keep') %>%
+    ungroup() %>% 
+    group_by(model, plot, year) %>%
+    summarize(abi025 = quantile(abi, 0.025),
+              abi50 = quantile(abi, 0.5),
+              abi975 = quantile(abi, 0.975), 
+              .groups = 'keep')
+  
+  # data_pft_plot = data_melt %>% 
+  #   group_by(year, plot, taxon) %>% 
+  #   summarize(ab = sum(value), .groups = 'keep') %>%
+  #   ungroup()
+  # 
+  # data_plot = data_melt %>%
+  #   group_by(year, plot) %>%
+  #   summarize(ab = sum(value), .groups = 'keep') %>% 
+  #   ungroup()
+  
+  # figure to compare biomass increment by PFT for each plot 
+  # pl1 = ggplot(data = left_join(abi_plot, data_pft_plot, by = c('plot','taxon','year'))) + 
+  pl1 = ggplot(data = abi_plot) + 
+    facet_grid(~plot~as.factor(model)) + 
+    geom_line(aes(x = year, y = abi50, group = taxon, color = taxon)) + 
+    geom_ribbon(aes(x = year, ymin = abi025, ymax = abi975, 
+                    fill = taxon, group = taxon, color = taxon), alpha = 0.4) +
+    # geom_line(aes(x = year, y = abi, group = taxon)) +
+    theme_bw() + 
+    labs(x = 'Year', y = 'Biomass (Mg/ha)', color = 'Species', fill = 'Species',
+         title = 'Aboveground Biomass Increment by PFT')
+  print(pl1)
+  ggsave(pl1, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_pft_ABI.jpg'))
+  
   
   # figure to compare total biomass for each plot 
   pl2 = ggplot() + 
-    geom_line(data = sum_plot, aes(x = year, y = ab50, 
+    geom_line(data = abi_sum_plot, aes(x = year, y = abi50, 
                                    group = model, color = model)) + 
-    geom_ribbon(data = sum_plot, aes(x = year, ymin = ab025, ymax = ab975, 
+    geom_ribbon(data = abi_sum_plot, aes(x = year, ymin = abi025, ymax = abi975, 
                                      group = model, color = model, fill = model), alpha = 0.4) +
-    geom_line(data = data_plot, aes(x = year, y = ab)) + 
+    # geom_line(data = data_plot, aes(x = year, y = abi)) + 
     facet_wrap(~plot) + 
     theme_bw() +
     labs(x = 'Year', y = 'Biomass (Mg/ha)', color = 'Model', fill = 'Model', 
-         title = "Total Aboveground Biomass by Plot") 
-  ggsave(pl2, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_total_plot_AGB.jpg'))
+         title = "Total Aboveground Biomass Increment by Plot") 
+  print(pl2)
+  ggsave(pl2, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_total_plot_ABI.jpg'))
   
   # figure to compare total site biomass 
   sum_site = agb_taxa %>%
     group_by(model, plot, year, iter) %>%
-    summarize(ab = sum(ab)) %>% 
+    summarize(ab = sum(ab), .groups = 'keep') %>% 
     ungroup() %>% 
     group_by(model, iter,  year) %>%
-    summarize(ab = mean(ab)) %>% 
+    summarize(ab = mean(ab), .groups = 'keep') %>% 
     ungroup() %>% 
     group_by(model, year) %>% 
     summarize(ab025 = quantile(ab, 0.025),
               ab50 = quantile(ab, 0.5),
-              ab975 = quantile(ab, 0.975))
+              ab975 = quantile(ab, 0.975), .groups = 'keep')
   
   data_site = data_plot %>% 
     group_by(year) %>%
-    summarize(ab = mean(ab))
-
+    summarize(ab = mean(ab), .groups = 'keep')
+  
   pl3 = ggplot(sum_site) +
     geom_line(data = sum_site, aes(x = year, y = ab50, 
                                    group = model, color = model)) + 
@@ -576,18 +892,51 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
     theme_bw() +
     labs(x = 'Year', y = 'Biomass (Mg/ha)', color = 'Model', fill = 'Model', 
          title = "Total Aboveground Biomass") 
+  print(pl3)
   ggsave(pl3, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_total_site_AGB.jpg'))
+  
+  # figure to compare total site biomass 
+  abi_sum_site = abi_taxa %>%
+    group_by(model, plot, year, iter) %>%
+    summarize(abi = sum(abi), 
+              .groups = 'keep') %>% 
+    ungroup() %>% 
+    group_by(model, iter,  year) %>%
+    summarize(abi = mean(abi), 
+              .groups = 'keep') %>% 
+    ungroup() %>% 
+    group_by(model, year) %>% 
+    summarize(abi025 = quantile(abi, 0.025),
+              abi50 = quantile(abi, 0.5),
+              abi975 = quantile(abi, 0.975), 
+              .groups = 'keep')
+  
+  # data_site = data_plot %>% 
+  #   group_by(year) %>%
+  #   summarize(ab = mean(ab))
+  
+  pl3 = ggplot(abi_sum_site) +
+    geom_line(data = abi_sum_site, aes(x = year, y = abi50, 
+                                   group = model, color = model)) + 
+    geom_ribbon(data = abi_sum_site, aes(x = year, ymin = abi025, ymax = abi975, 
+                                     group = model, color = model, fill = model), alpha = 0.4) +
+    # geom_line(data = data_site, aes(x = year, y = ab)) + 
+    theme_bw() +
+    labs(x = 'Year', y = 'Biomass (Mg/ha)', color = 'Model', fill = 'Model', 
+         title = "Total Aboveground Biomass Increment") 
+  print(pl3)
+  ggsave(pl3, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_total_site_ABI.jpg'))
   
   # figure to show cumulative biomass contribution across species and demonstrate which species are most important to site 
   prior_mat <- agb_taxa %>% 
     group_by(year, model, plot, taxon) %>%
-    summarize(ab = mean(ab)) %>%
+    summarize(ab = mean(ab), .groups = 'keep') %>%
     ungroup() %>% 
     group_by(year, model, taxon) %>% 
-    summarize(ab = mean(ab)) %>%
+    summarize(ab = mean(ab), .groups = 'keep') %>%
     ungroup() %>%
     group_by(model, taxon) %>%
-    summarize(contr = sum(ab)) %>%
+    summarize(contr = sum(ab), .groups = 'keep') %>%
     arrange(model, desc(contr))
   
   # first,  let's look at RW model 
@@ -601,6 +950,7 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
     labs(title = 'overall cumulative proportion of biomass by species - Model RW', 
          y = 'cumulative proportion of biomass', 
          x = 'species')
+  print(pl4)
   ggsave(pl4, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','98_biomass_modelRW.jpg'))
   
   # then RW + Census model if applicable 

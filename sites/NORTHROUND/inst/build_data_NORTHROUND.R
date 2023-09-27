@@ -2,7 +2,7 @@
 # The following R script can be submitted on the ND CRC cluster using the job script (after customization) 
 # in the "jobs" folder
 rm(list=ls())
-setwd('~/RW-2-BIO')
+# setwd('~/RW-2-BIO')
 
 # load model run details 
 source('sites/NORTHROUND/inst/config.R')

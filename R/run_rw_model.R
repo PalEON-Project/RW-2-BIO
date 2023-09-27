@@ -3,7 +3,7 @@
 ## This script takes the built data from the last step and fits the STAN model, giving annual DBH estimates for each individual. 
 
 run_rw_model <- function(census_site, site, mvers, 
-                         dvers, keep = 300, nchains = 3, pool = 2500){
+                         dvers, keep = 300, nchains = 3, pool = 2500, iter = iter){
   
   ##############################################
   ################ 1. Load data ################
@@ -32,7 +32,7 @@ run_rw_model <- function(census_site, site, mvers,
     # fit and extract values
     fit <- sampling(compiled, 
                     data = dat, 
-                    iter = 5000, 
+                    iter = iter, 
                     chains = nchains,
                     verbose=TRUE)
     rm(compiled)
@@ -120,6 +120,7 @@ run_rw_model <- function(census_site, site, mvers,
     for (par in c('beta0','beta_sd','beta_t_sd','sig_x','sig_x_obs','sig_d_obs')){
       temp.ind = which(variables == par)
       temp.data = reshape2::melt(post[,,temp.ind])
+      temp.data$iterations = seq(1, nrow(temp.data))
       pl.temp = ggplot(temp.data) + 
         geom_line(aes(x = iterations, y = value, group = as.factor(chains), color = as.factor(chains))) + 
         labs(x = 'iteration', y = 'value', title = paste0('trace plot for ',par), 
@@ -211,12 +212,22 @@ run_rw_model <- function(census_site, site, mvers,
   if (!census_site){
     out = readRDS('sites/HARVARD/runs/v2.0_102020/output/ring_model_t_pdbh_STAN_HARVARD_v2.0_102020.RDS')
     
-    # extract measurement error from dataset and find median (better measure of center due to skewness of distribution)
-    needed = which(names(out[1,1,]) == 'sig_d_obs')
-    all = c(out[,1,needed], out[,2,needed], out[,3,needed])
-    dat$sig_d_obs = median(all)
-    print(needed)
-    print(all) 
+    # col_names = sapply(strsplit(colnames(out), '\\['), function(x) x[[1]])
+    # hist(out[,which(col_names=="sig_d_obs")])
+    # sig_d_obs = mean(out[,which(col_names=="sig_d_obs")])
+    
+    col_names = sapply(strsplit(colnames(out[,1,]), '\\['), function(x) x[[1]])
+    hist(out[,1,which(col_names=="sig_d_obs")])
+    sig_d_obs_chains = apply(out, 2, function(x) x[, which(col_names=="sig_d_obs")])
+    sig_d_obs = mean(sig_d_obs_chains)
+    
+    # # extract measurement error from dataset and find median (better measure of center due to skewness of distribution)
+    # needed = which(names(out[1,1,]) == 'sig_d_obs')
+    # all = c(out[,1,needed], out[,2,needed], out[,3,needed])
+    # dat$sig_d_obs = median(all)
+    dat$sig_d_obs = sig_d_obs
+    # print(needed)
+    # print(all) 
     rm(out)
     
   # otherwise we use the value found in the model above 
@@ -230,7 +241,7 @@ run_rw_model <- function(census_site, site, mvers,
   # fit and extract values
   fit <- sampling(compiled, 
                   data = dat, 
-                  iter = 5000, 
+                  iter = iter, 
                   chains = nchains,
                   verbose=TRUE)
   rm(compiled)
@@ -318,40 +329,58 @@ run_rw_model <- function(census_site, site, mvers,
   for (par in c('beta0','beta_sd','beta_t_sd','sig_x','sig_x_obs')){
     temp.ind = which(variables == par)
     temp.data = reshape2::melt(post[,,temp.ind])
+    temp.data$iterations = seq(1, nrow(temp.data))
+    if(nchains == 1){
+      temp.data$chains = rep(1, nrow(temp.data))
+    }
     pl.temp = ggplot(temp.data) + 
       geom_line(aes(x = iterations, y = value, group = as.factor(chains), color = as.factor(chains))) + 
       labs(x = 'iteration', y = 'value', title = paste0('trace plot for ',par), 
            color = 'chain')
+    print(pl.temp)
     mcmc_diags[[trk_ind]] = pl.temp
     trk_ind = trk_ind + 1
   }
   
   # then, for all beta trees 
   for (btr in 1:dat$N_Tr){
+    print(btr)
     temp.ind = which(variables == paste0('beta[',btr,']'))
     temp.data = reshape2::melt(post[,,temp.ind])
+    temp.data$iterations = seq(1, nrow(temp.data))
+    if(nchains == 1){
+      temp.data$chains = rep(1, nrow(temp.data))
+    }
     pl.temp = ggplot(temp.data) + 
       geom_line(aes(x = iterations, y = value, group = as.factor(chains), color = as.factor(chains))) + 
       labs(x = 'iteration', y = 'value', title = paste0('trace plot for beta ',btr), 
            color = 'chain')
+    print(pl.temp)
     mcmc_diags[[trk_ind]] = pl.temp
     trk_ind = trk_ind + 1
   }
   
   # lastly, for all beta years 
   for (byr in 1:dat$N_years){
+    print(byr)
     temp.ind = which(variables == paste0('beta_t[',byr,']'))
     temp.data = reshape2::melt(post[,,temp.ind])
+    temp.data$iterations = seq(1, nrow(temp.data))
+    if(nchains == 1){
+      temp.data$chains = rep(1, nrow(temp.data))
+    }
     pl.temp = ggplot(temp.data) + 
       geom_line(aes(x = iterations, y = value, group = as.factor(chains), color = as.factor(chains))) + 
       labs(x = 'iteration', y = 'value', title = paste0('trace plot for beta year ',byr), 
            color = 'chain')
+    print(pl.temp)
     mcmc_diags[[trk_ind]] = pl.temp
     trk_ind = trk_ind + 1
   }
   
   pdf(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','RW_MCMC_diagnostics.pdf'), onefile = TRUE)
   for (i in seq(length(mcmc_diags))) {
+    print(i)
     grid.arrange(mcmc_diags[[i]])
   }
   dev.off()
