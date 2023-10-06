@@ -129,7 +129,7 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
     
     dbh_mean = apply(dbh_iter[,2:ncol(dbh_iter)], 1, mean, na.rm=TRUE)
     dbh_quant = t(apply(dbh_iter[,2:ncol(dbh_iter)], 1, 
-                              function(x) quantile(x, c(0.025, 0.5, 0.975), na.rm=TRUE)))
+                        function(x) quantile(x, c(0.025, 0.5, 0.975), na.rm=TRUE)))
     
     dbh_tree = data.frame(d_mean = dbh_mean, 
                           d_median = dbh_quant[,2], 
@@ -179,7 +179,7 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
     
     rw_mean = apply(rw_iter[,2:ncol(rw_iter)], 1, mean, na.rm=TRUE)
     rw_quant = t(apply(rw_iter[,2:ncol(rw_iter)], 1, 
-                        function(x) quantile(x, c(0.025, 0.5, 0.975), na.rm=TRUE)))
+                       function(x) quantile(x, c(0.025, 0.5, 0.975), na.rm=TRUE)))
     
     rw_tree = data.frame(x_mean = rw_mean, 
                          x_median = rw_quant[,2], 
@@ -207,8 +207,8 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
       ylab('rw (mm)') +
       xlim(c(year_lo, year_hi)) +
       theme_bw(16)  #+
-      # ggtitle(paste0('Tree ', i)) +
-      # annotation_custom(grob)
+    # ggtitle(paste0('Tree ', i)) +
+    # annotation_custom(grob)
     
     # print(p2)
     
@@ -602,7 +602,7 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
   abi_melt$model = rep("Model RW", nrow(abi_melt))
   abi_melt$type = rep('abi',nrow(abi_melt))
   rm(abi)
-
+  
   # then for RW + census model
   if (census_site){
     abi_C = apply(agb_array_C, c(1,3), function(x) diff(x))
@@ -663,14 +663,14 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
   agb_taxa = agb_melt %>%
     filter(year <= finalyr) %>%
     group_by(taxon, year, plot, iter, model) %>% 
-    summarize(ab = sum(value), .groups='keep')
+    dplyr::summarize(ab = sum(value), .groups='keep')
   
   # sum annual biomass across taxa for each year, iteration, and plot 
   # also remove incomplete final years if applicable
   abi_taxa = abi_melt %>%
     filter(year <= finalyr) %>%
     group_by(taxon, year, plot, iter, model) %>% 
-    summarize(abi = sum(value), .groups='keep')
+    dplyr::summarize(abi = sum(value), .groups='keep')
   
   # save file
   filename4 = file.path(output_dir,paste0('AGB_TAXA_STAN_',site,'_',mvers,'_',dvers))
@@ -766,10 +766,12 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
   ################ 11. Figures ################
   #############################################
   
+  N_plots = length(unique(plot))
+  
   # determine quantiles for graphing 
   agb_plot = agb_taxa %>%
     group_by(model, plot, taxon, year) %>%
-    summarize(ab025 = quantile(ab, 0.025),
+    dplyr::summarize(ab025 = quantile(ab, 0.025),
               ab50 = quantile(ab, 0.5),
               ab975 = quantile(ab, 0.975), 
               .groups = 'keep') %>% 
@@ -777,22 +779,22 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
   
   sum_plot = agb_taxa %>%
     group_by(model, plot, year, iter) %>%
-    summarize(ab = sum(ab), .groups = 'keep') %>%
+    dplyr::summarize(ab = sum(ab), .groups = 'keep') %>%
     ungroup() %>% 
     group_by(model, plot, year) %>%
-    summarize(ab025 = quantile(ab, 0.025),
+    dplyr::summarize(ab025 = quantile(ab, 0.025),
               ab50 = quantile(ab, 0.5),
               ab975 = quantile(ab, 0.975), 
               .groups = 'keep')
   
   data_pft_plot = data_melt %>% 
     group_by(year, plot, taxon) %>% 
-    summarize(ab = sum(value), .groups = 'keep') %>%
+    dplyr::summarize(ab = sum(value), .groups = 'keep') %>%
     ungroup()
   
   data_plot = data_melt %>%
     group_by(year, plot) %>%
-    summarize(ab = sum(value), .groups = 'keep') %>% 
+    dplyr::summarize(ab = sum(value), .groups = 'keep') %>% 
     ungroup()
   
   # figure to compare biomass by PFT for each plot 
@@ -807,11 +809,12 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
          title = 'Aboveground Biomass by PFT')
   print(pl1)
   ggsave(pl1, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_pft_AGB.jpg'))
+  # ggsave(pl1, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_pft_AGB.jpg'))
   
   # determine quantiles for graphing 
   abi_plot = abi_taxa %>%
     group_by(model, plot, taxon, year) %>%
-    summarize(abi025 = quantile(abi, 0.025),
+    dplyr::summarize(abi025 = quantile(abi, 0.025),
               abi50 = quantile(abi, 0.5),
               abi975 = quantile(abi, 0.975), 
               .groups = 'keep') %>% 
@@ -819,10 +822,10 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
   
   abi_sum_plot = abi_taxa %>%
     group_by(model, plot, year, iter) %>%
-    summarize(abi = sum(abi), .groups = 'keep') %>%
+    dplyr::summarize(abi = sum(abi), .groups = 'keep') %>%
     ungroup() %>% 
     group_by(model, plot, year) %>%
-    summarize(abi025 = quantile(abi, 0.025),
+    dplyr::summarize(abi025 = quantile(abi, 0.025),
               abi50 = quantile(abi, 0.5),
               abi975 = quantile(abi, 0.975), 
               .groups = 'keep')
@@ -846,7 +849,7 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
                     fill = taxon, group = taxon, color = taxon), alpha = 0.4) +
     # geom_line(aes(x = year, y = abi, group = taxon)) +
     theme_bw() + 
-    labs(x = 'Year', y = 'Biomass (Mg/ha)', color = 'Species', fill = 'Species',
+    labs(x = 'Year', y = 'Biomass Increment (Mg/ha)', color = 'Species', fill = 'Species',
          title = 'Aboveground Biomass Increment by PFT')
   print(pl1)
   ggsave(pl1, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_pft_ABI.jpg'))
@@ -855,13 +858,13 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
   # figure to compare total biomass for each plot 
   pl2 = ggplot() + 
     geom_line(data = abi_sum_plot, aes(x = year, y = abi50, 
-                                   group = model, color = model)) + 
+                                       group = model, color = model)) + 
     geom_ribbon(data = abi_sum_plot, aes(x = year, ymin = abi025, ymax = abi975, 
-                                     group = model, color = model, fill = model), alpha = 0.4) +
+                                         group = model, color = model, fill = model), alpha = 0.4) +
     # geom_line(data = data_plot, aes(x = year, y = abi)) + 
     facet_wrap(~plot) + 
     theme_bw() +
-    labs(x = 'Year', y = 'Biomass (Mg/ha)', color = 'Model', fill = 'Model', 
+    labs(x = 'Year', y = 'Biomass Increment (Mg/ha)', color = 'Model', fill = 'Model', 
          title = "Total Aboveground Biomass Increment by Plot") 
   print(pl2)
   ggsave(pl2, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_total_plot_ABI.jpg'))
@@ -869,19 +872,19 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
   # figure to compare total site biomass 
   sum_site = agb_taxa %>%
     group_by(model, plot, year, iter) %>%
-    summarize(ab = sum(ab), .groups = 'keep') %>% 
+    dplyr::summarize(ab = sum(ab), .groups = 'keep') %>% 
     ungroup() %>% 
     group_by(model, iter,  year) %>%
-    summarize(ab = mean(ab), .groups = 'keep') %>% 
+    dplyr::summarize(ab = mean(ab), .groups = 'keep') %>% 
     ungroup() %>% 
     group_by(model, year) %>% 
-    summarize(ab025 = quantile(ab, 0.025),
+    dplyr::summarize(ab025 = quantile(ab, 0.025),
               ab50 = quantile(ab, 0.5),
               ab975 = quantile(ab, 0.975), .groups = 'keep')
   
   data_site = data_plot %>% 
     group_by(year) %>%
-    summarize(ab = mean(ab), .groups = 'keep')
+    dplyr::summarize(ab = mean(ab), .groups = 'keep')
   
   pl3 = ggplot(sum_site) +
     geom_line(data = sum_site, aes(x = year, y = ab50, 
@@ -898,15 +901,15 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
   # figure to compare total site biomass 
   abi_sum_site = abi_taxa %>%
     group_by(model, plot, year, iter) %>%
-    summarize(abi = sum(abi), 
+    dplyr::summarize(abi = sum(abi), 
               .groups = 'keep') %>% 
     ungroup() %>% 
     group_by(model, iter,  year) %>%
-    summarize(abi = mean(abi), 
+    dplyr::summarize(abi = mean(abi), 
               .groups = 'keep') %>% 
     ungroup() %>% 
     group_by(model, year) %>% 
-    summarize(abi025 = quantile(abi, 0.025),
+    dplyr::summarize(abi025 = quantile(abi, 0.025),
               abi50 = quantile(abi, 0.5),
               abi975 = quantile(abi, 0.975), 
               .groups = 'keep')
@@ -917,9 +920,9 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
   
   pl3 = ggplot(abi_sum_site) +
     geom_line(data = abi_sum_site, aes(x = year, y = abi50, 
-                                   group = model, color = model)) + 
+                                       group = model, color = model)) + 
     geom_ribbon(data = abi_sum_site, aes(x = year, ymin = abi025, ymax = abi975, 
-                                     group = model, color = model, fill = model), alpha = 0.4) +
+                                         group = model, color = model, fill = model), alpha = 0.4) +
     # geom_line(data = data_site, aes(x = year, y = ab)) + 
     theme_bw() +
     labs(x = 'Year', y = 'Biomass (Mg/ha)', color = 'Model', fill = 'Model', 
@@ -927,16 +930,78 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
   print(pl3)
   ggsave(pl3, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_total_site_ABI.jpg'))
   
+
+  
+  # if (N_plots > 1){
+    
+    # figure to compare pft site biomass
+    sum_site_pft = agb_taxa %>%
+      group_by(model, taxon, year, iter) %>%
+      dplyr::summarize(ab = mean(ab), .groups = 'keep') %>%
+      ungroup() %>%
+      group_by(model, taxon, year) %>%
+      dplyr::summarize(ab_mean = mean(ab),
+                       ab025 = quantile(ab, 0.025),
+                       ab50 = quantile(ab, 0.5),
+                       ab975 = quantile(ab, 0.975), .groups = 'keep')
+    
+    # data_site = data_plot %>%
+    #   group_by(year) %>%
+    #   summarize(ab = mean(ab), .groups = 'keep')
+    
+    pl3 = ggplot(sum_site_pft) +
+      geom_line(data = sum_site_pft, aes(x = year, y = ab50,
+                                         group = taxon, color = taxon)) +
+      geom_ribbon(data = sum_site_pft, aes(x = year, ymin = ab025, ymax = ab975,
+                                           group = taxon, color = taxon, fill = taxon), alpha = 0.4) +
+      # geom_line(data = data_site, aes(x = year, y = ab)) +
+      theme_bw() +
+      labs(x = 'Year', y = 'Biomass (Mg/ha)', color = 'Model', fill = 'Model',
+           title = "Total Aboveground Biomass")
+    print(pl3)
+    ggsave(pl3, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_pft_site_AGB.jpg'))
+    
+    # figure to compare total site biomass
+    abi_sum_site_pft = abi_taxa %>%
+      group_by(model, taxon, year, iter) %>%
+      dplyr::summarize(abi = sum(abi),
+                       .groups = 'keep') %>%
+      ungroup() %>%
+      group_by(model, taxon, year) %>%
+      dplyr::summarize(abi_mean = mean(abi),
+                       abi025 = quantile(abi, 0.025),
+                       abi50 = quantile(abi, 0.5),
+                       abi975 = quantile(abi, 0.975),
+                       .groups = 'keep')
+    # 
+    # # data_site = data_plot %>% 
+    # #   group_by(year) %>%
+    # #   summarize(ab = mean(ab))
+    # 
+    pl3 = ggplot(abi_sum_site_pft) +
+      geom_line(data = abi_sum_site_pft, aes(x = year, y = abi50,
+                                         group = taxon, color = taxon)) +
+      geom_ribbon(data = abi_sum_site_pft, aes(x = year, ymin = abi025, ymax = abi975,
+                                           group = taxon, color = taxon, fill = taxon), alpha = 0.4) +
+      # geom_line(data = data_site, aes(x = year, y = ab)) +
+      theme_bw() +
+      labs(x = 'Year', y = 'Biomass Increment (Mg/ha)', color = 'Model', fill = 'Model',
+           title = "Total Aboveground Biomass Increment")
+    print(pl3)
+    ggsave(pl3, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_pft_site_ABI.jpg'))
+    
+  # }
+  
   # figure to show cumulative biomass contribution across species and demonstrate which species are most important to site 
   prior_mat <- agb_taxa %>% 
     group_by(year, model, plot, taxon) %>%
-    summarize(ab = mean(ab), .groups = 'keep') %>%
+    dplyr::summarize(ab = mean(ab), .groups = 'keep') %>%
     ungroup() %>% 
     group_by(year, model, taxon) %>% 
-    summarize(ab = mean(ab), .groups = 'keep') %>%
+    dplyr::summarize(ab = mean(ab), .groups = 'keep') %>%
     ungroup() %>%
     group_by(model, taxon) %>%
-    summarize(contr = sum(ab), .groups = 'keep') %>%
+    dplyr::summarize(contr = sum(ab), .groups = 'keep') %>%
     arrange(model, desc(contr))
   
   # first,  let's look at RW model 

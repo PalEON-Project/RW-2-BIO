@@ -19,6 +19,7 @@ require(ggplot2)
 require(abind)
 require(dplyr)
 require(grid)
+require(gridExtra)
 
 iter = 500
 

@@ -2,7 +2,7 @@
 # The following R script can be submitted on the ND CRC cluster using the job script (after customization) 
 # in the "jobs" folder
 
-setwd('~/RW-2-BIO')
+# setwd('~/RW-2-BIO')
 
 # load model run details 
 source('sites/SYLVANIA/inst/config.R')
@@ -12,12 +12,14 @@ source('R/process_rw_model.R')
 
 require(reshape2)
 
-.libPaths('~/Rlibs')
+# .libPaths('~/Rlibs')
 
 # prepare workspace 
 require(ggplot2)
 require(abind)
 require(dplyr)
+require(grid)
+require(gridExtra)
 
 # run step 
 process_rw_model(census_site = census_site,
@@ -25,4 +27,6 @@ process_rw_model(census_site = census_site,
                  dvers = dvers, 
                  site = site, 
                  nest = nest, 
-                 finalyr = finalyr)
+                 finalyr = finalyr,
+                 nchains = 1,
+                 pool = 500)

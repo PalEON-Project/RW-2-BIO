@@ -12,13 +12,14 @@ source('R/process_rw_model.R')
 
 require(reshape2)
 
-.libPaths('~/Rlibs')
+# .libPaths('~/Rlibs')
 
 # prepare workspace 
 require(ggplot2)
 require(abind)
 require(dplyr)
 require(grid)
+require(gridExtra)
 
 iter = 500
 

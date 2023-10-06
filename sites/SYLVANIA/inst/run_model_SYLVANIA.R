@@ -2,7 +2,7 @@
 # The following R script can be submitted on the ND CRC cluster using the job script (after customization) 
 # in the "jobs" folder
 
-setwd('~/RW-2-BIO')
+# setwd('~/RW-2-BIO')
 
 # load model run details 
 source('sites/SYLVANIA/inst/config.R')
@@ -10,7 +10,7 @@ source('sites/SYLVANIA/inst/config.R')
 # load needed function
 source('R/run_rw_model.R')
 
-.libPaths('~/Rlibs')
+# .libPaths('~/Rlibs')
 
 # prepare workspace 
 library(rstan)
@@ -21,4 +21,6 @@ library(ggplotify)
 run_rw_model(census_site = census_site, 
              site = site, 
              mvers = mvers, 
-             dvers = dvers)
+             dvers = dvers,
+             nchains = 1, 
+             iter = 500)
