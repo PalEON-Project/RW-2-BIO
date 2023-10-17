@@ -4,13 +4,11 @@
 # 2. Total increment over time / site
 # 3. Species specific biomass over time / site
 # 4. Species specific incrmenet over time / site
-# 5. Comparison of biomass / site on one plot
-# 6. Comparison of increment / site on one plot
-# 7. Comparison of species / site on one plot where species overlap
-# 8. Average temperature vs increment
-# 9. Average precipitation vs increment
-# 10. Simple model of temperature, precipitation, increment across sites
-# 11. Simple model with biomass instead of increment
+# 5. Comparison of species / site on one plot where species overlap
+# 6. Average temperature vs increment
+# 7. Average precipitation vs increment
+# 8. Simple model of temperature, precipitation, increment across sites
+# 9. Simple model with biomass instead of increment
 
 rm(list = ls())
 
@@ -145,6 +143,7 @@ all_site |>
 #### Plot 3 ####
 
 # species specific biomass over time/site
+
 all_species |>
   mutate(site = if_else(site == 'GOOSE', 'Goose Egg', site),
          site = if_else(site == 'NRP', 'North Round Pond', site),
@@ -181,6 +180,103 @@ all_species |>
 all_species |>
   filter(site == 'GOOSE') |>
   mutate(site = if_else(site == 'GOOSE', 'Goose Egg', site)) |>
+  filter(taxon %in% c('FAGR', 'PIST', 'QUAL', 'QUMO', 'QURU')) |>
+  mutate(taxon = if_else(taxon == 'FAGR', 'Fagus grandifolia', taxon),
+         taxon = if_else(taxon == 'PIST', 'Pinus strobus', taxon),
+         taxon = if_else(taxon == 'QUAL', 'Quercus alba', taxon),
+         taxon = if_else(taxon == 'QUMO', 'Quercus montana', taxon),
+         taxon = if_else(taxon == 'QURU', 'Quercus rubra', taxon)) |>
+  rename(Taxon = taxon) |>
+  mutate(plot = paste0('Plot',plot)) |>
+  ggplot(aes(x = year, y = AGB.mean, ymin = AGB.low, ymax = AGB.high, color = Taxon, fill = Taxon)) +
+  geom_line() +
+  geom_ribbon(alpha = 0.5) +
+  facet_grid(plot~Taxon) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90),
+        legend.position = 'none',
+        plot.title = element_text(size = 14, hjust = 0.5, face = 'bold')) +
+  xlab('') + ylab('Aboveground biomass') +
+  ggtitle('Goose Egg')
+
+# Rooster Hill
+all_species |>
+  filter(site == 'ROOSTER') |>
+  filter(taxon %in% c('ACRU', 'FAGR', 'PCRU', 'PIST', 'QURU')) |>
+  mutate(taxon = if_else(taxon == 'ACRU', 'Acer rubrum', taxon),
+         taxon = if_else(taxon == 'FAGR', 'Fagus grandifolia', taxon),
+         taxon = if_else(taxon == 'PCRU', 'Picea rubens', taxon),
+         taxon = if_else(taxon == 'PIST', 'Pinus strobus', taxon),
+         taxon = if_else(taxon == 'QURU', 'Quercus rubra', taxon)) |>
+  rename(Taxon = taxon) |>
+  mutate(plot = paste0('Plot',plot)) |>
+  ggplot(aes(x = year, y = AGB.mean, ymin = AGB.low, ymax = AGB.high, color = Taxon, fill = Taxon)) +
+  geom_line() +
+  geom_ribbon(alpha = 0.5) +
+  facet_grid(plot~Taxon) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90),
+        legend.position = 'none',
+        plot.title = element_text(size = 14, hjust = 0.5, face = 'bold')) +
+  xlab('') + ylab('Aboveground biomass') +
+  ggtitle('Rooster Hill')
+
+# North Round Pond
+all_species |>
+  filter(site == 'NRP') |>
+  filter(taxon %in% c('ACRU', 'ACSA', 'BEAL', 'FAGR', 'FRAM',
+                      'PIST', 'QURU', 'TSCA')) |>
+  mutate(taxon = if_else(taxon == 'PIST', 'Pinus strobus', taxon),
+         taxon = if_else(taxon == 'QURU', 'Quercus rubra', taxon),
+         taxon = if_else(taxon == 'TSCA', 'Tsuga canadensis', taxon),
+         taxon = if_else(taxon == 'ACRU', 'Acer rubrum', taxon),
+         taxon = if_else(taxon == 'ACSA', 'Acer saccharum', taxon),
+         taxon = if_else(taxon == 'BEAL', 'Betula alleghaniensis', taxon),
+         taxon = if_else(taxon == 'FAGR', 'Fagus grandifolia', taxon),
+         taxon = if_else(taxon == 'FRAM', 'Fraxinus americana', taxon)) |>
+  rename(Taxon = taxon) |>
+  mutate(plot = paste0('Plot',plot)) |>
+  ggplot(aes(x = year, y = AGB.mean, ymin = AGB.low, ymax = AGB.high, color = Taxon, fill = Taxon)) +
+  geom_line() +
+  geom_ribbon(alpha = 0.5) +
+  facet_grid(plot~Taxon) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90),
+        legend.position = 'none',
+        plot.title = element_text(size = 14, hjust = 0.5, face = 'bold')) +
+  xlab('') + ylab('Aboveground bimoass') +
+  ggtitle('North Round Pond')
+
+# Sylvania
+all_species |>
+  filter(site == 'SYLVANIA') |>
+  filter(taxon %in% c('ACSA', 'BEAL', 'THOC', 'TSCA')) |>
+  mutate(taxon = if_else(taxon == 'ACSA', 'Acer saccharum', taxon),
+         taxon = if_else(taxon == 'BEAL', 'Betula alleghaniensis', taxon),
+         taxon = if_else(taxon == 'THOC', 'Thuja occidentalis', taxon),
+         taxon = if_else(taxon == 'TSCA', 'Tsuga canadensis', taxon)) |>
+  rename(Taxon = taxon) |>
+  mutate(plot = paste0('Plot',plot)) |>
+  ggplot(aes(x = year, y = AGB.mean, ymin = AGB.low, ymax = AGB.high, color = Taxon, fill = Taxon)) +
+  geom_line() +
+  geom_ribbon(alpha = 0.5) +
+  facet_grid(plot~Taxon) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90),
+        legend.position = 'none',
+        plot.title = element_text(size = 14, hjust = 0.5, face = 'bold')) +
+  xlab('') + ylab('Aboveground biomass') +
+  ggtitle('Sylvania')
+
+#### Plot 4 ####
+
+# Species specific increment over time/site
+
+all_species |>
+  mutate(site = if_else(site == 'GOOSE', 'Goose Egg', site),
+         site = if_else(site == 'NRP', 'North Round Pond', site),
+         site = if_else(site == 'ROOSTER', 'Rooster Hill', site),
+         site = if_else(site == 'SYLVANIA', 'Sylvania', site)) |>
   mutate(taxon = if_else(taxon == 'ACRU', 'Acer rubrum', taxon),
          taxon = if_else(taxon == 'ACSA', 'Acer saccharum', taxon),
          taxon = if_else(taxon == 'AMAR', 'Amelanchier arborea', taxon),
@@ -200,10 +296,162 @@ all_species |>
          taxon = if_else(taxon == 'TSCA', 'Tsuga canadensis', taxon)) |>
   rename(Taxon = taxon) |>
   mutate(plot = paste0('Plot',plot)) |>
-  ggplot(aes(x = year, y = AGB.mean, ymin = AGB.low, ymax = AGB.high, color = Taxon, fill = Taxon)) +
+  ggplot(aes(x = year, y = AGBI.mean, ymin = AGBI.low, ymax = AGBI.high, color = Taxon, fill = Taxon)) +
   geom_line() +
   geom_ribbon(alpha = 0.5) +
   facet_grid(plot~site) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 90)) +
+  xlab('') + ylab('Aboveground biomass increment') 
+
+# Goose Egg
+all_species |>
+  filter(site == 'GOOSE') |>
+  mutate(site = if_else(site == 'GOOSE', 'Goose Egg', site)) |>
+  filter(taxon %in% c('FAGR', 'PIST', 'QUAL', 'QUMO', 'QURU')) |>
+  mutate(taxon = if_else(taxon == 'FAGR', 'Fagus grandifolia', taxon),
+         taxon = if_else(taxon == 'PIST', 'Pinus strobus', taxon),
+         taxon = if_else(taxon == 'QUAL', 'Quercus alba', taxon),
+         taxon = if_else(taxon == 'QUMO', 'Quercus montana', taxon),
+         taxon = if_else(taxon == 'QURU', 'Quercus rubra', taxon)) |>
+  rename(Taxon = taxon) |>
+  mutate(plot = paste0('Plot',plot)) |>
+  ggplot(aes(x = year, y = AGBI.mean, ymin = AGBI.low, ymax = AGBI.high, color = Taxon, fill = Taxon)) +
+  geom_line() +
+  geom_ribbon(alpha = 0.5) +
+  facet_grid(plot~Taxon) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90),
+        legend.position = 'none',
+        plot.title = element_text(size = 14, hjust = 0.5, face = 'bold')) +
+  xlab('') + ylab('Aboveground biomass increment') +
+  ggtitle('Goose Egg')
+
+# Rooster Hill
+all_species |>
+  filter(site == 'ROOSTER') |>
+  filter(taxon %in% c('ACRU', 'FAGR', 'PCRU', 'PIST', 'QURU')) |>
+  mutate(taxon = if_else(taxon == 'ACRU', 'Acer rubrum', taxon),
+         taxon = if_else(taxon == 'FAGR', 'Fagus grandifolia', taxon),
+         taxon = if_else(taxon == 'PCRU', 'Picea rubens', taxon),
+         taxon = if_else(taxon == 'PIST', 'Pinus strobus', taxon),
+         taxon = if_else(taxon == 'QURU', 'Quercus rubra', taxon)) |>
+  rename(Taxon = taxon) |>
+  mutate(plot = paste0('Plot',plot)) |>
+  ggplot(aes(x = year, y = AGB.mean, ymin = AGB.low, ymax = AGB.high, color = Taxon, fill = Taxon)) +
+  geom_line() +
+  geom_ribbon(alpha = 0.5) +
+  facet_grid(plot~Taxon) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90),
+        legend.position = 'none',
+        plot.title = element_text(size = 14, face = 'bold', hjust = 0.5)) +
+  xlab('') + ylab('Aboveground biomass') +
+  ggtitle('Rooster Hill')
+
+# North Round Pond
+all_species |>
+  filter(site == 'NRP') |>
+  filter(taxon %in% c('ACRU', 'ACSA', 'BEAL', 'FAGR', 'FRAM',
+                      'PIST', 'QURU', 'TSCA')) |>
+  mutate(taxon = if_else(taxon == 'PIST', 'Pinus strobus', taxon),
+         taxon = if_else(taxon == 'QURU', 'Quercus rubra', taxon),
+         taxon = if_else(taxon == 'TSCA', 'Tsuga canadensis', taxon),
+         taxon = if_else(taxon == 'ACRU', 'Acer rubrum', taxon),
+         taxon = if_else(taxon == 'ACSA', 'Acer saccharum', taxon),
+         taxon = if_else(taxon == 'BEAL', 'Betula alleghaniensis', taxon),
+         taxon = if_else(taxon == 'FAGR', 'Fagus grandifolia', taxon),
+         taxon = if_else(taxon == 'FRAM', 'Fraxinus americana', taxon)) |>
+  rename(Taxon = taxon) |>
+  mutate(plot = paste0('Plot',plot)) |>
+  ggplot(aes(x = year, y = AGBI.mean, ymin = AGBI.low, ymax = AGBI.high, color = Taxon, fill = Taxon)) +
+  geom_line() +
+  geom_ribbon(alpha = 0.5) +
+  facet_grid(plot~Taxon) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90),
+        legend.position = 'none',
+        plot.title = element_text(size = 14, hjust = 0.5, face = 'bold')) +
+  xlab('') + ylab('Aboveground bimoass increment') +
+  ggtitle('North Round Pond')
+
+# Sylvania
+all_species |>
+  filter(site == 'SYLVANIA') |>
+  filter(taxon %in% c('ACSA', 'BEAL', 'THOC', 'TSCA')) |>
+  mutate(taxon = if_else(taxon == 'ACSA', 'Acer saccharum', taxon),
+         taxon = if_else(taxon == 'BEAL', 'Betula alleghaniensis', taxon),
+         taxon = if_else(taxon == 'THOC', 'Thuja occidentalis', taxon),
+         taxon = if_else(taxon == 'TSCA', 'Tsuga canadensis', taxon)) |>
+  rename(Taxon = taxon) |>
+  mutate(plot = paste0('Plot',plot)) |>
+  ggplot(aes(x = year, y = AGBI.mean, ymin = AGBI.low, ymax = AGBI.high, color = Taxon, fill = Taxon)) +
+  geom_line() +
+  geom_ribbon(alpha = 0.5) +
+  facet_grid(plot~Taxon) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90),
+        legend.position = 'none',
+        plot.title = element_text(size = 14, hjust = 0.4, face = 'bold')) +
+  xlab('') + ylab('Aboveground biomass increment') +
+  ggtitle('Sylvania')
+
+#### Plot 5 ####
+
+# species/site with species overlap
+
+## Quercus rubra has the most overlap
+
+all_species |>
+  filter(taxon == 'QURU') |>
+  mutate(taxon = 'Quercus rubra') |>
+  rename(Taxon = taxon) |>
+  mutate(plot = paste0('Plot',plot)) |>
+  ggplot(aes(x = year, y = AGB.mean, ymin = AGB.low, ymax = AGB.high, color = plot, fill = plot)) +
+  geom_line() +
+  geom_ribbon(alpha = 0.5) +
+  facet_wrap(site~Taxon) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90)) +
   xlab('') + ylab('Aboveground biomass')
+
+all_species |>
+  filter(taxon == 'QURU') |>
+  mutate(taxon = 'Quercus rubra') |>
+  rename(Taxon = taxon) |>
+  mutate(plot = paste0('Plot',plot)) |>
+  ggplot(aes(x = year, y = AGBI.mean, ymin = AGBI.low, ymax = AGBI.high, color = plot, fill = plot)) +
+  geom_line() +
+  geom_ribbon(alpha = 0.5) +
+  facet_wrap(site~Taxon) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  xlab('') + ylab('Aboveground biomass increment')
+
+#### Plot 6 ####
+
+# average temperature vs increment
+
+# Load climate data
+load('climate/prism_clim.RData')
+
+# Average climate across months
+prism_wide <- prism_long |>
+  pivot_wider(names_from = month, values_from = c(PPT, Tmean))
+
+prism_wide2 <- prism_wide |>
+  mutate(PPT_mean = rowMeans(dplyr::select(prism_wide, starts_with('PPT'))),
+         Tmean_mean = rowMeans(dplyr::select(prism_wide, starts_with('Tmean'))))
+colnames(prism_wide2)[2] = 'site'
+prism_wide2$year <- as.numeric(prism_wide2$year)
+
+climate_increment <- all_site |>
+  left_join(prism_wide2, by = c('year', 'site'))
+
+climate_increment |>
+  ggplot(aes(x = Tmean_mean, y = AGB.mean, ymin = AGB.low, ymax = AGB.high, color = site)) +
+  geom_point() +
+  geom_errorbar() +
+  theme_minimal() +
+  xlab('Mean annual temperature')
+  
