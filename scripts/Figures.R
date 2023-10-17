@@ -14,6 +14,9 @@ rm(list = ls())
 
 library(dplyr)
 library(ggplot2)
+library(forecast)
+library(lme4)
+library(performance)
 
 # Load total biomass
 goose_total_agb <- readRDS('sites/GOOSE/runs/v2.0_012021/output/AGB_STAN_GOOSE_v2.0_012021.RDS')
@@ -449,9 +452,377 @@ climate_increment <- all_site |>
   left_join(prism_wide2, by = c('year', 'site'))
 
 climate_increment |>
-  ggplot(aes(x = Tmean_mean, y = AGB.mean, ymin = AGB.low, ymax = AGB.high, color = site)) +
+  rename(Site = site) |>
+  mutate(Site = if_else(Site == 'GOOSE', 'Goose Egg', Site),
+         Site = if_else(Site == 'NRP', 'North Round Pond', Site),
+         Site = if_else(Site == 'ROOSTER', 'Rooster Hill', Site),
+         Site = if_else(Site == 'SYLVANIA', 'Sylvania', Site)) |>
+  ggplot(aes(x = Tmean_mean, y = AGBI.mean, ymin = AGBI.low, ymax = AGBI.high, color = Site)) +
   geom_point() +
   geom_errorbar() +
   theme_minimal() +
-  xlab('Mean annual temperature')
-  
+  xlab('Mean annual temperature') + ylab('Aboveground biomass increment')
+
+# Do the same for species-level
+climate_species <- all_species |>
+  left_join(prism_wide2, by = c('year', 'site'))
+
+climate_species |>
+  mutate(site = if_else(site == 'GOOSE', 'Goose Egg', site),
+         site = if_else(site == 'NRP', 'North Round Pond', site),
+         site = if_else(site == 'ROOSTER', 'Rooster Hill', site),
+         site = if_else(site == 'SYLVANIA', 'Sylvania', site)) |>
+  mutate(taxon = if_else(taxon == 'ACRU', 'Acer rubrum', taxon),
+         taxon = if_else(taxon == 'ACSA', 'Acer saccharum', taxon),
+         taxon = if_else(taxon == 'AMAR', 'Amelanchier arborea', taxon),
+         taxon = if_else(taxon == 'BEAL', 'Betula alleghaniensis', taxon),
+         taxon = if_else(taxon == 'BELE', 'Betula lenta', taxon),
+         taxon = if_else(taxon == 'BEPA', 'Betula papyrifera', taxon),
+         taxon = if_else(taxon == 'FAGR', 'Fagus grandifolia', taxon),
+         taxon = if_else(taxon == 'FRAM', 'Fraxinus americana', taxon),
+         taxon = if_else(taxon == 'OSVI', 'Ostrya virginiana', taxon),
+         taxon = if_else(taxon == 'PCRU', 'Picea rubens', taxon),
+         taxon = if_else(taxon == 'PIST', 'Pinus strobus', taxon),
+         taxon = if_else(taxon == 'PRSE', 'Prunus serotina', taxon),
+         taxon = if_else(taxon == 'QUAL', 'Quercus alba', taxon),
+         taxon = if_else(taxon == 'QUMO', 'Quercus montana', taxon),
+         taxon = if_else(taxon == 'QURU', 'Quercus rubra', taxon),
+         taxon = if_else(taxon == 'THOC', 'Thuja occidentalis', taxon),
+         taxon = if_else(taxon == 'TSCA', 'Tsuga canadensis', taxon)) |>
+  mutate(plot = paste('Plot',plot)) |>
+  rename(Taxon = taxon) |>
+  ggplot(aes(x = Tmean_mean, y = AGBI.mean, ymin = AGBI.low, ymax = AGBI.high, color = Taxon)) +
+  geom_point() +
+  geom_errorbar() +
+  facet_grid(plot~site) +
+  theme_minimal() +
+  xlab('Average annual temperature') + ylab('Aboveground biomass increment')
+
+## Only common taxa
+
+# Goose Egg
+climate_species |>
+  filter(site == 'GOOSE') |>
+  mutate(site = 'Goose Egg') |>
+  filter(taxon %in% c('FAGR', 'PIST', 'QUAL', 'QUMO', 'QURU')) |>
+  mutate(taxon = if_else(taxon == 'FAGR', 'Fagus grandifolia', taxon),
+         taxon = if_else(taxon == 'PIST', 'Pinus strobus', taxon),
+         taxon = if_else(taxon == 'QUAL', 'Quercus alba', taxon),
+         taxon = if_else(taxon == 'QUMO', 'Quercus montana', taxon),
+         taxon = if_else(taxon == 'QURU', 'Quercus rubra', taxon)) |>
+  mutate(plot = paste('Plot',plot)) |>
+  rename(Taxon = taxon) |>
+  ggplot(aes(x = Tmean_mean, y = AGBI.mean, ymin = AGBI.low, ymax = AGBI.high, color = Taxon)) +
+  geom_point() +
+  geom_errorbar() +
+  facet_grid(plot~Taxon) +
+  theme_minimal() +
+  xlab('Average annual temperature') + ylab('Aboveground biomass increment') +
+  ggtitle('Goose Egg') +
+  theme(plot.title = element_text(size = 14, hjust = 0.5, face = 'bold'))
+
+# Rooster Hill
+climate_species |>
+  filter(site == 'ROOSTER') |>
+  mutate(site = 'Rooster Hill') |>
+  filter(taxon %in% c('ACRU', 'FAGR', 'PCRU', 'PIST', 'QURU')) |>
+  mutate(taxon = if_else(taxon == 'ACRU', 'Acer Rubrum', taxon),
+         taxon = if_else(taxon == 'FAGR', 'Fagus grandifolia', taxon),
+         taxon = if_else(taxon == 'PCRU', 'Picea rubens', taxon),
+         taxon = if_else(taxon == 'PIST', 'Pinus strobus', taxon),
+         taxon = if_else(taxon == 'QURU', 'Quercus rubra', taxon)) |>
+  mutate(plot = paste('Plot',plot)) |>
+  rename(Taxon = taxon) |>
+  ggplot(aes(x = Tmean_mean, y = AGBI.mean, ymin = AGBI.low, ymax = AGBI.high, color = Taxon)) +
+  geom_point() +
+  geom_errorbar() +
+  facet_grid(plot~Taxon) +
+  theme_minimal() +
+  xlab('Average annual temperature') + ylab('Aboveground biomass increment') +
+  ggtitle('Rooster Hill') +
+  theme(plot.title = element_text(size = 14, hjust = 0.5, face = 'bold'))
+
+# North Round Pond
+climate_species |>
+  filter(site == 'NRP') |>
+  mutate(site = 'North Round Pond') |>
+  filter(taxon %in% c('ACRU', 'ACSA', 'BEAL', 'FAGR', 'FRAM',
+                      'PIST', 'QURU', 'TSCA')) |>
+  mutate(taxon = if_else(taxon == 'PIST', 'Pinus strobus', taxon),
+         taxon = if_else(taxon == 'QURU', 'Quercus rubra', taxon),
+         taxon = if_else(taxon == 'TSCA', 'Tsuga canadensis', taxon),
+         taxon = if_else(taxon == 'ACRU', 'Acer rubrum', taxon),
+         taxon = if_else(taxon == 'ACSA', 'Acer saccharum', taxon),
+         taxon = if_else(taxon == 'BEAL', 'Betula alleghaniensis', taxon),
+         taxon = if_else(taxon == 'FAGR', 'Fagus grandifolia', taxon),
+         taxon = if_else(taxon == 'FRAM', 'Fraxinus americana', taxon)) |>
+  mutate(plot = paste('Plot',plot)) |>
+  rename(Taxon = taxon) |>
+  ggplot(aes(x = Tmean_mean, y = AGBI.mean, ymin = AGBI.low, ymax = AGBI.high, color = Taxon)) +
+  geom_point() +
+  geom_errorbar() +
+  facet_grid(plot~Taxon) +
+  theme_minimal() +
+  xlab('Average annual temperature') + ylab('Aboveground biomass increment') +
+  ggtitle('North Round Pond') +
+  theme(plot.title = element_text(size = 14, hjust = 0.5, face = 'bold'))
+
+# Sylvania
+climate_species |>
+  filter(site == 'SYLVANIA') |>
+  mutate(site = 'Sylvania') |>
+  filter(taxon %in% c('ACSA', 'BEAL', 'THOC', 'TSCA')) |>
+  mutate(taxon = if_else(taxon == 'ACSA', 'Acer saccharum', taxon),
+         taxon = if_else(taxon == 'BEAL', 'Betula alleghaniensis', taxon),
+         taxon = if_else(taxon == 'THOC', 'Thuja occidentalis', taxon),
+         taxon = if_else(taxon == 'TSCA', 'Tsuga canadensis', taxon)) |>
+  mutate(plot = paste('Plot',plot)) |>
+  rename(Taxon = taxon) |>
+  ggplot(aes(x = Tmean_mean, y = AGBI.mean, ymin = AGBI.low, ymax = AGBI.high, color = Taxon)) +
+  geom_point() +
+  geom_errorbar() +
+  facet_grid(plot~Taxon) +
+  theme_minimal() +
+  xlab('Average annual temperature') + ylab('Aboveground biomass increment') +
+  ggtitle('Sylvania') +
+  theme(plot.title = element_text(size = 14, hjust = 0.5, face = 'bold'))
+
+#### Plot 7 ####
+
+# average precipitation vs increment
+
+# Repeat plot 6 but  for precipitation
+
+climate_increment |>
+  rename(Site = site) |>
+  mutate(Site = if_else(Site == 'GOOSE', 'Goose Egg', Site),
+         Site = if_else(Site == 'NRP', 'North Round Pond', Site),
+         Site = if_else(Site == 'ROOSTER', 'Rooster Hill', Site),
+         Site = if_else(Site == 'SYLVANIA', 'Sylvania', Site)) |>
+  ggplot(aes(x = PPT_mean, y = AGBI.mean, ymin = AGBI.low, ymax = AGBI.high, color = Site)) +
+  geom_point() +
+  geom_errorbar() +
+  theme_minimal() +
+  xlab('Total annual precipitation') + ylab('Aboveground biomass increment')
+
+climate_species |>
+  mutate(site = if_else(site == 'GOOSE', 'Goose Egg', site),
+         site = if_else(site == 'NRP', 'North Round Pond', site),
+         site = if_else(site == 'ROOSTER', 'Rooster Hill', site),
+         site = if_else(site == 'SYLVANIA', 'Sylvania', site)) |>
+  mutate(taxon = if_else(taxon == 'ACRU', 'Acer rubrum', taxon),
+         taxon = if_else(taxon == 'ACSA', 'Acer saccharum', taxon),
+         taxon = if_else(taxon == 'AMAR', 'Amelanchier arborea', taxon),
+         taxon = if_else(taxon == 'BEAL', 'Betula alleghaniensis', taxon),
+         taxon = if_else(taxon == 'BELE', 'Betula lenta', taxon),
+         taxon = if_else(taxon == 'BEPA', 'Betula papyrifera', taxon),
+         taxon = if_else(taxon == 'FAGR', 'Fagus grandifolia', taxon),
+         taxon = if_else(taxon == 'FRAM', 'Fraxinus americana', taxon),
+         taxon = if_else(taxon == 'OSVI', 'Ostrya virginiana', taxon),
+         taxon = if_else(taxon == 'PCRU', 'Picea rubens', taxon),
+         taxon = if_else(taxon == 'PIST', 'Pinus strobus', taxon),
+         taxon = if_else(taxon == 'PRSE', 'Prunus serotina', taxon),
+         taxon = if_else(taxon == 'QUAL', 'Quercus alba', taxon),
+         taxon = if_else(taxon == 'QUMO', 'Quercus montana', taxon),
+         taxon = if_else(taxon == 'QURU', 'Quercus rubra', taxon),
+         taxon = if_else(taxon == 'THOC', 'Thuja occidentalis', taxon),
+         taxon = if_else(taxon == 'TSCA', 'Tsuga canadensis', taxon)) |>
+  mutate(plot = paste('Plot',plot)) |>
+  rename(Taxon = taxon) |>
+  ggplot(aes(x = PPT_mean, y = AGBI.mean, ymin = AGBI.low, ymax = AGBI.high, color = Taxon)) +
+  geom_point() +
+  geom_errorbar() +
+  facet_grid(plot~site) +
+  theme_minimal() +
+  xlab('Total annual precipitation') + ylab('Aboveground biomass increment')
+
+## Only common taxa
+
+# Goose Egg
+climate_species |>
+  filter(site == 'GOOSE') |>
+  mutate(site = 'Goose Egg') |>
+  filter(taxon %in% c('FAGR', 'PIST', 'QUAL', 'QUMO', 'QURU')) |>
+  mutate(taxon = if_else(taxon == 'FAGR', 'Fagus grandifolia', taxon),
+         taxon = if_else(taxon == 'PIST', 'Pinus strobus', taxon),
+         taxon = if_else(taxon == 'QUAL', 'Quercus alba', taxon),
+         taxon = if_else(taxon == 'QUMO', 'Quercus montana', taxon),
+         taxon = if_else(taxon == 'QURU', 'Quercus rubra', taxon)) |>
+  mutate(plot = paste('Plot',plot)) |>
+  rename(Taxon = taxon) |>
+  ggplot(aes(x = PPT_mean, y = AGBI.mean, ymin = AGBI.low, ymax = AGBI.high, color = Taxon)) +
+  geom_point() +
+  geom_errorbar() +
+  facet_grid(plot~Taxon) +
+  theme_minimal() +
+  xlab('Total annual precipitation') + ylab('Aboveground biomass increment') +
+  ggtitle('Goose Egg') +
+  theme(plot.title = element_text(size = 14, hjust = 0.5, face = 'bold'))
+
+# Rooster Hill
+climate_species |>
+  filter(site == 'ROOSTER') |>
+  mutate(site = 'Rooster Hill') |>
+  filter(taxon %in% c('ACRU', 'FAGR', 'PCRU', 'PIST', 'QURU')) |>
+  mutate(taxon = if_else(taxon == 'ACRU', 'Acer Rubrum', taxon),
+         taxon = if_else(taxon == 'FAGR', 'Fagus grandifolia', taxon),
+         taxon = if_else(taxon == 'PCRU', 'Picea rubens', taxon),
+         taxon = if_else(taxon == 'PIST', 'Pinus strobus', taxon),
+         taxon = if_else(taxon == 'QURU', 'Quercus rubra', taxon)) |>
+  mutate(plot = paste('Plot',plot)) |>
+  rename(Taxon = taxon) |>
+  ggplot(aes(x = PPT_mean, y = AGBI.mean, ymin = AGBI.low, ymax = AGBI.high, color = Taxon)) +
+  geom_point() +
+  geom_errorbar() +
+  facet_grid(plot~Taxon) +
+  theme_minimal() +
+  xlab('Total annual precipitation') + ylab('Aboveground biomass increment') +
+  ggtitle('Rooster Hill') +
+  theme(plot.title = element_text(size = 14, hjust = 0.5, face = 'bold'))
+
+# North Round Pond
+climate_species |>
+  filter(site == 'NRP') |>
+  mutate(site = 'North Round Pond') |>
+  filter(taxon %in% c('ACRU', 'ACSA', 'BEAL', 'FAGR', 'FRAM',
+                      'PIST', 'QURU', 'TSCA')) |>
+  mutate(taxon = if_else(taxon == 'PIST', 'Pinus strobus', taxon),
+         taxon = if_else(taxon == 'QURU', 'Quercus rubra', taxon),
+         taxon = if_else(taxon == 'TSCA', 'Tsuga canadensis', taxon),
+         taxon = if_else(taxon == 'ACRU', 'Acer rubrum', taxon),
+         taxon = if_else(taxon == 'ACSA', 'Acer saccharum', taxon),
+         taxon = if_else(taxon == 'BEAL', 'Betula alleghaniensis', taxon),
+         taxon = if_else(taxon == 'FAGR', 'Fagus grandifolia', taxon),
+         taxon = if_else(taxon == 'FRAM', 'Fraxinus americana', taxon)) |>
+  mutate(plot = paste('Plot',plot)) |>
+  rename(Taxon = taxon) |>
+  ggplot(aes(x = PPT_mean, y = AGBI.mean, ymin = AGBI.low, ymax = AGBI.high, color = Taxon)) +
+  geom_point() +
+  geom_errorbar() +
+  facet_grid(plot~Taxon) +
+  theme_minimal() +
+  xlab('Total annual precipitation') + ylab('Aboveground biomass increment') +
+  ggtitle('North Round Pond') +
+  theme(plot.title = element_text(size = 14, hjust = 0.5, face = 'bold'))
+
+# Sylvania
+climate_species |>
+  filter(site == 'SYLVANIA') |>
+  mutate(site = 'Sylvania') |>
+  filter(taxon %in% c('ACSA', 'BEAL', 'THOC', 'TSCA')) |>
+  mutate(taxon = if_else(taxon == 'ACSA', 'Acer saccharum', taxon),
+         taxon = if_else(taxon == 'BEAL', 'Betula alleghaniensis', taxon),
+         taxon = if_else(taxon == 'THOC', 'Thuja occidentalis', taxon),
+         taxon = if_else(taxon == 'TSCA', 'Tsuga canadensis', taxon)) |>
+  mutate(plot = paste('Plot',plot)) |>
+  rename(Taxon = taxon) |>
+  ggplot(aes(x = PPT_mean, y = AGBI.mean, ymin = AGBI.low, ymax = AGBI.high, color = Taxon)) +
+  geom_point() +
+  geom_errorbar() +
+  facet_grid(plot~Taxon) +
+  theme_minimal() +
+  xlab('Total annual precipitation') + ylab('Aboveground biomass increment') +
+  ggtitle('Sylvania') +
+  theme(plot.title = element_text(size = 14, hjust = 0.5, face = 'bold'))
+
+#### Plot 8 ####
+
+# simple model of precipitation, temperature, increment across sites
+
+# Combine site-level data with climate data
+climate_site <- all_site |>
+  left_join(prism_wide2, by = c('site', 'year'))
+
+lm_site <- lmer(data = climate_site, formula = AGBI.mean ~ PPT_mean + Tmean_mean + (1 | site))
+summary(lm_site)
+performance::r2_nakagawa(lm_site)
+
+climate_site <- as.ts(climate_site)
+acf(climate_site[,5])
+
+ar_site <- auto.arima(climate_site[,5])
+summary(ar_site)
+
+resid_site <- residuals(ar_site)
+
+climate_site <- as.data.frame(climate_site)
+climate_site$residuals <- resid_site
+
+lm_site2 <- lmer(data = climate_site, formula = residuals ~ PPT_mean + Tmean_mean + (1 | site))
+summary(lm_site2)
+performance::r2_nakagawa(lm_site2)
+
+climate_site |>
+  mutate(site = as.factor(site),
+         site = if_else(site == 1, 'Goose Egg', site),
+         site = if_else(site == 2, 'Rooster Hill', site),
+         site = if_else(site == 3, 'North Round Pond', site),
+         site = if_else(site == 4, 'Sylvania', site)) |>
+  rename(Site = site) |>
+  ggplot(aes(x = PPT_mean, residuals, color = Site)) +
+  geom_point() +
+  theme_minimal() +
+  xlab('Average annual precipitation') + ylab('Residuals')
+
+# Repeat for temperature
+climate_site |>
+  mutate(site = as.factor(site),
+         site = if_else(site == 1, 'Goose Egg', site),
+         site = if_else(site == 2, 'Rooster Hill', site),
+         site = if_else(site == 3, 'North Round Pond', site),
+         site = if_else(site == 4, 'Sylvania', site)) |>
+  rename(Site = site) |>
+  ggplot(aes(x = Tmean_mean, residuals, color = Site)) +
+  geom_point() +
+  theme_minimal() +
+  xlab('Average annual temperature') + ylab('Residuals')
+
+#### Plot 9 ####
+
+# Model with biomass instead of increment
+
+## Repeat section 8 but with biomass
+
+lm_site <- lmer(data = climate_site, formula = AGB.mean ~ PPT_mean + Tmean_mean + (1 | site))
+summary(lm_site)
+performance::r2_nakagawa(lm_site)
+
+climate_site <- as.ts(climate_site)
+acf(climate_site[,6], na.action = na.pass)
+
+ar_site <- auto.arima(climate_site[,6])
+summary(ar_site)
+
+resid_site <- residuals(ar_site)
+
+climate_site <- as.data.frame(climate_site)
+climate_site$residuals <- resid_site
+
+lm_site2 <- lmer(data = climate_site, formula = residuals ~ PPT_mean + Tmean_mean + (1 | site))
+summary(lm_site2)
+performance::r2_nakagawa(lm_site2)
+
+climate_site |>
+  mutate(site = as.factor(site),
+         site = if_else(site == 1, 'Goose Egg', site),
+         site = if_else(site == 2, 'Rooster Hill', site),
+         site = if_else(site == 3, 'North Round Pond', site),
+         site = if_else(site == 4, 'Sylvania', site)) |>
+  rename(Site = site) |>
+  ggplot(aes(x = PPT_mean, residuals, color = Site)) +
+  geom_point() +
+  theme_minimal() +
+  xlab('Average annual precipitation') + ylab('Residuals')
+
+# Repeat for temperature
+climate_site |>
+  mutate(site = as.factor(site),
+         site = if_else(site == 1, 'Goose Egg', site),
+         site = if_else(site == 2, 'Rooster Hill', site),
+         site = if_else(site == 3, 'North Round Pond', site),
+         site = if_else(site == 4, 'Sylvania', site)) |>
+  rename(Site = site) |>
+  ggplot(aes(x = Tmean_mean, residuals, color = Site)) +
+  geom_point() +
+  theme_minimal() +
+  xlab('Average annual temperature') + ylab('Residuals')
