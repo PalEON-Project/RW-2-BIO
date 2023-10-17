@@ -124,7 +124,8 @@ all_site |>
   geom_ribbon(alpha = 0.5) +
   facet_grid(plot~site) +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 90))
+  theme(axis.text.x = element_text(angle = 90)) +
+  xlab('') + ylab('Aboveground biomass')
 
 #### Plot 2 ####
 
@@ -141,7 +142,8 @@ all_site |>
   geom_ribbon(alpha = 0.5) +
   facet_grid(plot~site) +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 90))
+  theme(axis.text.x = element_text(angle = 90)) +
+  xlab('') + ylab('Aboveground biomass increment')
 
 #### Plot 3 ####
 
@@ -341,7 +343,7 @@ all_species |>
          taxon = if_else(taxon == 'QURU', 'Quercus rubra', taxon)) |>
   rename(Taxon = taxon) |>
   mutate(plot = paste0('Plot',plot)) |>
-  ggplot(aes(x = year, y = AGB.mean, ymin = AGB.low, ymax = AGB.high, color = Taxon, fill = Taxon)) +
+  ggplot(aes(x = year, y = AGBI.mean, ymin = AGBI.low, ymax = AGBI.high, color = Taxon, fill = Taxon)) +
   geom_line() +
   geom_ribbon(alpha = 0.5) +
   facet_grid(plot~Taxon) +
@@ -349,7 +351,7 @@ all_species |>
   theme(axis.text.x = element_text(angle = 90),
         legend.position = 'none',
         plot.title = element_text(size = 14, face = 'bold', hjust = 0.5)) +
-  xlab('') + ylab('Aboveground biomass') +
+  xlab('') + ylab('Aboveground biomass increment') +
   ggtitle('Rooster Hill')
 
 # North Round Pond
@@ -408,12 +410,15 @@ all_species |>
 all_species |>
   filter(taxon == 'QURU') |>
   mutate(taxon = 'Quercus rubra') |>
-  rename(Taxon = taxon) |>
-  mutate(plot = paste0('Plot',plot)) |>
-  ggplot(aes(x = year, y = AGB.mean, ymin = AGB.low, ymax = AGB.high, color = plot, fill = plot)) +
+  mutate(site = if_else(site == 'GOOSE', 'Goose Egg', site),
+         site = if_else(site == 'NRP', 'North Round Pond', site),
+         site = if_else(site == 'ROOSTER', 'Rooster Hill', site)) |>
+  rename(Plot = plot) |>
+  mutate(Plot = paste0('Plot',Plot)) |>
+  ggplot(aes(x = year, y = AGB.mean, ymin = AGB.low, ymax = AGB.high, color = Plot, fill = Plot)) +
   geom_line() +
   geom_ribbon(alpha = 0.5) +
-  facet_wrap(site~Taxon) +
+  facet_wrap(~site) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 90)) +
   xlab('') + ylab('Aboveground biomass')
@@ -421,12 +426,47 @@ all_species |>
 all_species |>
   filter(taxon == 'QURU') |>
   mutate(taxon = 'Quercus rubra') |>
-  rename(Taxon = taxon) |>
-  mutate(plot = paste0('Plot',plot)) |>
-  ggplot(aes(x = year, y = AGBI.mean, ymin = AGBI.low, ymax = AGBI.high, color = plot, fill = plot)) +
+  mutate(site = if_else(site == 'GOOSE', 'Goose Egg', site),
+         site = if_else(site == 'NRP', 'North Round Pond', site),
+         site = if_else(site == 'ROOSTER', 'Rooster Hill', site)) |>
+  rename(Plot = plot) |>
+  mutate(Plot = paste0('Plot',Plot)) |>
+  ggplot(aes(x = year, y = AGBI.mean, ymin = AGBI.low, ymax = AGBI.high, color = Plot, fill = Plot)) +
   geom_line() +
   geom_ribbon(alpha = 0.5) +
-  facet_wrap(site~Taxon) +
+  facet_wrap(~site) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  xlab('') + ylab('Aboveground biomass increment')
+
+all_species |>
+  mutate(site = if_else(site == 'GOOSE', 'Goose Egg', site),
+         site = if_else(site == 'NRP', 'North Round Pond', site),
+         site = if_else(site == 'SYLVANIA', 'Sylvania', site)) |>
+  filter(taxon == 'ACSA') |>
+  mutate(taxon = 'Acer saccharum') |>
+  rename(Plot = plot) |>
+  mutate(Plot = paste('Plot',Plot)) |>
+  ggplot(aes(x = year, y = AGB.mean, ymin = AGB.low, ymax = AGB.high, color = Plot, fill = Plot)) +
+  geom_line() +
+  geom_ribbon(alpha = 0.5) +
+  facet_wrap(~site) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  xlab('') + ylab('Aboveground biomass')
+
+all_species |>
+  mutate(site = if_else(site == 'GOOSE', 'Goose Egg', site),
+         site = if_else(site == 'NRP', 'North Round Pond', site),
+         site = if_else(site == 'SYLVANIA', 'Sylvania', site)) |>
+  filter(taxon == 'ACSA') |>
+  mutate(taxon = 'Acer saccharum') |>
+  rename(Plot = plot) |>
+  mutate(Plot = paste('Plot',Plot)) |>
+  ggplot(aes(x = year, y = AGBI.mean, ymin = AGBI.low, ymax = AGBI.high, color = Plot, fill = Plot)) +
+  geom_line() +
+  geom_ribbon(alpha = 0.5) +
+  facet_wrap(~site) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 90)) +
   xlab('') + ylab('Aboveground biomass increment')
@@ -443,7 +483,7 @@ prism_wide <- prism_long |>
   pivot_wider(names_from = month, values_from = c(PPT, Tmean))
 
 prism_wide2 <- prism_wide |>
-  mutate(PPT_mean = rowMeans(dplyr::select(prism_wide, starts_with('PPT'))),
+  mutate(PPT_mean = rowSums(dplyr::select(prism_wide, starts_with('PPT'))),
          Tmean_mean = rowMeans(dplyr::select(prism_wide, starts_with('Tmean'))))
 colnames(prism_wide2)[2] = 'site'
 prism_wide2$year <- as.numeric(prism_wide2$year)
@@ -519,7 +559,8 @@ climate_species |>
   theme_minimal() +
   xlab('Average annual temperature') + ylab('Aboveground biomass increment') +
   ggtitle('Goose Egg') +
-  theme(plot.title = element_text(size = 14, hjust = 0.5, face = 'bold'))
+  theme(plot.title = element_text(size = 14, hjust = 0.5, face = 'bold'),
+        legend.position = 'none')
 
 # Rooster Hill
 climate_species |>
@@ -540,7 +581,8 @@ climate_species |>
   theme_minimal() +
   xlab('Average annual temperature') + ylab('Aboveground biomass increment') +
   ggtitle('Rooster Hill') +
-  theme(plot.title = element_text(size = 14, hjust = 0.5, face = 'bold'))
+  theme(plot.title = element_text(size = 14, hjust = 0.5, face = 'bold'),
+        legend.position = 'none')
 
 # North Round Pond
 climate_species |>
@@ -565,7 +607,8 @@ climate_species |>
   theme_minimal() +
   xlab('Average annual temperature') + ylab('Aboveground biomass increment') +
   ggtitle('North Round Pond') +
-  theme(plot.title = element_text(size = 14, hjust = 0.5, face = 'bold'))
+  theme(plot.title = element_text(size = 14, hjust = 0.5, face = 'bold'),
+        legend.position = 'none')
 
 # Sylvania
 climate_species |>
@@ -585,7 +628,8 @@ climate_species |>
   theme_minimal() +
   xlab('Average annual temperature') + ylab('Aboveground biomass increment') +
   ggtitle('Sylvania') +
-  theme(plot.title = element_text(size = 14, hjust = 0.5, face = 'bold'))
+  theme(plot.title = element_text(size = 14, hjust = 0.5, face = 'bold'),
+        legend.position = 'none')
 
 #### Plot 7 ####
 
@@ -657,7 +701,8 @@ climate_species |>
   theme_minimal() +
   xlab('Total annual precipitation') + ylab('Aboveground biomass increment') +
   ggtitle('Goose Egg') +
-  theme(plot.title = element_text(size = 14, hjust = 0.5, face = 'bold'))
+  theme(plot.title = element_text(size = 14, hjust = 0.5, face = 'bold'),
+        legend.position = 'none')
 
 # Rooster Hill
 climate_species |>
@@ -678,7 +723,8 @@ climate_species |>
   theme_minimal() +
   xlab('Total annual precipitation') + ylab('Aboveground biomass increment') +
   ggtitle('Rooster Hill') +
-  theme(plot.title = element_text(size = 14, hjust = 0.5, face = 'bold'))
+  theme(plot.title = element_text(size = 14, hjust = 0.5, face = 'bold'),
+        legend.position = 'none')
 
 # North Round Pond
 climate_species |>
@@ -703,7 +749,8 @@ climate_species |>
   theme_minimal() +
   xlab('Total annual precipitation') + ylab('Aboveground biomass increment') +
   ggtitle('North Round Pond') +
-  theme(plot.title = element_text(size = 14, hjust = 0.5, face = 'bold'))
+  theme(plot.title = element_text(size = 14, hjust = 0.5, face = 'bold'),
+        legend.position = 'none')
 
 # Sylvania
 climate_species |>
@@ -723,7 +770,8 @@ climate_species |>
   theme_minimal() +
   xlab('Total annual precipitation') + ylab('Aboveground biomass increment') +
   ggtitle('Sylvania') +
-  theme(plot.title = element_text(size = 14, hjust = 0.5, face = 'bold'))
+  theme(plot.title = element_text(size = 14, hjust = 0.5, face = 'bold'),
+        legend.position = 'none')
 
 #### Plot 8 ####
 
@@ -762,7 +810,7 @@ climate_site |>
   ggplot(aes(x = PPT_mean, residuals, color = Site)) +
   geom_point() +
   theme_minimal() +
-  xlab('Average annual precipitation') + ylab('Residuals')
+  xlab('Total annual precipitation') + ylab('Residuals')
 
 # Repeat for temperature
 climate_site |>
@@ -812,7 +860,7 @@ climate_site |>
   ggplot(aes(x = PPT_mean, residuals, color = Site)) +
   geom_point() +
   theme_minimal() +
-  xlab('Average annual precipitation') + ylab('Residuals')
+  xlab('Total annual precipitation') + ylab('Residuals')
 
 # Repeat for temperature
 climate_site |>
