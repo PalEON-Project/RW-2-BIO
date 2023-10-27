@@ -34,8 +34,8 @@ run_rw_model <- function(census_site, site, mvers,
                     data = dat, 
                     iter = iter, 
                     chains = nchains,
-                    verbose = TRUE)
-    rm(compiled)
+                    verbose=TRUE)
+    # rm(compiled)
     
   ########################################################################
   ################ 3. RW + Census Model MCMC diagnostics  ################
@@ -111,7 +111,7 @@ run_rw_model <- function(census_site, site, mvers,
     # get organized values for MCMC chains so we can make trace plots and also save
     post=rstan::extract(fit, permuted = FALSE)
     variables = names(post[1,1,])
-    rm(fit)
+    # rm(fit)
     
     # diagnostic 3 : trace plots 
     # first, for the singulars 
@@ -121,10 +121,19 @@ run_rw_model <- function(census_site, site, mvers,
       temp.ind = which(variables == par)
       temp.data = reshape2::melt(post[,,temp.ind])
       temp.data$iterations = seq(1, nrow(temp.data))
+      if (nchains==1){
+        temp.data$chains = rep(1)
+      }
       pl.temp = ggplot(temp.data) + 
         geom_line(aes(x = iterations, y = value, group = as.factor(chains), color = as.factor(chains))) + 
         labs(x = 'iteration', y = 'value', title = paste0('trace plot for ',par), 
              color = 'chain')
+      # else {
+      #   pl.temp = ggplot(temp.data) + 
+      #     geom_line(aes(x = iterations, y = value, group = as.factor(chains), color = as.factor(chains))) + 
+      #     labs(x = 'iteration', y = 'value', title = paste0('trace plot for ',par), 
+      #          color = 'chain')
+      # }
       mcmc_diags[[trk_ind]] = pl.temp
       trk_ind = trk_ind + 1
     }
@@ -133,6 +142,10 @@ run_rw_model <- function(census_site, site, mvers,
     for (btr in 1:dat$N_Tr){
       temp.ind = which(variables == paste0('beta[',btr,']'))
       temp.data = reshape2::melt(post[,,temp.ind])
+      temp.data$iterations = seq(1, nrow(temp.data))
+      if (nchains==1){
+        temp.data$chains = rep(1)
+      }
       pl.temp = ggplot(temp.data) + 
         geom_line(aes(x = iterations, y = value, group = as.factor(chains), color = as.factor(chains))) + 
         labs(x = 'iteration', y = 'value', title = paste0('trace plot for beta ',btr), 
@@ -143,18 +156,31 @@ run_rw_model <- function(census_site, site, mvers,
     
     # lastly, for all beta years 
     for (byr in 1:dat$N_years){
+      print(byr)
       temp.ind = which(variables == paste0('beta_t[',byr,']'))
       temp.data = reshape2::melt(post[,,temp.ind])
-      pl.temp = ggplot(temp.data) + 
-        geom_line(aes(x = iterations, y = value, group = as.factor(chains), color = as.factor(chains))) + 
-        labs(x = 'iteration', y = 'value', title = paste0('trace plot for beta year ',byr), 
-             color = 'chain')
+      temp.data$iterations = seq(1, nrow(temp.data))
+      if (nchains==1){
+        temp.data$chains = rep(1)
+      }
+      # if (nchains==1){
+      #   pl.temp = ggplot(temp.data) + 
+      #     geom_line(aes(x = iterations, y = value)) + 
+      #     labs(x = 'iteration', y = 'value', title = paste0('trace plot for beta year ',byr), 
+      #          color = 'chain')
+      # } else {
+        pl.temp = ggplot(temp.data) + 
+          geom_line(aes(x = iterations, y = value, group = as.factor(chains), color = as.factor(chains))) + 
+          labs(x = 'iteration', y = 'value', title = paste0('trace plot for beta year ',byr), 
+               color = 'chain')
+      # }
       mcmc_diags[[trk_ind]] = pl.temp
       trk_ind = trk_ind + 1
     }
     
     pdf(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','RWC_MCMC_diagnostics.pdf'), onefile = TRUE)
     for (i in seq(length(mcmc_diags))) {
+      print(i)
       grid.arrange(mcmc_diags[[i]])
     }
     dev.off()
@@ -189,7 +215,7 @@ run_rw_model <- function(census_site, site, mvers,
     
     # median is better measure of center here due to distribution skewness:
     sig_d_obs = median(sig_d_obs)
-    rm(post)
+    # rm(post)
     
     # plot estimated diameter for all individuals over time 
     pl = ggplot(output) + 
@@ -243,9 +269,8 @@ run_rw_model <- function(census_site, site, mvers,
                   data = dat, 
                   iter = iter, 
                   chains = nchains,
-                  verbose = TRUE,
-                  save_warmup = TRUE)
-  rm(compiled)
+                  verbose=TRUE)
+  # rm(compiled)
   
   ##############################################################
   ################ 6. RW only MCMC diagnostics  ################
@@ -319,9 +344,9 @@ run_rw_model <- function(census_site, site, mvers,
   rm(ess_D0s, pl5)
 
   # get organized values for MCMC chains so we can make trace plots and also save
-  post=rstan::extract(fit, permuted = FALSE, inc_warmup = TRUE)
+  post=rstan::extract(fit, permuted = FALSE)
   variables = names(post[1,1,])
-  rm(fit)
+  # rm(fit)
   
   # diagnostic 3 : trace plots 
   # first, for the singulars 
@@ -407,7 +432,7 @@ run_rw_model <- function(census_site, site, mvers,
   }
   D = D[-1,]
   output = data.frame(D = apply(D, 2, mean), year = dat$X2year, tree = dat$X2Tr, taxon = dat$Tr$taxon[dat$X2Tr])
-  rm(post) 
+  # rm(post) 
   
   # plot estimated diameter for all individuals over time
   pl = ggplot(output) + 

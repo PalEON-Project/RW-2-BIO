@@ -218,31 +218,39 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
   }
   dev.off()
   
-  # # next for RW + Census Model (if applicable)
-  # if (census_site){
-  #   
-  #   dbh_array_C = array(NA, dim = c(N_C, N_years, keep))
-  #   agb_array_C = array(NA, dim = c(N_C, N_years, keep))
-  #   
-  #   for (t in 1:N_C){
-  #     
-  #     # determine which estimates correspond to this tree
-  #     inds = which(X2C == t)
-  #     yrinds = X2year_C[inds]
-  #     
-  #     # extract diameter data
-  #     dbh_array_C[t,yrinds,] = t(post[[2]][,inds])
-  #     
-  #     # get equation coefficients based on taxon
-  #     beta0 = choj$beta0[which(choj$acronym == taxon_C[t])]
-  #     beta1 = choj$beta1[which(choj$acronym == taxon_C[t])]
-  #     
-  #     # use biomass equation to estimate biomass from diameter
-  #     agb_array_C[t,,] = exp(beta0 + beta1 * log(dbh_array_C[t,,]))
-  #   }
-  # }
-  # 
-  # 
+  # next for RW + Census Model (if applicable)
+  if (census_site){
+
+    dbh_array_C = array(NA, dim = c(N_C, N_years, keep))
+    agb_array_C = array(NA, dim = c(N_C, N_years, keep))
+
+    for (tree in 1:N_C){
+
+      # determine which estimates correspond to this tree
+      inds = which(X2C == tree)
+      yrinds = X2year_C[inds]
+
+      # extract diameter data
+      dbh_array_C[tree,yrinds,] = t(post[[2]][,inds])
+      
+      
+      # extract diameter data
+      # dbh_array[t,yrinds,] = t(post[[1]][,inds])
+      
+      # dbh_iter = t(post[[2]][,inds])
+      # dbh_iter = data.frame(dbh_iter)
+      # dbh_iter = data.frame(year=years[yrinds], dbh_iter)
+
+      # get equation coefficients based on taxon
+      beta0 = choj$beta0[which(choj$acronym == taxon_C[tree])]
+      beta1 = choj$beta1[which(choj$acronym == taxon_C[tree])]
+
+      # use biomass equation to estimate biomass from diameter
+      agb_array_C[tree,,] = exp(beta0 + beta1 * log(dbh_array_C[tree,,]))
+    }
+  }
+
+
   #####################################################
   ################ 2. Estimate biomass ################
   #####################################################
