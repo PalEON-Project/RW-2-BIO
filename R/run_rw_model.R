@@ -34,7 +34,7 @@ run_rw_model <- function(census_site, site, mvers,
                     data = dat, 
                     iter = iter, 
                     chains = nchains,
-                    verbose=TRUE)
+                    verbose = TRUE)
     rm(compiled)
     
   ########################################################################
@@ -243,7 +243,8 @@ run_rw_model <- function(census_site, site, mvers,
                   data = dat, 
                   iter = iter, 
                   chains = nchains,
-                  verbose=TRUE)
+                  verbose = TRUE,
+                  save_warmup = TRUE)
   rm(compiled)
   
   ##############################################################
@@ -318,7 +319,7 @@ run_rw_model <- function(census_site, site, mvers,
   rm(ess_D0s, pl5)
 
   # get organized values for MCMC chains so we can make trace plots and also save
-  post=rstan::extract(fit, permuted = FALSE)
+  post=rstan::extract(fit, permuted = FALSE, inc_warmup = TRUE)
   variables = names(post[1,1,])
   rm(fit)
   
