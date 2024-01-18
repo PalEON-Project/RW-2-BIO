@@ -12,10 +12,10 @@ library(rgdal)
 library(fields)
 
 # List all files that we want to read in ('bil' files)
-ppt_historical_files <- list.files(path='climate/PRISM_ppt_stable_4kmM2_189501_198012_bil/',pattern=paste(".*_",".*\\.bil$", sep = ""),full.names=TRUE)
-tmean_historical_files <- list.files(path = 'climate/PRISM_tmean_stable_4kmM3_189501_198012_bil/', pattern = paste('.*_','.*\\.bil$', sep = ''), full.names = TRUE)
-ppt_recent_files <- list.files(path = 'climate/PRISM_ppt_stable_4kmM3_198101_202303_bil/', pattern = paste0('.*_', '.*\\.bil$', sep = ''), full.names = T)
-tmean_recent_files <- list.files(path = 'climate/PRISM_tmean_stable_4kmM3_198101_202303_bil/', pattern = paste0('.*_', '.*\\.bil$', sep = ''), full.names = T) 
+ppt_historical_files <- list.files(path='/Volumes/FileBackup/PRISM_for_RW2BIO/PRISM_ppt_stable_4kmM2_189501_198012_bil/',pattern=paste(".*_",".*\\.bil$", sep = ""),full.names=TRUE)
+tmean_historical_files <- list.files(path = '/Volumes/FileBackup/PRISM_for_RW2BIO/PRISM_tmean_stable_4kmM3_189501_198012_bil/', pattern = paste('.*_','.*\\.bil$', sep = ''), full.names = TRUE)
+ppt_recent_files <- list.files(path = '/Volumes/FileBackup/PRISM_for_RW2BIO/PRISM_ppt_stable_4kmM3_198101_202303_bil/', pattern = paste0('.*_', '.*\\.bil$', sep = ''), full.names = T)
+tmean_recent_files <- list.files(path = '/Volumes/FileBackup/PRISM_for_RW2BIO/PRISM_tmean_stable_4kmM3_198101_202303_bil/', pattern = paste0('.*_', '.*\\.bil$', sep = ''), full.names = T) 
 
 # Stack the files
 ppt_historical <- raster::stack(ppt_historical_files)
@@ -23,18 +23,41 @@ tmean_historical <- raster::stack(tmean_historical_files)
 ppt_recent <- raster::stack(ppt_recent_files)
 tmean_recent <- raster::stack(tmean_recent_files)
 
+# NE and UMW extents
+NE_ROU <- as(extent(-75, -72, 42, 43), 'SpatialPolygons')
+UMW_ROU <- as(extent(-90, -89, 46, 47), 'SpatialPolygons')
+
+# Clip
+ppt_hisorical_NE <- raster::crop(ppt_historical, NE_ROU)
+ppt_historical_UMW <- raster::crop(ppt_historical, UMW_ROU)
+tmean_historical_NE <- raster::crop(tmean_historical, NE_ROU)
+tmean_historical_UMW <- raster::crop(tmean_historical, UMW_ROU)
+ppt_recent_NE <- raster::crop(ppt_recent, NE_ROU)
+ppt_recent_UMW <- raster::crop(ppt_recent, UMW_ROU)
+tmean_recent_NE <- raster::crop(tmean_recent, NE_ROU)
+tmean_recent_UMW <- raster::crop(tmean_recent, UMW_ROU)
+
 # Make points from rasters
-ppt_historical <- raster::rasterToPoints(ppt_historical)
-tmean_historical <- raster::rasterToPoints(tmean_historical)
-ppt_recent <- raster::rasterToPoints(ppt_recent)
-tmean_recent <- raster::rasterToPoints(tmean_recent)
+ppt_historical_NE <- raster::rasterToPoints(ppt_hisorical_NE)
+ppt_historical_UMW <- raster::rasterToPoints(ppt_historical_UMW)
+tmean_historical_NE <- raster::rasterToPoints(tmean_historical_NE)
+tmean_historical_UMW <- raster::rasterToPoints(tmean_historical_UMW)
+ppt_recent_NE <- raster::rasterToPoints(ppt_recent_NE)
+ppt_recent_UMW <- raster::rasterToPoints(ppt_recent_UMW)
+tmean_recent_NE <- raster::rasterToPoints(tmean_recent_NE)
+tmean_recent_UMW <- raster::rasterToPoints(tmean_recent_UMW)
+
+ppt_historical <- rbind(ppt_historical_NE, ppt_historical_UMW)
+tmean_historical <- rbind(tmean_historical_NE, tmean_historical_UMW)
+ppt_recent <- rbind(ppt_recent_NE, ppt_recent_UMW)
+tmean_recent <- rbind(tmean_recent_NE, tmean_recent_UMW)
 
 # Save all points
 save(ppt_historical, tmean_historical,
-     ppt_recent, tmean_recent, file = 'climate/climate_matrix.RData')
+     ppt_recent, tmean_recent, file = '/Volumes/FileBackup/PRISM_for_RW2BIO/climate_matrix.RData')
 
 # Re-load saved data
-load('climate/climate_matrix.RData')
+load('/Volumes/FileBackup/PRISM_for_RW2BIO/climate_matrix.RData')
 
 # Reformat
 ppt_historical <- as.data.frame(ppt_historical)
@@ -101,7 +124,7 @@ ppt_long <- ppt_historical |>
   rename(Longitude = x,
          Latitude = y) |>
   filter(uniqueID %in% uniqueIDs) |>
-  select(-uniqueID) |>
+  dplyr::select(-uniqueID) |>
   pivot_longer(all_of(ppt_cols),
                names_to = 'var', values_to = 'PPT')
 
@@ -117,7 +140,7 @@ ppt_recent_long <- ppt_recent |>
   rename(Longitude = x,
          Latitude = y) |>
   filter(uniqueID %in% uniqueIDs) |>
-  select(-uniqueID) |>
+  dplyr::select(-uniqueID) |>
   pivot_longer(all_of(ppt_recent_cols),
                names_to = 'var', values_to = 'PPT')
 
@@ -125,7 +148,7 @@ ppt_recent_long <- ppt_recent |>
 ppt_long_total <- ppt_long |>
   full_join(ppt_recent_long, by = c('Longitude', 'Latitude', 'var')) |>
   mutate(PPT2 = coalesce(PPT.x, PPT.y)) |>
-  select(-c(PPT.x, PPT.y))
+  dplyr::select(-c(PPT.x, PPT.y))
 
 # Repeat for temperature
 # Make matrix of only coordinates of PRISM data
@@ -154,7 +177,7 @@ tmean_long <- tmean_historical |>
   rename(Longitude = x,
          Latitude = y) |>
   filter(uniqueID %in% uniqueIDs) |>
-  select(-uniqueID) |>
+  dplyr::select(-uniqueID) |>
   pivot_longer(all_of(tmean_cols),
                names_to = 'var', values_to = 'Tmean')
 
@@ -170,7 +193,7 @@ tmean_recent_long <- tmean_recent |>
   rename(Longitude = x,
          Latitude = y) |>
   filter(uniqueID %in% uniqueIDs) |>
-  select(-uniqueID) |>
+  dplyr::select(-uniqueID) |>
   pivot_longer(all_of(tmean_recent_cols),
                names_to = 'var', values_to = 'Tmean')
 
@@ -178,36 +201,37 @@ tmean_recent_long <- tmean_recent |>
 tmean_long_total <- tmean_long |>
   full_join(tmean_recent_long, by = c('Longitude', 'Latitude', 'var')) |>
   mutate(Tmean2 = coalesce(Tmean.x, Tmean.y)) |>
-  select(-c(Tmean.x, Tmean.y))
+  dplyr::select(-c(Tmean.x, Tmean.y))
 
 # Separate year and month from the "var" variable
 # Done in a separate step to avoid maxing out memory
-ppt_long <- ppt_long |>  
+ppt_long <- ppt_long_total |>  
   mutate(year = substr(var, 24, 27),
          month = substr(var, 28, 29))
 
-tmean_long <- tmean_long |>
+tmean_long <- tmean_long_total |>
   mutate(year = substr(var, 26, 29),
          month = substr(var, 30, 31))
 
 # Add site names
 ppt_long <- ppt_long |>
-  mutate(loc = if_else(Latitude == unique(ppt_long$Latitude)[3], 'GOOSE', NA),
-         loc = if_else(Latitude == unique(ppt_long$Latitude)[2], 'ROOSTER', loc),
-         loc = if_else(Latitude == unique(ppt_long$Latitude)[4], 'NRP', loc),
-         loc = if_else(Latitude == unique(ppt_long$Latitude)[1], 'SYLVANIA', loc)) |>
-  select(-c(var, Longitude, Latitude))
+  mutate(loc = if_else(Longitude == unique(ppt_long$Longitude)[2], 'GOOSE', NA),
+         loc = if_else(Longitude == unique(ppt_long$Longitude)[1], 'ROOSTER', loc),
+         loc = if_else(Longitude == unique(ppt_long$Longitude)[3], 'NRP', loc),
+         loc = if_else(Longitude == unique(ppt_long$Longitude)[4], 'SYLVANIA', loc)) |>
+  dplyr::select(-c(var, Longitude, Latitude))
 
 tmean_long <- tmean_long |>
-  mutate(loc = if_else(Latitude == unique(tmean_long$Latitude)[3], 'GOOSE', NA),
-         loc = if_else(Latitude == unique(tmean_long$Latitude)[2], 'ROOSTER', loc),
-         loc = if_else(Latitude == unique(tmean_long$Latitude)[4], 'NRP', loc),
-         loc = if_else(Latitude == unique(tmean_long$Latitude)[1], 'SYLVANIA', loc)) |>
-  select(-c(var, Longitude, Latitude))
+  mutate(loc = if_else(Longitude == unique(tmean_long$Longitude)[2], 'GOOSE', NA),
+         loc = if_else(Longitude == unique(tmean_long$Longitude)[1], 'ROOSTER', loc),
+         loc = if_else(Longitude == unique(tmean_long$Longitude)[3], 'NRP', loc),
+         loc = if_else(Longitude == unique(tmean_long$Longitude)[4], 'SYLVANIA', loc)) |>
+  dplyr::select(-c(var, Longitude, Latitude))
 
 # Combine
 prism_long <- ppt_long |>
   left_join(tmean_long, by = c('year', 'month', 'loc'))
 
 # Save
+save(prism_long, file = '/Volumes/FileBackup/PRISM_for_RW2BIO/prism_clim.RData')
 save(prism_long, file = 'climate/prism_clim.RData')
