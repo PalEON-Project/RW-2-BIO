@@ -29,7 +29,13 @@ load('climate/prism_clim.RData')
 
 # Format
 prism_long <- dplyr::rename(prism_long, site = loc) |>
-  dplyr::mutate(year = as.numeric(year))
+  dplyr::mutate(year = as.numeric(year)) |>
+  dplyr::mutate(PPT2 = scale(PPT2),
+                Tmean2 = scale(Tmean2),
+                Tmin2 = scale(Tmin2),
+                Tmax2 = scale(Tmax2),
+                Vpdmin2 = scale(Vpdmin2),
+                Vpdmax2 = scale(Vpdmax2))
 
 # Pivot wider
 prism_annual <- prism_long |>
@@ -50,8 +56,7 @@ goose_joined <- total_agbi |>
   dplyr::left_join(y = prism_annual, by = c('site', 'year')) |>
   dplyr::left_join(y = prism_month, by = c('site', 'year')) |>
   dplyr::select(-site, -plot) |>
-  dplyr::mutate(taxon = as.factor(taxon)) |>
-  dplyr::mutate(dplyr::across(where(is.numeric), scale))
+  dplyr::mutate(taxon = as.factor(taxon))
 
 goose_split <- rsample::initial_split(goose_joined, prop = 0.7)
 goose_train <- rsample::training(goose_split)
