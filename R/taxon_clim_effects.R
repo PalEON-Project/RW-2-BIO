@@ -4,10 +4,7 @@
 # For plot level: add species relative abundance from basal area as a proxy for competition
 ## for competition: basal area larger than (proportion of trees larger than individual tree's basal area), plot-level basal area
 # For individual level: add basal area larger than, relative abundance of that species
-# Potentially throw all these things in a random forest??
 
-# Add minimum and maximum temperature variables from PRISM
-# Or use climateNA?
 # Second question: are species at different sites responding similarly to climate or other predictors??
 
 # Load total biomass

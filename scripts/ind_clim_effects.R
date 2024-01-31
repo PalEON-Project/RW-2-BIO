@@ -1,31 +1,25 @@
 rm(list = ls())
 
-# Load total biomass
-goose_total_agb <- readRDS('sites/GOOSE/runs/v2.0_012021/output/AGB_STAN_GOOSE_v2.0_012021.RDS')
-nrp_total_agb <- readRDS('sites/NORTHROUND/runs/v2.0_082020/output/AGB_STAN_NORTHROUND_v2.0_082020.RDS')
-rooster_total_agb <- readRDS('sites/ROOSTER/runs/v2.0_082020/output/AGB_STAN_ROOSTER_v2.0_082020.RDS')
-sylv_total_agb <- readRDS('sites/SYLVANIA/runs/v2.0_082020/output/AGB_STAN_SYLVANIA_v2.0_082020.RDS')
-
 # Load total increment
 goose_total_agbi <- readRDS('sites/GOOSE/runs/v2.0_012021/output/AGBI_STAN_GOOSE_v2.0_012021.RDS')
 nrp_total_agbi <- readRDS('sites/NORTHROUND/runs/v2.0_082020/output/AGBI_STAN_NORTHROUND_v2.0_082020.RDS')
 rooster_total_agbi <- readRDS('sites/ROOSTER/runs/v2.0_082020/output/AGBI_STAN_ROOSTER_v2.0_082020.RDS')
 sylv_total_agbi <- readRDS('sites/SYLVANIA/runs/v2.0_082020/output/AGBI_STAN_SYLVANIA_v2.0_082020.RDS')
 
-# Add site names column
-goose_total_agb <- dplyr::mutate(goose_total_agb, site = 'GOOSE')
-nrp_total_agb <- dplyr::mutate(nrp_total_agb, site = 'NRP')
-rooster_total_agb <- dplyr::mutate(rooster_total_agb, site = 'ROOSTER')
-sylv_total_agb <- dplyr::mutate(sylv_total_agb, site = 'SYLVANIA')
-
-goose_total_agbi <- dplyr::mutate(goose_total_agbi, site = 'GOOSE')
-nrp_total_agbi <- dplyr::mutate(nrp_total_agbi, site = 'NRP')
-rooster_total_agbi <- dplyr::mutate(rooster_total_agbi, site = 'ROOSTER')
-sylv_total_agbi <- dplyr::mutate(sylv_total_agbi, site = 'SYLVANIA')
+goose_total_agbi <- goose_total_agbi |>
+  dplyr::mutate(site = 'GOOSE') |>
+  dplyr::filter(year > 1959)
+nrp_total_agbi <- nrp_total_agbi |>
+  dplyr::mutate(site = 'NRP') |>
+  dplyr::filter(year > 1959)
+rooster_total_agbi <- rooster_total_agbi |>
+  dplyr::mutate(site = 'ROOSTER') |>
+  dplyr::filter(year > 1959)
+sylv_total_agbi <- sylv_total_agbi |>
+  dplyr::mutate(site = 'SYLVANIA') |>
+  dplyr::filter(year > 1959)
 
 # Combine sites
-total_agb <- rbind(goose_total_agb, nrp_total_agb,
-                   rooster_total_agb, sylv_total_agb)
 total_agbi <- rbind(goose_total_agbi, nrp_total_agbi,
                     rooster_total_agbi, sylv_total_agbi)
 
@@ -46,11 +40,6 @@ total_agbi <- total_agbi |>
 
 # Indexing for loops
 site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA')
-trees <- c()
-trees[1] <- max(total_agbi$tree[which(total_agbi$site == 'GOOSE')])
-trees[2] <- max(total_agbi$tree[which(total_agbi$site == 'NRP')])
-trees[3] <- max(total_agbi$tree[which(total_agbi$site == 'ROOSTER')])
-trees[4] <- max(total_agbi$tree[which(total_agbi$site == 'SYLVANIA')])
 
 # Load climate data
 load('climate/prism_clim.RData')
@@ -63,39 +52,58 @@ prism_long <- dplyr::rename(prism_long, site = loc) |>
 prism_annual <- prism_long |>
   dplyr::group_by(year, site) |>
   dplyr::summarize(mean_PPT = mean(PPT2),
-                   mean_Tmean = mean(Tmean2)) 
-prism_month <- tidyr::pivot_wider(prism_long, names_from = 'month', values_from = c('PPT2', 'Tmean2'))
+                   mean_Tmean = mean(Tmean2),
+                   mean_Tmin = mean(Tmin2),
+                   mean_Tmax = mean(Tmax2),
+                   mean_Vpdmin = mean(Vpdmin2),
+                   mean_Vpdmax = mean(Vpdmax2)) 
+prism_month <- tidyr::pivot_wider(prism_long, names_from = 'month', values_from = c('PPT2', 'Tmean2', 'Tmin2', 'Tmax2', 'Vpdmin2', 'Vpdmax2'))
 
+# Load competition information
+load('data/competition_metrics.RData')
+
+ntrees <- c(length(unique(goose_total_agbi$tree)),
+            length(unique(nrp_total_agbi$tree)),
+            length(unique(rooster_total_agbi$tree)),
+            length(unique(sylv_total_agbi$tree)))
 # Storage
-coeff_save <- matrix(, nrow = sum(trees), ncol = 7)
+coeff_save <- matrix(, nrow = sum(ntrees), ncol = 14)
 
 row_ind <- 0
 # For each site, let's iteratively fit a simple linear model with
 # average temperature and precipitation as predictors of each tree's annual growth
 for(i in 1:4){
   # Tree number index, unique to each site
-  tree <- seq(from = 1, to = trees[i], by = 1)
+  tree <- unique(total_agbi$tree[which(total_agbi$site == site[i])])
   # Save site name
   site_name <- site[i]
   # Loop through each tree at a given site
-  for(j in 1:trees[i]){
+  for(j in tree){
     # Increment counter
     row_ind <- row_ind + 1
-    # Save tree number
-    tree_number <- tree[j]
     # Subset full data for one tree
     sub <- dplyr::filter(total_agbi, site == site_name &
-                           tree == tree_number)
+                           tree == j)
     # Combine tree data with climate
-    joined <- dplyr::left_join(x = sub, y = prism_annual, by = c('site', 'year'))
+    joined <- sub |>
+      dplyr::left_join(y = prism_annual, by = c('site', 'year')) |>
+      dplyr::left_join(y = ba_by_tree, by = c('tree', 'year', 'plot', 'taxon', 'site')) |>
+      # only keep ba, bagt
+      dplyr::select(-frac, -total_ba, -dbh) |>
+      dplyr::left_join(y = ba_by_taxon, by = c('plot', 'site', 'year', 'taxon')) |>
+      # only keep ba, bagt (from before), frac
+      dplyr::select(-total_ba.x, -total_ba.y) |>
+      dplyr::left_join(y = total_ba, by = c('plot', 'site', 'year'))
     # Fit linear model
-    mod <- lm(formula = mean ~ mean_PPT + mean_Tmean + mean_PPT * mean_Tmean,
+    mod <- lm(formula = mean ~ mean_PPT + mean_Tmean + mean_Tmin + 
+                mean_Tmax + mean_Vpdmin + mean_Vpdmax + 
+                ba + bagt + frac + total_ba,
               data = joined)   
     # Save site name, tree number, coefficients, and r2 in matrix
     coeff_save[row_ind,1] <- i
-    coeff_save[row_ind,2] <- tree_number
-    coeff_save[row_ind,3:6] <- coefficients(mod)
-    coeff_save[row_ind,7] <- summary(mod)$adj.r.squared
+    coeff_save[row_ind,2] <- j
+    coeff_save[row_ind,3:13] <- coefficients(mod)
+    coeff_save[row_ind,14] <- summary(mod)$adj.r.squared
     print(j)
   }
   print(paste0('---------------------',i,'----------------'))
@@ -104,7 +112,9 @@ for(i in 1:4){
 # Column names
 colnames(coeff_save) <- c('Site', 'Tree', 'Intercept',
                           'Precipitation', 'Temperature', 
-                          'Interaction', 'R2')
+                          'Minimum_temperature', 'Maximum_temperature',
+                          'Minimum_VPD', 'Maximum_VPD', 
+                          'BA', 'BAGT', 'frac_ba', 'total_ba', 'R2')
 # Format
 coeff_save <- as.data.frame(coeff_save)
 
@@ -125,7 +135,7 @@ coeff_save |>
   ggplot2::xlab(expression(R^2)) + ggplot2::ylab('Density') +
   ggplot2::theme_minimal()
 
-# Violin plot
+# Violin plot of R2
 coeff_save |>
   ggplot2::ggplot(ggplot2::aes(x = Site, y = R2)) +
   ggplot2::geom_violin() +
@@ -133,82 +143,129 @@ coeff_save |>
   ggplot2::xlab('') + ggplot2::ylab(expression(R^2)) +
   ggplot2::theme_minimal()
 
-# Pairs plots for individual climate months
-prism_month |>
-  dplyr::filter(site == 'GOOSE') |>
-  dplyr::select(-site, -year) |>
-  GGally::ggpairs()
-prism_month |>
-  dplyr::filter(site == 'NRP') |>
-  dplyr::select(-site, -year) |>
-  GGally::ggpairs()
-prism_month |>
-  dplyr::filter(site == 'ROOSTER') |>
-  dplyr::select(-site, -year) |>
-  GGally::ggpairs()
-prism_month |>
-  dplyr::filter(site == 'SYLVANIA') |>
-  dplyr::select(-site, -year) |>
-  GGally::ggpairs()
+# Violin of precipitation coefficient
+coeff_save |>
+  ggplot2::ggplot(ggplot2::aes(x = Site, y = Precipitation)) +
+  ggplot2::geom_violin() +
+  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
+  ggplot2::xlab('') + ggplot2::ylab('Coefficient for precipitation') +
+  ggplot2::theme_minimal()
 
-# Correlation matrix
-cor(prism_month |> dplyr::filter(site == 'GOOSE') |> dplyr::filter(year < 2023) |> dplyr::select(-site, -year))
-cor(prism_month |> dplyr::filter(site == 'NRP') |> dplyr::filter(year < 2023) |> dplyr::select(-site, - year))
-cor(prism_month |> dplyr::filter(site == 'ROOSTER') |> dplyr::filter(year < 2023) |> dplyr::select(-site, -year))
-cor(prism_month |> dplyr::filter(site == 'SYLVANIA') |> dplyr::filter(year < 2023) |> dplyr::select(-site, -year))
+# Violin of temperature coefficient
+coeff_save |>
+  ggplot2::ggplot(ggplot2::aes(x = Site, y = Temperature)) +
+  ggplot2::geom_violin() +
+  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
+  ggplot2::xlab('') + ggplot2::ylab('Coefficient for temperature') +
+  ggplot2::theme_minimal()
+
+# Violin of minimum temperature coefficient
+coeff_save |>
+  ggplot2::ggplot(ggplot2::aes(x = Site, y = Minimum_temperature)) +
+  ggplot2::geom_violin() +
+  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
+  ggplot2::xlab('') + ggplot2::ylab('Coefficient for minimum temperature') +
+  ggplot2::theme_minimal()
+
+# Violin of maximum temperature coefficient
+coeff_save |>
+  ggplot2::ggplot(ggplot2::aes(x = Site, y = Maximum_temperature)) +
+  ggplot2::geom_violin() +
+  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
+  ggplot2::xlab('') + ggplot2::ylab('Coefficient for maximum temperature') +
+  ggplot2::theme_minimal()
+
+# Violin of minimum VPD
+coeff_save |>
+  ggplot2::ggplot(ggplot2::aes(x = Site, y = Minimum_VPD)) +
+  ggplot2::geom_violin() +
+  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
+  ggplot2::xlab('') + ggplot2::ylab('Coefficient for minimum VPD') +
+  ggplot2::theme_minimal()
+
+# Violin of maximum VPD
+coeff_save |>
+  ggplot2::ggplot(ggplot2::aes(x = Site, y = Maximum_VPD)) +
+  ggplot2::geom_violin() +
+  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
+  ggplot2::xlab('') + ggplot2::ylab('Coefficient for maximum VPD') +
+  ggplot2::theme_minimal()
+
+# Violin of BA
+coeff_save |>
+  ggplot2::ggplot(ggplot2::aes(x = Site, y = BA)) +
+  ggplot2::geom_violin() +
+  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
+  ggplot2::xlab('') + ggplot2::ylab('Coefficient for tree basal area') +
+  ggplot2::theme_minimal()
+
+# Violin of BAGT
+coeff_save |>
+  ggplot2::ggplot(ggplot2::aes(x = Site, y = BAGT)) +
+  ggplot2::geom_violin() +
+  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
+  ggplot2::xlab('') + ggplot2::ylab('Coefficient for basal area greater than') +
+  ggplot2::theme_minimal()
+
+# Violin of fraction of plot-level basal area belonging to the taxon
+coeff_save |>
+  ggplot2::ggplot(ggplot2::aes(x = Site, y = frac_ba)) +
+  ggplot2::geom_violin() + 
+  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
+  ggplot2::xlab('') + ggplot2::ylab('Coefficient for fraction of basal area of each species') +
+  ggplot2::theme_minimal()
+
+# Violin of total plot level basal area
+coeff_save |>
+  ggplot2::ggplot(ggplot2::aes(x = Site, y = total_ba)) +
+  ggplot2::geom_violin() +
+  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
+  ggplot2::xlab('') + ggplot2::ylab('Coefficient for total basal area') +
+  ggplot2::theme_minimal()
 
 # Run linear models with monthly climate
+## Currently does not work because of singularities
 
 # Storage
-coeff_save_month <- matrix(, nrow = sum(trees), ncol = 52)
+coeff_save_month <- matrix(, nrow = sum(ntrees), ncol = 76)
 
 row_ind <- 0
 # For each site, let's iteratively fit a simple linear model with
 # average temperature and precipitation as predictors of each tree's annual growth
 for(i in 1:4){
   # Tree number index, unique to each site
-  tree <- seq(from = 1, to = trees[i], by = 1)
+  tree <-  unique(total_agbi$tree[which(total_agbi$site == site[i])])
   # Save site name
   site_name <- site[i]
   # Loop through each tree at a given site
-  for(j in 1:trees[i]){
+  for(j in tree){
     # Increment counter
     row_ind <- row_ind + 1
-    # Save tree number
-    tree_number <- tree[j]
     # Subset full data for one tree
     sub <- dplyr::filter(total_agbi, site == site_name &
-                           tree == tree_number)
+                           tree == j)
     # Combine tree data with climate
-    joined <- dplyr::left_join(x = sub, y = prism_month, by = c('site', 'year'))
+    joined <- dplyr::left_join(x = sub, y = prism_month, by = c('site', 'year')) |> 
+      dplyr::ungroup() |>
+      dplyr::select(-tree, -year, -plot, -taxon, -site)
     # Fit linear model
-    mod <- lm(formula = mean ~ PPT2_01 + PPT2_02 + PPT2_03 + PPT2_04 + PPT2_05 + PPT2_06 +
-                PPT2_07 + PPT2_08 + PPT2_09 + PPT2_10 + PPT2_11 + PPT2_12 +
-                Tmean2_01 + Tmean2_02 + Tmean2_03 + Tmean2_04 + Tmean2_05 + Tmean2_06 +
-                Tmean2_07 + Tmean2_08 + Tmean2_09 + Tmean2_10 + Tmean2_11 + Tmean2_12,
+    mod <- lm(formula = mean ~ .,
               data = joined)   
     # Save site name, tree number, coefficients, and r2 in matrix
     coeff_save_month[row_ind,1] <- i
-    coeff_save_month[row_ind,2] <- tree_number
-    coeff_save_month[row_ind,3:27] <- coefficients(mod)
-    coeff_save_month[row_ind,28] <- summary(mod)$adj.r.squared
-    coeff_save_month[row_ind,29:52] <- car::vif(mod, type = 'predictor')
+    coeff_save_month[row_ind,2] <- j
+    coeff_save_month[row_ind,3:75] <- coefficients(mod)
+    coeff_save_month[row_ind,76] <- summary(mod)$adj.r.squared
     print(j)
   }
   print(paste0('---------------------',i,'----------------'))
 }
 
 # Column names
-colnames(coeff_save_month) <- c('Site', 'Tree', 'Intercept',
-                                'PPT_01', 'PPT_02', 'PPT_03', 'PPT_04', 'PPT_05', 'PPT_06',
-                                'PPT_07', 'PPT_08', 'PPT_09', 'PPT_10', 'PPT_11', 'PPT_12',
-                                'Tmean_01', 'Tmean_02', 'Tmean_03', 'Tmean_04', 'Tmean_05', 'Tmean_06',
-                                'Tmean_07', 'Tmean_08', 'Tmean_09', 'Tmean_10', 'Tmean_11', 'Tmean_12',
-                                'R2', 'VIF1', 'VIF2', 'VIF3', 'VIF4', 'VIF5', 'VIF6', 'VIF7', 'VIF8',
-                                'VIF9', 'VIF10', 'VIF11', 'VIF12', 'VIF13', 'VIF14', 'VIF15', 'VIF16',
-                                'VIF17', 'VIF18', 'VIF19', 'VIF20', 'VIF21', 'VIF22', 'VIF23', 'VIF24')
-# Format
 coeff_save_month <- as.data.frame(coeff_save_month)
+colnames(coeff_save_month)[1:3] <- c('Site', 'Tree', 'Intercept')
+colnames(coeff_save_month)[4:75] <- colnames(joined)[2:73]
+colnames(coeff_save_month)[76] <- c('R2')
 
 # Replace site numbers with names
 coeff_save_month <- coeff_save_month |>
