@@ -116,7 +116,8 @@ bagt$plot <- as.numeric(bagt$plot)
 
 # Add to individual tree dataframe
 ba_by_tree <- ba_by_tree |>
-  dplyr::left_join(y = bagt, by = c('tree', 'year', 'plot', 'site'))
+  dplyr::left_join(y = bagt, by = c('tree', 'year', 'plot', 'site')) |>
+  dplyr::mutate(bagt = as.numeric(bagt))
 
 # Save
 save(total_ba, ba_by_taxon, ba_by_tree, file = 'data/competition_metrics.RData')
