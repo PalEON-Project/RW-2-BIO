@@ -1,3 +1,5 @@
+## Random forest at taxon level
+
 rm(list = ls())
 
 # Load total increment
@@ -6,7 +8,7 @@ nrp_total_agbi <- readRDS('sites/NORTHROUND/runs/v2.0_082020/output/AGBI_STAN_NO
 rooster_total_agbi <- readRDS('sites/ROOSTER/runs/v2.0_082020/output/AGBI_STAN_ROOSTER_v2.0_082020.RDS')
 sylv_total_agbi <- readRDS('sites/SYLVANIA/runs/v2.0_082020/output/AGBI_STAN_SYLVANIA_v2.0_082020.RDS')
 
-# Keeping only 1960 onwards to reduce effect of fading record
+# Subset for 1960 and beyond to reduce problem of fading record
 goose_total_agbi <- goose_total_agbi |>
   dplyr::mutate(site = 'GOOSE') |>
   dplyr::filter(year > 1959)
@@ -26,11 +28,16 @@ total_agbi <- rbind(goose_total_agbi, nrp_total_agbi,
 
 # Save mean over iterations in dataframe
 total_agbi <- total_agbi |>
-  dplyr::group_by(tree, year, plot, taxon, site) |>
+  dplyr::group_by(year, plot, taxon, site) |>
   dplyr::summarize(mean = mean(value))
 
 # Indexing for loops
 site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA')
+taxa <- c()
+taxa[1] <- length(unique(total_agbi$taxon[which(total_agbi$site == 'GOOSE')]))
+taxa[2] <- length(unique(total_agbi$taxon[which(total_agbi$site == 'NRP')]))
+taxa[3] <- length(unique(total_agbi$taxon[which(total_agbi$site == 'ROOSTER')]))
+taxa[4] <- length(unique(total_agbi$taxon[which(total_agbi$site == 'SYLVANIA')]))
 
 # Load climate data
 load('climate/prism_clim.RData')
@@ -42,6 +49,7 @@ prism_long <- dplyr::rename(prism_long, site = loc) |>
 # Pivot wider
 prism_annual <- prism_long |>
   dplyr::group_by(year, site) |>
+  # Average over months
   dplyr::summarize(mean_PPT = mean(PPT2),
                    mean_Tmean = mean(Tmean2),
                    sd_PPT = sd(PPT2),
@@ -49,57 +57,48 @@ prism_annual <- prism_long |>
                    mean_Tmin = min(Tmin2),
                    mean_Tmax = max(Tmax2),
                    mean_Vpdmin = min(Vpdmin2),
-                   mean_Vpdmax = max(Vpdmax2)) 
-prism_month <- tidyr::pivot_wider(prism_long, names_from = 'month', values_from = c('PPT2', 'Tmean2', 'Tmin2', 'Tmax2', 'Vpdmin2', 'Vpdmax2'))
+                   mean_Vpdmax = max(Vpdmax2))
 
 # Load competition information
 load('data/competition_metrics.RData')
 
-ntrees <- c(length(unique(goose_total_agbi$tree)),
-            length(unique(nrp_total_agbi$tree)),
-            length(unique(rooster_total_agbi$tree)),
-            length(unique(sylv_total_agbi$tree)))
 # Storage
 importance_save <- list()
 
 row_ind <- 0
-# For each site, let's iteratively fit a random forest
+# For each site, iteratively fit a random forest
 for(i in 1:4){
-  # Tree number index, unique to each site
-  tree <- unique(total_agbi$tree[which(total_agbi$site == site[i])])
+  # Taxon number index, unique to each site
+  taxon <- seq(from = 1, to = taxa[i], by = 1)
   # Save site name
   site_name <- site[i]
-  # Loop through each tree at a given site
-  for(j in tree){
+  # Loop through each taxon at a given site
+  for(j in taxon){
     # Increment counter
     row_ind <- row_ind + 1
-    # Subset full data for one tree
+    # Save taxon number
+    taxon_name <- unique(total_agbi$taxon[which(total_agbi$site == site_name)])[j]
+    # Subset full data for one taxon
     sub <- dplyr::filter(total_agbi, site == site_name &
-                           tree == j)
+                           taxon == taxon_name)
     # Combine tree data with climate
     joined <- sub |>
       # Join with annual climate drivers
       dplyr::left_join(y = prism_annual, by = c('site', 'year')) |>
-      # Join with tree-level competition metrics
-      dplyr::left_join(y = ba_by_tree, by = c('tree', 'year', 'plot', 'taxon', 'site')) |>
-      # only keep individual tree basal area (ba)
-      # and basal area greater than (bagt)
-      dplyr::select(-ind_frac, -total_ba, -dbh) |>
-      # Join with taxon-level competition metrics
+      # Join with taxon-level competition metrics 
       dplyr::left_join(y = ba_by_taxon, by = c('plot', 'site', 'year', 'taxon')) |>
-      # only keep ba, bagt (from before)
-      # and fraction of total basal area from each taxon (frac)
+      # only keep fraction of total basal area from each taxon (frac)
       dplyr::select(-total_ba.x, -total_ba.y) |>
-      # Join with plot-level competition metrics
+      # join with plot-level competition metrics
       dplyr::left_join(y = total_ba, by = c('plot', 'site', 'year')) |>
-      # Ungroup so we can remove indexing columns
+      # ungroup so we  can removing indexing columns
       dplyr::ungroup() |>
-      # Remove indexing columns that we don't want to be in random forest
-      dplyr::select(-tree, -year, -plot, -taxon, -site)
+      # removing indexing columns that we don't want to be in random forest
+      dplyr::select(-year, -plot, -taxon, -site)
     
     # Fit random forest
-    mod <- randomForest::randomForest(formula = mean ~ ., # all predictors predicting individual tree BAI
-                                      data = joined, # data subset joined with all predictors
+    mod <- randomForest::randomForest(formula = mean ~ ., # all predictors predicting taxon level BAI
+                                      data = joined, # data subset with all predictors
                                       ntree = 2000, # kinda high number of trees?
                                       importance = TRUE) # calculate importance of variables
     
@@ -109,31 +108,29 @@ for(i in 1:4){
     imp <- as.data.frame(imp)
     # Add information about site, tree, variable
     imp$site <- site[i]
-    imp$tree <- j
+    imp$taxon <- taxon_name
     imp <- tibble::rownames_to_column(imp, var = 'variable')
-    # Importance statistics
+    # Imporatnce statistics
     imp$rankIncMSE <- rank(-imp$`%IncMSE`)
     imp$rankIncNodePurity <- rank(-imp$IncNodePurity)
     
-    # Save site name, tree number, importance statistics
+    # Save site name, taxon name, importance statistics
     importance_save[[row_ind]] <- imp
-    
     
     print(j)
   }
-  print(paste0('---------------------',i,'----------------'))
+  print(paste0('----------------------',i,'--------------------'))
 }
 
 # Unlist
-ind_importance <- do.call(rbind, importance_save)
+taxon_importance <- do.call(rbind, importance_save)
 
 # Order of x-axis
 level_order <- c('precipitation', 'temperature', 'precipitation var.', 'temperature var.',
                  'min. temperature', 'max. temperature', 'min. VPD', 'max. VPD',
-                 'basal area', 'basal area greater than', 'frac. ba/species',
-                 'plot ba')
+                 'frac. ba/species', 'plot ba')
 
-ind_importance |>
+taxon_importance |>
   dplyr::mutate(variable = dplyr::if_else(variable == 'mean_PPT', 'precipitation', variable),
                 variable = dplyr::if_else(variable == 'mean_Tmean', 'temperature', variable),
                 variable = dplyr::if_else(variable == 'sd_PPT', 'precipitation var.', variable),
@@ -142,8 +139,6 @@ ind_importance |>
                 variable = dplyr::if_else(variable == 'mean_Tmax', 'max. temperature', variable),
                 variable = dplyr::if_else(variable == 'mean_Vpdmin', 'min. VPD', variable),
                 variable = dplyr::if_else(variable == 'mean_Vpdmax', 'max. VPD', variable),
-                variable = dplyr::if_else(variable == 'ba', 'basal area', variable),
-                variable = dplyr::if_else(variable == 'bagt', 'basal area greater than', variable),
                 variable = dplyr::if_else(variable == 'frac', 'frac. ba/species', variable),
                 variable = dplyr::if_else(variable == 'total_ba', 'plot ba', variable)) |>
   dplyr::mutate(class = dplyr::if_else(variable %in% c('precipitation', 'temperature',
@@ -151,8 +146,6 @@ ind_importance |>
                                                        'min. temperature', 'max. temperature',
                                                        'min. VPD', 'max. VPD'),
                                        'climate', NA),
-                class = dplyr::if_else(variable %in% c('basal area', 'basal area greater than'),
-                                       'ind. competition', class),
                 class = dplyr::if_else(variable == 'frac. ba/species',
                                        'sp.-level competition', class),
                 class = dplyr::if_else(variable == 'plot ba',
@@ -165,7 +158,7 @@ ind_importance |>
   ggplot2::scale_y_reverse(breaks = seq(0, 12, by = 2)) +
   ggplot2::xlab('')
 
-ind_importance |>
+taxon_importance |>
   dplyr::mutate(variable = dplyr::if_else(variable == 'mean_PPT', 'precipitation', variable),
                 variable = dplyr::if_else(variable == 'mean_Tmean', 'temperature', variable),
                 variable = dplyr::if_else(variable == 'sd_PPT', 'precipitation var.', variable),
@@ -174,8 +167,6 @@ ind_importance |>
                 variable = dplyr::if_else(variable == 'mean_Tmax', 'max. temperature', variable),
                 variable = dplyr::if_else(variable == 'mean_Vpdmin', 'min. VPD', variable),
                 variable = dplyr::if_else(variable == 'mean_Vpdmax', 'max. VPD', variable),
-                variable = dplyr::if_else(variable == 'ba', 'basal area', variable),
-                variable = dplyr::if_else(variable == 'bagt', 'basal area greater than', variable),
                 variable = dplyr::if_else(variable == 'frac', 'frac. ba/species', variable),
                 variable = dplyr::if_else(variable == 'total_ba', 'plot ba', variable)) |>
   dplyr::mutate(class = dplyr::if_else(variable %in% c('precipitation', 'temperature',
@@ -183,8 +174,6 @@ ind_importance |>
                                                        'min. temperature', 'max. temperature',
                                                        'min. VPD', 'max. VPD'),
                                        'climate', NA),
-                class = dplyr::if_else(variable %in% c('basal area', 'basal area greater than'),
-                                       'ind. competition', class),
                 class = dplyr::if_else(variable == 'frac. ba/species',
                                        'sp.-level competition', class),
                 class = dplyr::if_else(variable == 'plot ba',
@@ -197,7 +186,7 @@ ind_importance |>
   ggplot2::scale_y_reverse(breaks = seq(0, 12, by = 2)) +
   ggplot2::xlab('')
 
-ind_importance |>
+taxon_importance |>
   dplyr::mutate(variable = dplyr::if_else(variable == 'mean_PPT', 'precipitation', variable),
                 variable = dplyr::if_else(variable == 'mean_Tmean', 'temperature', variable),
                 variable = dplyr::if_else(variable == 'sd_PPT', 'precipitation var.', variable),
@@ -206,8 +195,6 @@ ind_importance |>
                 variable = dplyr::if_else(variable == 'mean_Tmax', 'max. temperature', variable),
                 variable = dplyr::if_else(variable == 'mean_Vpdmin', 'min. VPD', variable),
                 variable = dplyr::if_else(variable == 'mean_Vpdmax', 'max. VPD', variable),
-                variable = dplyr::if_else(variable == 'ba', 'basal area', variable),
-                variable = dplyr::if_else(variable == 'bagt', 'basal area greater than', variable),
                 variable = dplyr::if_else(variable == 'frac', 'frac. ba/species', variable),
                 variable = dplyr::if_else(variable == 'total_ba', 'plot ba', variable)) |>
   dplyr::mutate(class = dplyr::if_else(variable %in% c('precipitation', 'temperature',
@@ -215,8 +202,6 @@ ind_importance |>
                                                        'min. temperature', 'max. temperature',
                                                        'min. VPD', 'max. VPD'),
                                        'climate', NA),
-                class = dplyr::if_else(variable %in% c('basal area', 'basal area greater than'),
-                                       'ind. competition', class),
                 class = dplyr::if_else(variable == 'frac. ba/species',
                                        'sp.-level competition', class),
                 class = dplyr::if_else(variable == 'plot ba',
@@ -233,7 +218,7 @@ ind_importance |>
   ggplot2::scale_y_continuous(breaks = seq(0, 12, by = 2)) +
   ggplot2::xlab('')
 
-ind_importance |>
+taxon_importance |>
   dplyr::mutate(variable = dplyr::if_else(variable == 'mean_PPT', 'precipitation', variable),
                 variable = dplyr::if_else(variable == 'mean_Tmean', 'temperature', variable),
                 variable = dplyr::if_else(variable == 'sd_PPT', 'precipitation var.', variable),
@@ -242,8 +227,6 @@ ind_importance |>
                 variable = dplyr::if_else(variable == 'mean_Tmax', 'max. temperature', variable),
                 variable = dplyr::if_else(variable == 'mean_Vpdmin', 'min. VPD', variable),
                 variable = dplyr::if_else(variable == 'mean_Vpdmax', 'max. VPD', variable),
-                variable = dplyr::if_else(variable == 'ba', 'basal area', variable),
-                variable = dplyr::if_else(variable == 'bagt', 'basal area greater than', variable),
                 variable = dplyr::if_else(variable == 'frac', 'frac. ba/species', variable),
                 variable = dplyr::if_else(variable == 'total_ba', 'plot ba', variable)) |>
   dplyr::mutate(class = dplyr::if_else(variable %in% c('precipitation', 'temperature',
@@ -251,8 +234,6 @@ ind_importance |>
                                                        'min. temperature', 'max. temperature',
                                                        'min. VPD', 'max. VPD'),
                                        'climate', NA),
-                class = dplyr::if_else(variable %in% c('basal area', 'basal area greater than'),
-                                       'ind. competition', class),
                 class = dplyr::if_else(variable == 'frac. ba/species',
                                        'sp.-level competition', class),
                 class = dplyr::if_else(variable == 'plot ba',
@@ -269,4 +250,4 @@ ind_importance |>
   ggplot2::scale_y_continuous(breaks = seq(0, 12, by = 2)) +
   ggplot2::xlab('')
 
-save(ind_importance, file = 'out/ind_rf_importance_save.RData')
+save(taxon_importance, file = 'out/taxon_rf_importance_save.RData')
