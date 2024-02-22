@@ -1,3 +1,7 @@
+## Linear models between annual growth of each tree over time and
+## climate drivers at annual scale
+## Previously attempted to use monthly data and this was too much
+## for a linear regression model
 rm(list = ls())
 
 # Load total increment
@@ -6,6 +10,7 @@ nrp_total_agbi <- readRDS('sites/NORTHROUND/runs/v2.0_082020/output/AGBI_STAN_NO
 rooster_total_agbi <- readRDS('sites/ROOSTER/runs/v2.0_082020/output/AGBI_STAN_ROOSTER_v2.0_082020.RDS')
 sylv_total_agbi <- readRDS('sites/SYLVANIA/runs/v2.0_082020/output/AGBI_STAN_SYLVANIA_v2.0_082020.RDS')
 
+# Subset for 1960 and beyond to reduce problem of fading record
 goose_total_agbi <- goose_total_agbi |>
   dplyr::mutate(site = 'GOOSE') |>
   dplyr::filter(year > 1959)
@@ -51,13 +56,15 @@ prism_long <- dplyr::rename(prism_long, site = loc) |>
 # Pivot wider
 prism_annual <- prism_long |>
   dplyr::group_by(year, site) |>
+  # Average over months
   dplyr::summarize(mean_PPT = mean(PPT2),
                    mean_Tmean = mean(Tmean2),
-                   mean_Tmin = mean(Tmin2),
-                   mean_Tmax = mean(Tmax2),
-                   mean_Vpdmin = mean(Vpdmin2),
-                   mean_Vpdmax = mean(Vpdmax2)) 
-prism_month <- tidyr::pivot_wider(prism_long, names_from = 'month', values_from = c('PPT2', 'Tmean2', 'Tmin2', 'Tmax2', 'Vpdmin2', 'Vpdmax2'))
+                   sd_PPT = sd(PPT2),
+                   sd_Tmean = sd(Tmean2),
+                   mean_Tmin = min(Tmin2),
+                   mean_Tmax = max(Tmax2),
+                   mean_Vpdmin = min(Vpdmin2),
+                   mean_Vpdmax = max(Vpdmax2)) 
 
 # Load competition information
 load('data/competition_metrics.RData')
@@ -67,7 +74,7 @@ ntrees <- c(length(unique(goose_total_agbi$tree)),
             length(unique(rooster_total_agbi$tree)),
             length(unique(sylv_total_agbi$tree)))
 # Storage
-coeff_save <- matrix(, nrow = sum(ntrees), ncol = 14)
+coeff_save <- matrix(, nrow = sum(ntrees), ncol = 17)
 
 row_ind <- 0
 # For each site, let's iteratively fit a simple linear model with
@@ -86,32 +93,50 @@ for(i in 1:4){
                            tree == j)
     # Combine tree data with climate
     joined <- sub |>
+      # Join with annual climate drivers
       dplyr::left_join(y = prism_annual, by = c('site', 'year')) |>
+      # Join with tree-level competition metrics
       dplyr::left_join(y = ba_by_tree, by = c('tree', 'year', 'plot', 'taxon', 'site')) |>
-      # only keep ba, bagt
-      dplyr::select(-frac, -total_ba, -dbh) |>
+      # only keep individual tree basal area (ba)
+      # and basal area greater than (bagt)
+      dplyr::select(-ind_frac, -total_ba, -dbh) |>
+      # Join with taxon-level competition metrics
       dplyr::left_join(y = ba_by_taxon, by = c('plot', 'site', 'year', 'taxon')) |>
-      # only keep ba, bagt (from before), frac
+      # only keep ba, bagt (from before)
+      # and fraction of total basal area from each taxon (frac)
       dplyr::select(-total_ba.x, -total_ba.y) |>
+      # Join with plot-level competition metrics
       dplyr::left_join(y = total_ba, by = c('plot', 'site', 'year'))
     # Fit linear model
-    mod <- lm(formula = mean ~ mean_PPT + mean_Tmean + mean_Tmin + 
-                mean_Tmax + mean_Vpdmin + mean_Vpdmax + 
+    # annual increment of individual tree is a function of 
+    # mean annual precipitation, mean annual temperature,
+    # annual precipitation seasonality, annual temperature seasonality
+    # minimum annual temperature, maximum annual temperature,
+    # minimum annual VPD, maximum annual VPD,
+    # individual tree basal area, basal area greater than,
+    # fraction of basal area for given taxon,
+    # total plot basal area
+    mod <- lm(formula = mean ~ mean_PPT + mean_Tmean + 
+                sd_PPT + sd_Tmean +
+                mean_Tmin + mean_Tmax + 
+                mean_Vpdmin + mean_Vpdmax + 
                 ba + bagt + frac + total_ba,
               data = joined)   
     # Save site name, tree number, coefficients, and r2 in matrix
     coeff_save[row_ind,1] <- i
-    coeff_save[row_ind,2] <- j
-    coeff_save[row_ind,3:13] <- coefficients(mod)
-    coeff_save[row_ind,14] <- summary(mod)$adj.r.squared
+    coeff_save[row_ind,2] <- unique(sub$taxon)
+    coeff_save[row_ind,3] <- j
+    coeff_save[row_ind,4:16] <- coefficients(mod)
+    coeff_save[row_ind,17] <- summary(mod)$adj.r.squared
     print(j)
   }
   print(paste0('---------------------',i,'----------------'))
 }
 
 # Column names
-colnames(coeff_save) <- c('Site', 'Tree', 'Intercept',
+colnames(coeff_save) <- c('Site', 'Taxon', 'Tree', 'Intercept',
                           'Precipitation', 'Temperature', 
+                          'SD_Precipitation', 'SD_Temperature',
                           'Minimum_temperature', 'Maximum_temperature',
                           'Minimum_VPD', 'Maximum_VPD', 
                           'BA', 'BAGT', 'frac_ba', 'total_ba', 'R2')
@@ -124,14 +149,28 @@ coeff_save <- coeff_save |>
   dplyr::mutate(Site = dplyr::if_else(Site == 1, 'GOOSE', Site),
                 Site = dplyr::if_else(Site == 2, 'NRP', Site),
                 Site = dplyr::if_else(Site == 3, 'ROOSTER', Site),
-                Site = dplyr::if_else(Site == 4, 'SYLVANIA', Site))
+                Site = dplyr::if_else(Site == 4, 'SYLVANIA', Site)) |>
+  # Format
+  dplyr::mutate(Intercept = as.numeric(Intercept),
+                Precipitation = as.numeric(Precipitation),
+                Temperature = as.numeric(Temperature),
+                SD_Precipitation = as.numeric(SD_Precipitation),
+                SD_Temperature = as.numeric(SD_Temperature),
+                Minimum_temperature = as.numeric(Minimum_temperature),
+                Maximum_temperature = as.numeric(Maximum_temperature),
+                Minimum_VPD = as.numeric(Minimum_VPD),
+                Maximum_VPD = as.numeric(Maximum_VPD),
+                BA = as.numeric(BA),
+                BAGT = as.numeric(BAGT),
+                frac_ba = as.numeric(frac_ba),
+                total_ba = as.numeric(total_ba),
+                R2 = as.numeric(R2))
 
 # Distribution of R2 for each site with individual models
 coeff_save |>
   ggplot2::ggplot(ggplot2::aes(x = R2)) +
   ggplot2::geom_density() +
   ggplot2::facet_wrap(~Site) +
-  ggplot2::geom_vline(ggplot2::aes(xintercept = 0), linetype = 'dashed') +
   ggplot2::xlab(expression(R^2)) + ggplot2::ylab('Density') +
   ggplot2::theme_minimal()
 
@@ -139,7 +178,6 @@ coeff_save |>
 coeff_save |>
   ggplot2::ggplot(ggplot2::aes(x = Site, y = R2)) +
   ggplot2::geom_violin() +
-  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
   ggplot2::xlab('') + ggplot2::ylab(expression(R^2)) +
   ggplot2::theme_minimal()
 
@@ -157,6 +195,22 @@ coeff_save |>
   ggplot2::geom_violin() +
   ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for temperature') +
+  ggplot2::theme_minimal()
+
+# Violin of precipitation seasonality coefficient
+coeff_save |>
+  ggplot2::ggplot(ggplot2::aes(x = Site, y = SD_Precipitation)) +
+  ggplot2::geom_violin() +
+  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
+  ggplot2::xlab('') + ggplot2::ylab('Coefficient for precipitation seasonality') +
+  ggplot2::theme_minimal()
+
+# Violin for temperature seasonality coefficient
+coeff_save |>
+  ggplot2::ggplot(ggplot2::aes(x = Site, y = SD_Temperature)) +
+  ggplot2::geom_violin() +
+  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
+  ggplot2::xlab('') + ggplot2::ylab('Coefficient for temperature seasonality') +
   ggplot2::theme_minimal()
 
 # Violin of minimum temperature coefficient
@@ -223,70 +277,4 @@ coeff_save |>
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for total basal area') +
   ggplot2::theme_minimal()
 
-# Run linear models with monthly climate
-## Currently does not work because of singularities
-
-# Storage
-coeff_save_month <- matrix(, nrow = sum(ntrees), ncol = 76)
-
-row_ind <- 0
-# For each site, let's iteratively fit a simple linear model with
-# average temperature and precipitation as predictors of each tree's annual growth
-for(i in 1:4){
-  # Tree number index, unique to each site
-  tree <-  unique(total_agbi$tree[which(total_agbi$site == site[i])])
-  # Save site name
-  site_name <- site[i]
-  # Loop through each tree at a given site
-  for(j in tree){
-    # Increment counter
-    row_ind <- row_ind + 1
-    # Subset full data for one tree
-    sub <- dplyr::filter(total_agbi, site == site_name &
-                           tree == j)
-    # Combine tree data with climate
-    joined <- dplyr::left_join(x = sub, y = prism_month, by = c('site', 'year')) |> 
-      dplyr::ungroup() |>
-      dplyr::select(-tree, -year, -plot, -taxon, -site)
-    # Fit linear model
-    mod <- lm(formula = mean ~ .,
-              data = joined)   
-    # Save site name, tree number, coefficients, and r2 in matrix
-    coeff_save_month[row_ind,1] <- i
-    coeff_save_month[row_ind,2] <- j
-    coeff_save_month[row_ind,3:75] <- coefficients(mod)
-    coeff_save_month[row_ind,76] <- summary(mod)$adj.r.squared
-    print(j)
-  }
-  print(paste0('---------------------',i,'----------------'))
-}
-
-# Column names
-coeff_save_month <- as.data.frame(coeff_save_month)
-colnames(coeff_save_month)[1:3] <- c('Site', 'Tree', 'Intercept')
-colnames(coeff_save_month)[4:75] <- colnames(joined)[2:73]
-colnames(coeff_save_month)[76] <- c('R2')
-
-# Replace site numbers with names
-coeff_save_month <- coeff_save_month |>
-  dplyr::mutate(Site = as.character(Site)) |>
-  dplyr::mutate(Site = dplyr::if_else(Site == 1, 'GOOSE', Site),
-                Site = dplyr::if_else(Site == 2, 'NRP', Site),
-                Site = dplyr::if_else(Site == 3, 'ROOSTER', Site),
-                Site = dplyr::if_else(Site == 4, 'SYLVANIA', Site))
-
-# Distribution of R2 for each site with individual models
-coeff_save_month |>
-  ggplot2::ggplot(ggplot2::aes(x = R2)) +
-  ggplot2::geom_density() +
-  ggplot2::facet_wrap(~Site) +
-  ggplot2::geom_vline(ggplot2::aes(xintercept = 0), linetype = 'dashed') +
-  ggplot2::xlab(expression(R^2)) + ggplot2::ylab('Density') +
-  ggplot2::theme_minimal()
-
-coeff_save_month |>
-  ggplot2::ggplot(ggplot2::aes(x = Site, y = R2)) +
-  ggplot2::geom_violin() +
-  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
-  ggplot2::xlab('') + ggplot2::ylab(expression(R^2)) +
-  ggplot2::theme_minimal()
+save(coeff_save, file = 'out/ind_lm_coeff_save.RData')
