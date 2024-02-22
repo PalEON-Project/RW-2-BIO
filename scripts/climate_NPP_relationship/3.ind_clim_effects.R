@@ -74,7 +74,7 @@ ntrees <- c(length(unique(goose_total_agbi$tree)),
             length(unique(rooster_total_agbi$tree)),
             length(unique(sylv_total_agbi$tree)))
 # Storage
-coeff_save <- matrix(, nrow = sum(ntrees), ncol = 16)
+coeff_save <- matrix(, nrow = sum(ntrees), ncol = 17)
 
 row_ind <- 0
 # For each site, let's iteratively fit a simple linear model with
@@ -124,16 +124,17 @@ for(i in 1:4){
               data = joined)   
     # Save site name, tree number, coefficients, and r2 in matrix
     coeff_save[row_ind,1] <- i
-    coeff_save[row_ind,2] <- j
-    coeff_save[row_ind,3:15] <- coefficients(mod)
-    coeff_save[row_ind,16] <- summary(mod)$adj.r.squared
+    coeff_save[row_ind,2] <- unique(sub$taxon)
+    coeff_save[row_ind,3] <- j
+    coeff_save[row_ind,4:16] <- coefficients(mod)
+    coeff_save[row_ind,17] <- summary(mod)$adj.r.squared
     print(j)
   }
   print(paste0('---------------------',i,'----------------'))
 }
 
 # Column names
-colnames(coeff_save) <- c('Site', 'Tree', 'Intercept',
+colnames(coeff_save) <- c('Site', 'Taxon', 'Tree', 'Intercept',
                           'Precipitation', 'Temperature', 
                           'SD_Precipitation', 'SD_Temperature',
                           'Minimum_temperature', 'Maximum_temperature',
@@ -148,7 +149,22 @@ coeff_save <- coeff_save |>
   dplyr::mutate(Site = dplyr::if_else(Site == 1, 'GOOSE', Site),
                 Site = dplyr::if_else(Site == 2, 'NRP', Site),
                 Site = dplyr::if_else(Site == 3, 'ROOSTER', Site),
-                Site = dplyr::if_else(Site == 4, 'SYLVANIA', Site))
+                Site = dplyr::if_else(Site == 4, 'SYLVANIA', Site)) |>
+  # Format
+  dplyr::mutate(Intercept = as.numeric(Intercept),
+                Precipitation = as.numeric(Precipitation),
+                Temperature = as.numeric(Temperature),
+                SD_Precipitation = as.numeric(SD_Precipitation),
+                SD_Temperature = as.numeric(SD_Temperature),
+                Minimum_temperature = as.numeric(Minimum_temperature),
+                Maximum_temperature = as.numeric(Maximum_temperature),
+                Minimum_VPD = as.numeric(Minimum_VPD),
+                Maximum_VPD = as.numeric(Maximum_VPD),
+                BA = as.numeric(BA),
+                BAGT = as.numeric(BAGT),
+                frac_ba = as.numeric(frac_ba),
+                total_ba = as.numeric(total_ba),
+                R2 = as.numeric(R2))
 
 # Distribution of R2 for each site with individual models
 coeff_save |>
