@@ -71,13 +71,13 @@ for(i in 1:4){
   taxon <- seq(from = 1, to = taxa[i], by = 1)
   # Save site name
   site_name <- site[i]
-  # Loop through each tree at a given site
+  # Loop through each taxon at a given site
   for(j in taxon){
     # Increment counter
     row_ind <- row_ind + 1
-    # Save tree number
+    # Save taxon number
     taxon_name <- unique(total_agbi$taxon[which(total_agbi$site == site_name)])[j]
-    # Subset full data for one tree
+    # Subset full data for one taxon
     sub <- dplyr::filter(total_agbi, site == site_name &
                            taxon == taxon_name)
     # Combine tree data with climate
