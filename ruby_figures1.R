@@ -157,6 +157,40 @@ clim_summary = clim_wide |>
           T_max_mean = rowMeans(dplyr::select(clim_wide, starts_with('Tmax'))),
          )
 
+Vpd_sets = list(c("Vpdmin2_01", "Vpdmax2_01"), c("Vpdmin2_02", "Vpdmax2_02"),
+                c("Vpdmin2_03", "Vpdmax2_03"), c("Vpdmin2_04", "Vpdmax2_04"),
+                c("Vpdmin2_05", "Vpdmax2_05"), c("Vpdmin2_06", "Vpdmax2_06"),
+                c("Vpdmin2_07", "Vpdmax2_07"), c("Vpdmin2_08", "Vpdmax2_08"),
+                c("Vpdmin2_09", "Vpdmax2_09"), c("Vpdmin2_10", "Vpdmax2_10"),
+                c("Vpdmin2_11", "Vpdmax2_11"), c("Vpdmin2_12", "Vpdmax2_12")
+)
+for (i in seq_along(Vpd_sets)) {
+  set <- Vpd_sets[[i]]
+  clim_summary <- clim_summary %>%
+    mutate(!!paste0("Vpdmean_", i) := rowMeans(select(., all_of(set))))
+
+}
+
+N_years = nrow(clim_summary)
+
+clim_summary$PPT_total_tree = NA
+clim_summary$PPT_total_tree[2:N_years] = clim_summary$PPT_total_prev_tree[1:(N_years-1)] +
+  clim_summary$PPT_total_current_tree[2:N_years]
+
+
+clim_summary$year <- as.numeric(clim_summary$year)
+
+climate_increment <- site_total|>
+  left_join(clim_summary, by = c('year'))
+
+climate_increment = subset(climate_increment, year>1950)
+
+clim_taxon = taxon_summary %>%
+  left_join(clim_summary,by = c('year') )
+clim_taxon = subset(clim_taxon, year>1950)
+
+
+
 Vapor_pd = select(clim_taxon, year, AGBI.mean, taxon,
                   starts_with('Vpdmean'))
 
@@ -178,37 +212,37 @@ temp_max_melt = melt(temp_max,
 PPT_melt = melt(PPT, id.vars = c('year', 'AGBI.mean', 'taxon'))
 
 
-Vpd_sets = list(c("Vpdmin2_01", "Vpdmax2_01"), c("Vpdmin2_02", "Vpdmax2_02"), 
-                c("Vpdmin2_03", "Vpdmax2_03"), c("Vpdmin2_04", "Vpdmax2_04"),
-                c("Vpdmin2_05", "Vpdmax2_05"), c("Vpdmin2_06", "Vpdmax2_06"),
-                c("Vpdmin2_07", "Vpdmax2_07"), c("Vpdmin2_08", "Vpdmax2_08"),
-                c("Vpdmin2_09", "Vpdmax2_09"), c("Vpdmin2_10", "Vpdmax2_10"),
-                c("Vpdmin2_11", "Vpdmax2_11"), c("Vpdmin2_12", "Vpdmax2_12")
-)
-for (i in seq_along(Vpd_sets)) {
-  set <- Vpd_sets[[i]]
-  clim_summary <- clim_summary %>% 
-    mutate(!!paste0("Vpdmean_", i) := rowMeans(select(., all_of(set))))
-  
-}
-
-N_years = nrow(clim_summary)
-
-clim_summary$PPT_total_tree = NA
-clim_summary$PPT_total_tree[2:N_years] = clim_summary$PPT_total_prev_tree[1:(N_years-1)] + 
-  clim_summary$PPT_total_current_tree[2:N_years]
-
-
-clim_summary$year <- as.numeric(clim_summary$year)
-
-climate_increment <- site_total|>
-  left_join(clim_summary, by = c('year'))
-
-climate_increment = subset(climate_increment, year>1950)
-
-clim_taxon = taxon_summary %>% 
-  left_join(clim_summary,by = c('year') )
-clim_taxon = subset(clim_taxon, year>1950)
+# Vpd_sets = list(c("Vpdmin2_01", "Vpdmax2_01"), c("Vpdmin2_02", "Vpdmax2_02"), 
+#                 c("Vpdmin2_03", "Vpdmax2_03"), c("Vpdmin2_04", "Vpdmax2_04"),
+#                 c("Vpdmin2_05", "Vpdmax2_05"), c("Vpdmin2_06", "Vpdmax2_06"),
+#                 c("Vpdmin2_07", "Vpdmax2_07"), c("Vpdmin2_08", "Vpdmax2_08"),
+#                 c("Vpdmin2_09", "Vpdmax2_09"), c("Vpdmin2_10", "Vpdmax2_10"),
+#                 c("Vpdmin2_11", "Vpdmax2_11"), c("Vpdmin2_12", "Vpdmax2_12")
+# )
+# for (i in seq_along(Vpd_sets)) {
+#   set <- Vpd_sets[[i]]
+#   clim_summary <- clim_summary %>% 
+#     mutate(!!paste0("Vpdmean_", i) := rowMeans(select(., all_of(set))))
+#   
+# }
+# 
+# N_years = nrow(clim_summary)
+# 
+# clim_summary$PPT_total_tree = NA
+# clim_summary$PPT_total_tree[2:N_years] = clim_summary$PPT_total_prev_tree[1:(N_years-1)] + 
+#   clim_summary$PPT_total_current_tree[2:N_years]
+# 
+# 
+# clim_summary$year <- as.numeric(clim_summary$year)
+# 
+# climate_increment <- site_total|>
+#   left_join(clim_summary, by = c('year'))
+# 
+# climate_increment = subset(climate_increment, year>1950)
+# 
+# clim_taxon = taxon_summary %>% 
+#   left_join(clim_summary,by = c('year') )
+# clim_taxon = subset(clim_taxon, year>1950)
 
 
 #without taxon
@@ -295,6 +329,12 @@ ggplot(data = climate_increment) +
 ggplot(data = Vapor_melt) +
   geom_point(aes(x = value, y = AGBI.mean, color = variable))
 
+ggplot(data = Vapor_melt) +
+  geom_point(aes(x = value, y = AGBI.mean, color=taxon)) +
+  facet_wrap(~variable, scales='free_x') +
+  geom_smooth(aes(x = value, y = AGBI.mean, color=taxon), method='lm', formula= y~x )
+  
+
 ggplot(data = climate_increment)+
   geom_point(aes(x = PPT_total_prev_tree, y = AGBI.mean))
 
@@ -303,11 +343,22 @@ ggplot(data = climate_increment)+
 
 ggplot(data = PPT_melt)+
   geom_point(aes(x = value, y = AGBI.mean, color = variable))
+
+ggplot(data = PPT_melt)+
+  geom_point(aes(x = value, y = AGBI.mean, color = taxon)) +
+  facet_wrap(~variable, scales='free_x') +
+  geom_smooth(aes(x = value, y = AGBI.mean, color=taxon), method='lm', formula= y~x )
 #+
  # facet_wrap(~)
 
 ggplot(data = clim_taxon)+
-  geom_point(aes(x = PPT_03, y = AGBI.mean, color = taxon))
+  geom_point(aes(x = PPT_03, y = AGBI.mean, color = taxon)) +
+  geom_smooth(aes(x = PPT_03, y = AGBI.mean, color=taxon), method='lm', formula= y~x )
+
+
+ggplot(data = clim_taxon)+
+  geom_point(aes(x = PPT_total, y = AGBI.mean, color = taxon)) +
+  geom_smooth(aes(x = PPT_total, y = AGBI.mean, color=taxon), method='lm', formula= y~x )
 
 #################################################################################
 #STATS
@@ -318,16 +369,89 @@ PPT_lm = clim_taxon %>%
   group_by(taxon) %>%
   do(tidy(lm(AGBI.mean ~ PPT_total_tree, .)))
 
+PPT_lm_slope = subset(PPT_lm, term == 'PPT_total_tree')
+PPT_lm_slope$sig = ifelse(PPT_lm_slope$p.value < 0.05, TRUE, FALSE)
+ggplot(data=PPT_lm_slope) +
+  geom_point(aes(x=estimate, y=taxon, colour=sig))
+
 Vpd_lm = Vapor_melt %>% 
   group_by(taxon, variable) %>%
   do(tidy(lm(AGBI.mean ~ value, .)))
 
+VPD_lm_slope = subset(Vpd_lm, term == 'value')
+VPD_lm_slope$sig = ifelse(VPD_lm_slope$p.value < 0.05, TRUE, FALSE)
+ggplot(data=VPD_lm_slope) +
+  geom_point(aes(x=estimate, y=taxon, colour=sig)) +
+  facet_wrap(~variable)
+
+
 Tmin_lm = temp_min_melt %>% 
   group_by(taxon, variable) %>%
   do(tidy(lm(AGBI.mean ~ value, .)))
+
+Tmin_lm_slope = subset(Tmin_lm, term == 'value')
+Tmin_lm_slope$sig = ifelse(Tmin_lm_slope$p.value < 0.05, TRUE, FALSE)
+ggplot(data=Tmin_lm_slope) +
+  geom_point(aes(x=estimate, y=taxon, colour=sig)) +
+  facet_wrap(~variable)
 
 Tmax_lm = temp_max_melt %>% 
   group_by(taxon, variable) %>%
   do(tidy(lm(AGBI.mean ~ value, .)))
 
 
+
+#################################################################################
+# Individual tree 
+#################################################################################
+
+# Combining abgi and abg into one dataframe
+goose_total <- goose_total_agb |>
+  left_join(goose_total_agbi, by = c('tree', 'year', 'iter',
+                                     'taxon', 'model', 'plot')) |>
+  rename(AGB = value.x,
+         AGBI = value.y) |>
+  select(-c(type.x, type.y)) |>
+  # Add site name for combining sites into one df
+  mutate(site = 'GOOSE')
+
+#summarizing the data for both agb and agbi
+#here we are taking the mean of all the iterations for one tree in a given year
+all_tree <- goose_total |>
+  group_by(tree, year, plot, taxon, model, site) |>
+  # Means across iterations
+  summarize(AGB.mean = mean(AGB),
+            AGBI.mean = mean(AGBI),
+            # Standard deviations across iterations
+            AGB.sd = sd(AGB),
+            AGBI.sd = sd(AGBI),
+            # Credible intervals across iterations
+            AGB.low = quantile(AGB, probs = 0.025, na.rm = T),
+            AGB.high = quantile(AGB, probs = 0.975, na.rm = T),
+            AGBI.low = quantile(AGBI, probs = 0.025, na.rm = T),
+            AGBI.high = quantile(AGBI, probs = 0.975, na.rm = T))
+
+
+clim_tree = all_tree %>%
+  left_join(clim_summary,by = c('year') )
+clim_tree = subset(clim_tree, year>1950)
+
+tree_lm = clim_tree %>% 
+  group_by(tree, taxon) %>%
+  do(tidy(lm(AGBI.mean ~ PPT_total_tree, .)))
+
+tree_lm_slope = subset(tree_lm, term == 'PPT_total_tree')
+tree_lm_slope$sig = ifelse(tree_lm_slope$p.value < 0.05, TRUE, FALSE)
+ggplot(data=tree_lm_slope) +
+  geom_histogram(aes(x=estimate))
+summary(tree_lm_slope$estimate)
+sum(tree_lm_slope$sig)
+
+ggplot(data=tree_lm_slope) +
+  geom_point(aes(x=estimate, y=taxon, colour=sig)) 
+
+plot(clim_tree$AGB.mean, clim_tree$AGBI.mean)
+
+taxon_lm = clim_tree %>% 
+  group_by(taxon) %>%
+  do(tidy(lm(AGBI.mean ~ PPT_total_tree + AGB.mean, .)))
