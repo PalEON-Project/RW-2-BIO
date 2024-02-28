@@ -15,11 +15,12 @@ rm(list = ls())
 library(dplyr)
 library(ggplot2)
 # library(forecast)
-library(lme4)
+#library(lme4)
 # library(performance)
 library(tidyr)
 library(ggcorrplot)
-
+library(reshape2)
+library(broom)
 
 goose_total_agb <- readRDS('sites/GOOSE/runs/v2.0_012021/output/AGB_STAN_GOOSE_v2.0_012021.RDS')
 goose_total_agbi <- readRDS('sites/GOOSE/runs/v2.0_012021/output/AGBI_STAN_GOOSE_v2.0_012021.RDS')
@@ -142,10 +143,10 @@ clim_wide =  pivot_wider(data = goose_clim,
                          names_from = month, 
                          values_from = c(PPT, mean_temp, Tmin2, Tmax2, Vpdmin2, Vpdmax2))
 
-N_years = nrow(clim_summary)
 
 #PPT_mean is the mean of each month summed to get the mean of the year
 #yearly_meanT is the yearly temperature mean based on monthly means
+
 clim_summary = clim_wide |>
   mutate(PPT_total = rowSums(dplyr::select(clim_wide, starts_with('PPT'))),
          PPT_total_prev_tree = rowSums(dplyr::pick('PPT_09', 'PPT_10', 'PPT_11', 'PPT_12')),
@@ -153,7 +154,45 @@ clim_summary = clim_wide |>
                                               'PPT_05', 'PPT_06', 'PPT_07', 'PPT_08')),
          yearly_meanT = rowMeans(dplyr::select(clim_wide, starts_with('mean_temp'))),
          T_min_mean = rowMeans(dplyr::select(clim_wide, starts_with('Tmin'))),
-          T_max_mean = rowMeans(dplyr::select(clim_wide, starts_with('Tmax'))))
+          T_max_mean = rowMeans(dplyr::select(clim_wide, starts_with('Tmax'))),
+         )
+
+Vapor_pd = select(clim_taxon, year, AGBI.mean, taxon,
+                  starts_with('Vpdmean'))
+
+temp_min = select(clim_taxon, year, AGBI.mean, taxon,
+                  starts_with('Tmin'))
+temp_max = select(clim_taxon, year, AGBI.mean, taxon,
+                  starts_with('Tmax'))
+PPT = select(clim_taxon, year, AGBI.mean, taxon,
+             starts_with('PPT'))
+
+
+Vapor_melt = melt(Vapor_pd, 
+                  id.vars = c('year', 'AGBI.mean', 'taxon'))
+temp_min_melt = melt(temp_min,
+                     id.vars = c('year', 'AGBI.mean', 'taxon'))
+temp_max_melt = melt(temp_max, 
+                     id.vars = c('year', 'AGBI.mean', 'taxon'))
+
+PPT_melt = melt(PPT, id.vars = c('year', 'AGBI.mean', 'taxon'))
+
+
+Vpd_sets = list(c("Vpdmin2_01", "Vpdmax2_01"), c("Vpdmin2_02", "Vpdmax2_02"), 
+                c("Vpdmin2_03", "Vpdmax2_03"), c("Vpdmin2_04", "Vpdmax2_04"),
+                c("Vpdmin2_05", "Vpdmax2_05"), c("Vpdmin2_06", "Vpdmax2_06"),
+                c("Vpdmin2_07", "Vpdmax2_07"), c("Vpdmin2_08", "Vpdmax2_08"),
+                c("Vpdmin2_09", "Vpdmax2_09"), c("Vpdmin2_10", "Vpdmax2_10"),
+                c("Vpdmin2_11", "Vpdmax2_11"), c("Vpdmin2_12", "Vpdmax2_12")
+)
+for (i in seq_along(Vpd_sets)) {
+  set <- Vpd_sets[[i]]
+  clim_summary <- clim_summary %>% 
+    mutate(!!paste0("Vpdmean_", i) := rowMeans(select(., all_of(set))))
+  
+}
+
+N_years = nrow(clim_summary)
 
 clim_summary$PPT_total_tree = NA
 clim_summary$PPT_total_tree[2:N_years] = clim_summary$PPT_total_prev_tree[1:(N_years-1)] + 
@@ -197,7 +236,7 @@ ggsave("AGBI_precip.png")
 ggplot(data = climate_increment) +
   geom_point(aes(x = PPT_total_tree, y = AGBI.mean)) +
   geom_smooth(aes(x = PPT_total_tree, y = AGBI.mean), method='lm', formula= y~x)+
-  xlab('Mean annual precipitation') + ylab('Aboveground biomass increment')
+  xlab('Mean Total Tree Precip') + ylab('Aboveground biomass increment')
 ggsave("AGBI_precip_tree.png")
 
 
@@ -226,7 +265,7 @@ ggplot(data = clim_taxon) +
   geom_linerange(aes(x=PPT_total_tree, ymin=AGBI.lo, ymax=AGBI.hi)) +
   facet_wrap(~taxon, scales = 'free_y')+
   geom_smooth(aes(x = PPT_total_tree, y = AGBI.mean), method='lm', formula= y~x )+
-  xlab('Mean annual precipitation') + ylab('Aboveground biomass increment')
+  xlab('Mean Total Tree Precip') + ylab('Aboveground biomass increment')
 ggsave("AGBI_taxon_precip.png")
 
 ggplot(data = clim_taxon) +
@@ -235,9 +274,6 @@ ggplot(data = clim_taxon) +
 ggsave("AGBI_time_taxon.png") 
  
 
-clim_taxon %>% 
-  group_by(taxon) %>%
-  do(tidy(lm(AGBI.mean ~ PPT_total_tree, .)))
 
 
 ggplot(data = climate_increment) +
@@ -252,3 +288,46 @@ ggplot(data = climate_increment) +
 ggplot(data = climate_increment) +
   geom_point(aes(x = T_max_mean, y = AGBI.mean))#+
 # geom_point(aes(x = T_max_mean, y = AGBI.mean))
+
+
+
+#unsure what this tells us
+ggplot(data = Vapor_melt) +
+  geom_point(aes(x = value, y = AGBI.mean, color = variable))
+
+ggplot(data = climate_increment)+
+  geom_point(aes(x = PPT_total_prev_tree, y = AGBI.mean))
+
+ggplot(data = climate_increment)+
+  geom_point(aes(x = PPT_03, y = AGBI.mean))
+
+ggplot(data = PPT_melt)+
+  geom_point(aes(x = value, y = AGBI.mean, color = variable))
+#+
+ # facet_wrap(~)
+
+ggplot(data = clim_taxon)+
+  geom_point(aes(x = PPT_03, y = AGBI.mean, color = taxon))
+
+#################################################################################
+#STATS
+#################################################################################
+
+
+PPT_lm = clim_taxon %>% 
+  group_by(taxon) %>%
+  do(tidy(lm(AGBI.mean ~ PPT_total_tree, .)))
+
+Vpd_lm = Vapor_melt %>% 
+  group_by(taxon, variable) %>%
+  do(tidy(lm(AGBI.mean ~ value, .)))
+
+Tmin_lm = temp_min_melt %>% 
+  group_by(taxon, variable) %>%
+  do(tidy(lm(AGBI.mean ~ value, .)))
+
+Tmax_lm = temp_max_melt %>% 
+  group_by(taxon, variable) %>%
+  do(tidy(lm(AGBI.mean ~ value, .)))
+
+
