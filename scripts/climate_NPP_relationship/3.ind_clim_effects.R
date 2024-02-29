@@ -74,7 +74,7 @@ ntrees <- c(length(unique(goose_total_agbi$tree)),
             length(unique(rooster_total_agbi$tree)),
             length(unique(sylv_total_agbi$tree)))
 # Storage
-coeff_save <- matrix(, nrow = sum(ntrees), ncol = 17)
+coeff_save <- matrix(, nrow = sum(ntrees), ncol = 18)
 
 row_ind <- 0
 # For each site, let's iteratively fit a simple linear model with
@@ -124,17 +124,18 @@ for(i in 1:4){
               data = joined)   
     # Save site name, tree number, coefficients, and r2 in matrix
     coeff_save[row_ind,1] <- i
-    coeff_save[row_ind,2] <- unique(sub$taxon)
-    coeff_save[row_ind,3] <- j
-    coeff_save[row_ind,4:16] <- coefficients(mod)
-    coeff_save[row_ind,17] <- summary(mod)$adj.r.squared
+    coeff_save[row_ind,2] <- unique(sub$plot)
+    coeff_save[row_ind,3] <- unique(sub$taxon)
+    coeff_save[row_ind,4] <- j
+    coeff_save[row_ind,5:17] <- coefficients(mod)
+    coeff_save[row_ind,18] <- summary(mod)$adj.r.squared
     print(j)
   }
   print(paste0('---------------------',i,'----------------'))
 }
 
 # Column names
-colnames(coeff_save) <- c('Site', 'Taxon', 'Tree', 'Intercept',
+colnames(coeff_save) <- c('Site', 'Plot', 'Taxon', 'Tree', 'Intercept',
                           'Precipitation', 'Temperature', 
                           'SD_Precipitation', 'SD_Temperature',
                           'Minimum_temperature', 'Maximum_temperature',

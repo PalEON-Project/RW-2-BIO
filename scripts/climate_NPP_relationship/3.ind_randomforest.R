@@ -127,6 +127,8 @@ for(i in 1:4){
 # Unlist
 ind_importance <- do.call(rbind, importance_save)
 
+load('out/ind_rf_importance_save.RData')
+
 # Order of x-axis
 level_order <- c('precipitation', 'temperature', 'precipitation var.', 'temperature var.',
                  'min. temperature', 'max. temperature', 'min. VPD', 'max. VPD',
