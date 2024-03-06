@@ -2,42 +2,21 @@
 
 rm(list = ls())
 
-# Load total increment
-goose_total_agbi <- readRDS('sites/GOOSE/runs/v2.0_012021/output/AGBI_STAN_GOOSE_v2.0_012021.RDS')
-nrp_total_agbi <- readRDS('sites/NORTHROUND/runs/v2.0_082020/output/AGBI_STAN_NORTHROUND_v2.0_082020.RDS')
-rooster_total_agbi <- readRDS('sites/ROOSTER/runs/v2.0_082020/output/AGBI_STAN_ROOSTER_v2.0_082020.RDS')
-sylv_total_agbi <- readRDS('sites/SYLVANIA/runs/v2.0_082020/output/AGBI_STAN_SYLVANIA_v2.0_082020.RDS')
+# Load detrended AGBI
+load('out/detrended_AGBI.RData')
 
-# Subset for 1960 and beyond to reduce problem of fading record
-goose_total_agbi <- goose_total_agbi |>
-  dplyr::mutate(site = 'GOOSE') |>
-  dplyr::filter(year > 1959)
-nrp_total_agbi <- nrp_total_agbi |>
-  dplyr::mutate(site = 'NRP') |>
-  dplyr::filter(year > 1959)
-rooster_total_agbi <- rooster_total_agbi |>
-  dplyr::mutate(site = 'ROOSTER') |>
-  dplyr::filter(year > 1959)
-sylv_total_agbi <- sylv_total_agbi |>
-  dplyr::mutate(site = 'SYLVANIA') |>
-  dplyr::filter(year > 1959)
-
-# Combine sites
-total_agbi <- rbind(goose_total_agbi, nrp_total_agbi,
-                    rooster_total_agbi, sylv_total_agbi)
-
-# Save mean over iterations in dataframe
-total_agbi <- total_agbi |>
+# Average over individuals
+save_comb <- save_comb |>
   dplyr::group_by(year, plot, site) |>
-  dplyr::summarize(mean = mean(value))
+  dplyr::summarize(residual_AGBI = mean(residual_AGBI))
 
 # Indexing for loops
 site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA')
 plot <- c()
-plot[1] <- length(unique(goose_total_agbi$plot))
-plot[2] <- length(unique(nrp_total_agbi$plot))
-plot[3] <- length(unique(rooster_total_agbi$plot))
-plot[4] <- length(unique(sylv_total_agbi$plot))
+plot[1] <- length(unique(save_comb$plot[which(save_comb$site == 'GOOSE')]))
+plot[2] <- length(unique(save_comb$plot[which(save_comb$site == 'NRP')]))
+plot[3] <- length(unique(save_comb$plot[which(save_comb$site == 'ROOSTER')]))
+plot[4] <- length(unique(save_comb$plot[which(save_comb$site == 'SYLVANIA')]))
 
 # Load climate data
 load('climate/prism_clim.RData')
@@ -80,7 +59,7 @@ for(i in 1:4){
     # Save plot number
     plot_name <- plot_j[j]
     # Subset full data for one plot
-    sub <- dplyr::filter(total_agbi, site == site_name &
+    sub <- dplyr::filter(save_comb, site == site_name &
                            plot == plot_name)
     # Combine tree data with climate
     joined <- sub |>
@@ -96,7 +75,7 @@ for(i in 1:4){
     # minimum annual temperature, maximum annual temperature
     # minimum annual VPD, maximum annual VPD
     # total plot basal area
-    mod <- lm(formula = mean ~ mean_PPT + mean_Tmean +
+    mod <- lm(formula = residual_AGBI ~ mean_PPT + mean_Tmean +
                 sd_PPT + sd_Tmean +
                 mean_Tmin + mean_Tmax +
                 mean_Vpdmin + mean_Vpdmax +
@@ -306,3 +285,4 @@ coeff_save_combined |>
   ggplot2::scale_color_manual(values = 'black') +
   ggplot2::ylim(c(-0.005, 0.005)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())
+

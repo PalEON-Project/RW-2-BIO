@@ -1,33 +1,7 @@
 rm(list = ls())
 
-# Load total increment
-goose_total_agbi <- readRDS('sites/GOOSE/runs/v2.0_012021/output/AGBI_STAN_GOOSE_v2.0_012021.RDS')
-nrp_total_agbi <- readRDS('sites/NORTHROUND/runs/v2.0_082020/output/AGBI_STAN_NORTHROUND_v2.0_082020.RDS')
-rooster_total_agbi <- readRDS('sites/ROOSTER/runs/v2.0_082020/output/AGBI_STAN_ROOSTER_v2.0_082020.RDS')
-sylv_total_agbi <- readRDS('sites/SYLVANIA/runs/v2.0_082020/output/AGBI_STAN_SYLVANIA_v2.0_082020.RDS')
-
-# Keeping only 1960 onwards to reduce effect of fading record
-goose_total_agbi <- goose_total_agbi |>
-  dplyr::mutate(site = 'GOOSE') |>
-  dplyr::filter(year > 1959)
-nrp_total_agbi <- nrp_total_agbi |>
-  dplyr::mutate(site = 'NRP') |>
-  dplyr::filter(year > 1959)
-rooster_total_agbi <- rooster_total_agbi |>
-  dplyr::mutate(site = 'ROOSTER') |>
-  dplyr::filter(year > 1959)
-sylv_total_agbi <- sylv_total_agbi |>
-  dplyr::mutate(site = 'SYLVANIA') |>
-  dplyr::filter(year > 1959)
-
-# Combine sites
-total_agbi <- rbind(goose_total_agbi, nrp_total_agbi,
-                    rooster_total_agbi, sylv_total_agbi)
-
-# Save mean over iterations in dataframe
-total_agbi <- total_agbi |>
-  dplyr::group_by(tree, year, plot, taxon, site) |>
-  dplyr::summarize(mean = mean(value))
+# Load detrended AGBI
+load('out/detrended_AGBI.RData')
 
 # Indexing for loops
 site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA')
@@ -55,10 +29,10 @@ prism_month <- tidyr::pivot_wider(prism_long, names_from = 'month', values_from 
 # Load competition information
 load('data/competition_metrics.RData')
 
-ntrees <- c(length(unique(goose_total_agbi$tree)),
-            length(unique(nrp_total_agbi$tree)),
-            length(unique(rooster_total_agbi$tree)),
-            length(unique(sylv_total_agbi$tree)))
+ntrees <- c(length(unique(save_comb$tree[which(save_comb$site == 'GOOSE')])),
+            length(unique(save_comb$tree[which(save_comb$site == 'NRP')])),
+            length(unique(save_comb$tree[which(save_comb$site == 'ROOSTER')])),
+            length(unique(save_comb$tree[which(save_comb$site == 'SYLVANIA')])))
 # Storage
 importance_save <- list()
 
@@ -66,7 +40,7 @@ row_ind <- 0
 # For each site, let's iteratively fit a random forest
 for(i in 1:4){
   # Tree number index, unique to each site
-  tree <- unique(total_agbi$tree[which(total_agbi$site == site[i])])
+  tree <- unique(save_comb$tree[which(save_comb$site == site[i])])
   # Save site name
   site_name <- site[i]
   # Loop through each tree at a given site
@@ -74,7 +48,7 @@ for(i in 1:4){
     # Increment counter
     row_ind <- row_ind + 1
     # Subset full data for one tree
-    sub <- dplyr::filter(total_agbi, site == site_name &
+    sub <- dplyr::filter(save_comb, site == site_name &
                            tree == j)
     # Combine tree data with climate
     joined <- sub |>
@@ -95,25 +69,36 @@ for(i in 1:4){
       # Ungroup so we can remove indexing columns
       dplyr::ungroup() |>
       # Remove indexing columns that we don't want to be in random forest
-      dplyr::select(-tree, -year, -plot, -taxon, -site)
+      dplyr::select(-tree, -year, -plot, -taxon, -site, -mean)
     
-    # Fit random forest
-    mod <- randomForest::randomForest(formula = mean ~ ., # all predictors predicting individual tree BAI
-                                      data = joined, # data subset joined with all predictors
-                                      ntree = 2000, # kinda high number of trees?
-                                      importance = TRUE) # calculate importance of variables
-    
-    # Extract importance statistics
-    imp <- randomForest::importance(mod)
-    # Format
-    imp <- as.data.frame(imp)
-    # Add information about site, tree, variable
-    imp$site <- site[i]
-    imp$tree <- j
-    imp <- tibble::rownames_to_column(imp, var = 'variable')
-    # Importance statistics
-    imp$rankIncMSE <- rank(-imp$`%IncMSE`)
-    imp$rankIncNodePurity <- rank(-imp$IncNodePurity)
+    if(nrow(joined) == 1){
+      imp$variable <- NA
+      imp$`%IncMSE` <- NA
+      imp$IncNodePurity <- NA
+      imp$site <- site[i]
+      imp$tree <- j
+      imp$rankIncMSE <- NA
+      imp$rankIncNodePurity <- NA
+    }else{
+      # Fit random forest
+      mod <- randomForest::randomForest(formula = residual_AGBI ~ ., # all predictors predicting individual tree BAI
+                                        data = joined, # data subset joined with all predictors
+                                        ntree = 2000, # kinda high number of trees?
+                                        importance = TRUE) # calculate importance of variables
+      
+      # Extract importance statistics
+      imp <- randomForest::importance(mod)
+      # Format
+      imp <- as.data.frame(imp)
+      # Add information about site, tree, variable
+      imp$site <- site[i]
+      imp$tree <- j
+      imp <- tibble::rownames_to_column(imp, var = 'variable')
+      # Importance statistics
+      imp$rankIncMSE <- rank(-imp$`%IncMSE`)
+      imp$rankIncNodePurity <- rank(-imp$IncNodePurity)
+      
+    }
     
     # Save site name, tree number, importance statistics
     importance_save[[row_ind]] <- imp
@@ -127,7 +112,7 @@ for(i in 1:4){
 # Unlist
 ind_importance <- do.call(rbind, importance_save)
 
-load('out/ind_rf_importance_save.RData')
+#load('out/ind_rf_importance_save.RData')
 
 # Order of x-axis
 level_order <- c('precipitation', 'temperature', 'precipitation var.', 'temperature var.',
@@ -159,6 +144,7 @@ ind_importance |>
                                        'sp.-level competition', class),
                 class = dplyr::if_else(variable == 'plot ba',
                                        'plot-level competition', class)) |>
+  tidyr::drop_na() |>
   ggplot2::ggplot() +
   ggplot2::geom_violin(ggplot2::aes(x = factor(variable, level = level_order), y = rankIncNodePurity, color = class), show.legend = F) +
   ggplot2::facet_wrap(~site) +
@@ -191,6 +177,7 @@ ind_importance |>
                                        'sp.-level competition', class),
                 class = dplyr::if_else(variable == 'plot ba',
                                        'plot-level competition', class)) |>
+  tidyr::drop_na() |>
   ggplot2::ggplot() +
   ggplot2::geom_violin(ggplot2::aes(x = factor(variable, level = level_order), y = rankIncMSE, color = class), show.legend = F) +
   ggplot2::facet_wrap(~site) +
@@ -226,6 +213,7 @@ ind_importance |>
   dplyr::group_by(site, variable, class) |>
   dplyr::summarize(mean_rank = mean(rankIncNodePurity),
                    mean_rank = 12-mean_rank) |>
+  tidyr::drop_na() |>
   ggplot2::ggplot() +
   ggplot2::geom_bar(ggplot2::aes(x = factor(variable, level = level_order), y = mean_rank, fill = class), 
                     show.legend = F, stat = 'identity') +
@@ -262,6 +250,7 @@ ind_importance |>
   dplyr::group_by(site, variable, class) |>
   dplyr::summarize(mean_rank = mean(rankIncMSE),
                    mean_rank = 12-mean_rank) |>
+  tidyr::drop_na() |>
   ggplot2::ggplot() +
   ggplot2::geom_bar(ggplot2::aes(x = factor(variable, level = level_order), y = mean_rank, fill = class), 
                     show.legend = F, stat = 'identity') +
