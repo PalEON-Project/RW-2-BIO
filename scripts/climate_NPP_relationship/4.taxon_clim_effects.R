@@ -1,41 +1,20 @@
 rm(list = ls())
 
-# Load total increment
-goose_total_agbi <- readRDS('sites/GOOSE/runs/v2.0_012021/output/AGBI_STAN_GOOSE_v2.0_012021.RDS')
-nrp_total_agbi <- readRDS('sites/NORTHROUND/runs/v2.0_082020/output/AGBI_STAN_NORTHROUND_v2.0_082020.RDS')
-rooster_total_agbi <- readRDS('sites/ROOSTER/runs/v2.0_082020/output/AGBI_STAN_ROOSTER_v2.0_082020.RDS')
-sylv_total_agbi <- readRDS('sites/SYLVANIA/runs/v2.0_082020/output/AGBI_STAN_SYLVANIA_v2.0_082020.RDS')
+# Load detrended AGBI
+load('out/detrended_AGBI.RData')
 
-# Subset for 1960 and beyond to reduce problem of fading record
-goose_total_agbi <- goose_total_agbi |>
-  dplyr::mutate(site = 'GOOSE') |>
-  dplyr::filter(year > 1959)
-nrp_total_agbi <- nrp_total_agbi |>
-  dplyr::mutate(site = 'NRP') |>
-  dplyr::filter(year > 1959)
-rooster_total_agbi <- rooster_total_agbi |>
-  dplyr::mutate(site = 'ROOSTER') |>
-  dplyr::filter(year > 1959)
-sylv_total_agbi <- sylv_total_agbi |>
-  dplyr::mutate(site = 'SYLVANIA') |>
-  dplyr::filter(year > 1959)
-
-# Combine sites
-total_agbi <- rbind(goose_total_agbi, nrp_total_agbi,
-                    rooster_total_agbi, sylv_total_agbi)
-
-# Save mean over iterations in dataframe
-total_agbi <- total_agbi |>
+# Average over individuals
+save_comb <- save_comb |>
   dplyr::group_by(year, plot, taxon, site) |>
-  dplyr::summarize(mean = mean(value))
+  dplyr::summarize(residual_AGBI = mean(residual_AGBI))
 
 # Indexing for loops
 site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA')
 taxa <- c()
-taxa[1] <- length(unique(total_agbi$taxon[which(total_agbi$site == 'GOOSE')]))
-taxa[2] <- length(unique(total_agbi$taxon[which(total_agbi$site == 'NRP')]))
-taxa[3] <- length(unique(total_agbi$taxon[which(total_agbi$site == 'ROOSTER')]))
-taxa[4] <- length(unique(total_agbi$taxon[which(total_agbi$site == 'SYLVANIA')]))
+taxa[1] <- length(unique(save_comb$taxon[which(save_comb$site == 'GOOSE')]))
+taxa[2] <- length(unique(save_comb$taxon[which(save_comb$site == 'NRP')]))
+taxa[3] <- length(unique(save_comb$taxon[which(save_comb$site == 'ROOSTER')]))
+taxa[4] <- length(unique(save_comb$taxon[which(save_comb$site == 'SYLVANIA')]))
 
 # Load climate data
 load('climate/prism_clim.RData')
@@ -76,9 +55,9 @@ for(i in 1:4){
     # Increment counter
     row_ind <- row_ind + 1
     # Save taxon number
-    taxon_name <- unique(total_agbi$taxon[which(total_agbi$site == site_name)])[j]
+    taxon_name <- unique(save_comb$taxon[which(save_comb$site == site_name)])[j]
     # Subset full data for one taxon
-    sub <- dplyr::filter(total_agbi, site == site_name &
+    sub <- dplyr::filter(save_comb, site == site_name &
                            taxon == taxon_name)
     # Combine tree data with climate
     joined <- sub |>
@@ -99,7 +78,7 @@ for(i in 1:4){
     # minimum annual VPD, maximum annual VPD,
     # fraction of basal area for given taxon,
     # total plot basal area
-    mod <- lm(formula = mean ~ mean_PPT + mean_Tmean + 
+    mod <- lm(formula = residual_AGBI ~ mean_PPT + mean_Tmean + 
                 sd_PPT + sd_Tmean +
                 mean_Tmin + mean_Tmax +
                 mean_Vpdmin + mean_Vpdmax +
@@ -305,3 +284,4 @@ coeff_save_combined |>
   ggplot2::theme_minimal() +
   ggplot2::ylim(c(-0.005, 0.005)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())
+
