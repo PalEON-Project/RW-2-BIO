@@ -4,44 +4,8 @@
 ## for a linear regression model
 rm(list = ls())
 
-# Load total increment
-goose_total_agbi <- readRDS('sites/GOOSE/runs/v2.0_012021/output/AGBI_STAN_GOOSE_v2.0_012021.RDS')
-nrp_total_agbi <- readRDS('sites/NORTHROUND/runs/v2.0_082020/output/AGBI_STAN_NORTHROUND_v2.0_082020.RDS')
-rooster_total_agbi <- readRDS('sites/ROOSTER/runs/v2.0_082020/output/AGBI_STAN_ROOSTER_v2.0_082020.RDS')
-sylv_total_agbi <- readRDS('sites/SYLVANIA/runs/v2.0_082020/output/AGBI_STAN_SYLVANIA_v2.0_082020.RDS')
-
-# Subset for 1960 and beyond to reduce problem of fading record
-goose_total_agbi <- goose_total_agbi |>
-  dplyr::mutate(site = 'GOOSE') |>
-  dplyr::filter(year > 1959)
-nrp_total_agbi <- nrp_total_agbi |>
-  dplyr::mutate(site = 'NRP') |>
-  dplyr::filter(year > 1959)
-rooster_total_agbi <- rooster_total_agbi |>
-  dplyr::mutate(site = 'ROOSTER') |>
-  dplyr::filter(year > 1959)
-sylv_total_agbi <- sylv_total_agbi |>
-  dplyr::mutate(site = 'SYLVANIA') |>
-  dplyr::filter(year > 1959)
-
-# Combine sites
-total_agbi <- rbind(goose_total_agbi, nrp_total_agbi,
-                    rooster_total_agbi, sylv_total_agbi)
-
-# Plot NPP for each tree and site
-total_agbi |>
-  dplyr::group_by(tree, year, plot, taxon, site) |>
-  dplyr::summarize(mean = mean(value)) |>
-  ggplot2::ggplot(ggplot2::aes(x = year, y = mean, color = as.factor(tree))) +
-  ggplot2::geom_line(show.legend = F) +
-  ggplot2::facet_wrap(~site) +
-  ggplot2::xlab('') + ggplot2::ylab('AGBI') +
-  ggplot2::theme_minimal()
-
-# Save mean over iterations in dataframe
-total_agbi <- total_agbi |>
-  dplyr::group_by(tree, year, plot, taxon, site) |>
-  dplyr::summarize(mean = mean(value))
+# Load detrended AGBI
+load('out/detrended_AGBI.RData')
 
 # Indexing for loops
 site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA')
@@ -69,19 +33,20 @@ prism_annual <- prism_long |>
 # Load competition information
 load('data/competition_metrics.RData')
 
-ntrees <- c(length(unique(goose_total_agbi$tree)),
-            length(unique(nrp_total_agbi$tree)),
-            length(unique(rooster_total_agbi$tree)),
-            length(unique(sylv_total_agbi$tree)))
+ntrees <- c(length(unique(save_comb$tree[which(save_comb$site == 'GOOSE')])),
+            length(unique(save_comb$tree[which(save_comb$site == 'NRP')])),
+            length(unique(save_comb$tree[which(save_comb$site == 'ROOSTER')])),
+            length(unique(save_comb$tree[which(save_comb$site == 'SYLVANIA')])))
+
 # Storage
-coeff_save <- matrix(, nrow = sum(ntrees), ncol = 17)
+coeff_save <- matrix(, nrow = sum(ntrees), ncol = 18)
 
 row_ind <- 0
 # For each site, let's iteratively fit a simple linear model with
 # average temperature and precipitation as predictors of each tree's annual growth
 for(i in 1:4){
   # Tree number index, unique to each site
-  tree <- unique(total_agbi$tree[which(total_agbi$site == site[i])])
+  tree <- unique(save_comb$tree[which(save_comb$site == site[i])])
   # Save site name
   site_name <- site[i]
   # Loop through each tree at a given site
@@ -89,7 +54,7 @@ for(i in 1:4){
     # Increment counter
     row_ind <- row_ind + 1
     # Subset full data for one tree
-    sub <- dplyr::filter(total_agbi, site == site_name &
+    sub <- dplyr::filter(save_comb, site == site_name &
                            tree == j)
     # Combine tree data with climate
     joined <- sub |>
@@ -116,25 +81,35 @@ for(i in 1:4){
     # individual tree basal area, basal area greater than,
     # fraction of basal area for given taxon,
     # total plot basal area
-    mod <- lm(formula = mean ~ mean_PPT + mean_Tmean + 
-                sd_PPT + sd_Tmean +
-                mean_Tmin + mean_Tmax + 
-                mean_Vpdmin + mean_Vpdmax + 
-                ba + bagt + frac + total_ba,
-              data = joined)   
-    # Save site name, tree number, coefficients, and r2 in matrix
-    coeff_save[row_ind,1] <- i
-    coeff_save[row_ind,2] <- unique(sub$taxon)
-    coeff_save[row_ind,3] <- j
-    coeff_save[row_ind,4:16] <- coefficients(mod)
-    coeff_save[row_ind,17] <- summary(mod)$adj.r.squared
+    if(nrow(joined) == 1){
+      coeff_save[row_ind,1] <- i
+      coeff_save[row_ind,2] <- unique(sub$plot)
+      coeff_save[row_ind,3] <- unique(sub$taxon)
+      coeff_save[row_ind,4] <- j
+      coeff_save[row_ind,5:17] <- NA
+      coeff_save[row_ind,18] <- NA
+    }else{
+      mod <- lm(formula = residual_AGBI ~ mean_PPT + mean_Tmean + 
+                  sd_PPT + sd_Tmean +
+                  mean_Tmin + mean_Tmax + 
+                  mean_Vpdmin + mean_Vpdmax + 
+                  ba + bagt + frac + total_ba,
+                data = joined)   
+      # Save site name, tree number, coefficients, and r2 in matrix
+      coeff_save[row_ind,1] <- i
+      coeff_save[row_ind,2] <- unique(sub$plot)
+      coeff_save[row_ind,3] <- unique(sub$taxon)
+      coeff_save[row_ind,4] <- j
+      coeff_save[row_ind,5:17] <- coefficients(mod)
+      coeff_save[row_ind,18] <- summary(mod)$adj.r.squared
+    }
     print(j)
   }
   print(paste0('---------------------',i,'----------------'))
 }
 
 # Column names
-colnames(coeff_save) <- c('Site', 'Taxon', 'Tree', 'Intercept',
+colnames(coeff_save) <- c('Site', 'Plot', 'Taxon', 'Tree', 'Intercept',
                           'Precipitation', 'Temperature', 
                           'SD_Precipitation', 'SD_Temperature',
                           'Minimum_temperature', 'Maximum_temperature',

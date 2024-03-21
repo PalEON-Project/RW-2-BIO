@@ -250,7 +250,7 @@ ggplot(data = climate_increment) +
   geom_point(aes(x = yearly_meanT, y = AGBI.mean)) +
   geom_smooth(aes(x = yearly_meanT, y = AGBI.mean), method='lm', formula= y~x)+
   xlab('Mean annual temperature') + ylab('Aboveground biomass increment')
-ggsave("AGBI_temp.png")
+#ggsave("AGBI_temp.png")
 
 ggplot(data = climate_increment) +
   geom_point(aes(x = yearly_meanT, y = AGBI.mean)) + 
@@ -435,6 +435,31 @@ all_tree <- goose_total |>
 clim_tree = all_tree %>%
   left_join(clim_summary,by = c('year') )
 clim_tree = subset(clim_tree, year>1950)
+
+tree_indiv =  goose_total |>
+  group_by(tree, year) |>
+  # Means across iterations
+  summarize(AGB.mean = mean(AGB),
+            AGBI.mean = mean(AGBI),
+            # Standard deviations across iterations
+            AGB.sd = sd(AGB),
+            AGBI.sd = sd(AGBI),
+            # Credible intervals across iterations
+            AGB.low = quantile(AGB, probs = 0.025, na.rm = T),
+            AGB.high = quantile(AGB, probs = 0.975, na.rm = T),
+            AGBI.low = quantile(AGBI, probs = 0.025, na.rm = T),
+            AGBI.high = quantile(AGBI, probs = 0.975, na.rm = T))
+
+tree_indiv_clim = tree_indiv %>% 
+  left_join(clim_summary, by = c('year'))
+tree_indiv_clim = subset(tree_indiv_clim, year>1950)
+
+
+ggplot(data = tree_indiv_clim)+
+  geom_point(aes(x = tree, y = AGB.mean))
+
+ggplot(data = tree_indiv_clim)+
+  geom_point(aes(x = PPT_total_tree, y = AGB.mean))
 
 tree_lm = clim_tree %>% 
   group_by(tree, taxon) %>%
