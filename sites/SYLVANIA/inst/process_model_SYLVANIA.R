@@ -9,6 +9,7 @@ source('sites/SYLVANIA/inst/config.R')
 
 # load needed function
 source('R/process_rw_model.R')
+source('scripts/validate_model.R')
 
 require(reshape2)
 
@@ -21,6 +22,8 @@ require(dplyr)
 require(grid)
 require(gridExtra)
 
+iter = 500
+
 # run step 
 process_rw_model(census_site = census_site,
                  mvers = mvers, 
@@ -29,4 +32,14 @@ process_rw_model(census_site = census_site,
                  nest = nest, 
                  finalyr = finalyr,
                  nchains = 1,
-                 pool = 500)
+                 keep = iter/2,
+                 pool = iter/2)
+
+validate_rw_model(census_site = census_site,
+                  mvers = mvers, 
+                  dvers = dvers, 
+                  site = site, 
+                  nest = nest, 
+                  nchains = 1,
+                  keep = iter/2,
+                  pool = iter/2)
