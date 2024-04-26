@@ -9,6 +9,7 @@ source('sites/ROOSTER/inst/config.R')
 
 # load needed function
 source('R/process_rw_model.R')
+source('scripts/validate_model.R')
 
 require(reshape2)
 
@@ -33,3 +34,12 @@ process_rw_model(census_site = census_site,
                  nchains = 1,
                  keep = iter/2,
                  pool = iter/2)
+
+validate_rw_model(census_site = census_site,
+                  mvers = mvers, 
+                  dvers = dvers, 
+                  site = site, 
+                  nest = nest, 
+                  nchains = 1,
+                  keep = iter/2,
+                  pool = iter/2)

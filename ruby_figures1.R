@@ -22,8 +22,20 @@ library(ggcorrplot)
 library(reshape2)
 library(broom)
 
+#above ground biomass
 goose_total_agb <- readRDS('sites/GOOSE/runs/v2.0_012021/output/AGB_STAN_GOOSE_v2.0_012021.RDS')
+harvard_total_agb <- readRDS('sites/HARVARD/runs/v2.0_012020/output/AGB_STAN_HARVARD_v2.0_102020.RDS')
+northround_total_agb <- readRDS('sites/NORTHROUND/runs/v2.0_082020/output/AGB_STAN_NORTHROUND_v2.0_082020.RDS')
+rooster_total_agb <- readRDS('sites/ROOSTER/runs/v2.0_082020/output/AGB_STAN_ROOSTER_v2.0_082020.RDS')
+sylvania_total_agb <- readRDS('sites/SYLVANIA/runs/v2.0_082020/output/AGB_STAN_SYLVANIA_v2.0_082020.RDS')
+
+#above ground biomass increment 
 goose_total_agbi <- readRDS('sites/GOOSE/runs/v2.0_012021/output/AGBI_STAN_GOOSE_v2.0_012021.RDS')
+harvard_total_agbi <- readRDS('sites/HARVARD/runs/v2.0_012020/output/AGBI_STAN_HARVARD_v2.0_102020.RDS')
+northround_total_agbi <- readRDS('sites/NORTHROUND/runs/v2.0_082020/output/AGBI_STAN_NORTHROUND_v2.0_082020.RDS')
+rooster_total_agbi <- readRDS('sites/ROOSTER/runs/v2.0_082020/output/AGBI_STAN_ROOSTER_v2.0_082020.RDS')
+sylvania_total_agbi <- readRDS('sites/SYLVANIA/runs/v2.0_082020/output/AGBI_STAN_SYLVANIA_v2.0_082020.RDS')
+
 
 # Combining abgi and abg into one dataframe 
 goose_total <- goose_total_agb |>
@@ -35,9 +47,43 @@ goose_total <- goose_total_agb |>
   # Add site name for combining sites into one df
   mutate(site = 'GOOSE')
 
+nrp_total <- northround_total_agb |>
+  left_join(northround_total_agbi, by = c('tree', 'year', 'iter',
+                                          'taxon', 'model', 'plot')) |>
+  rename(AGB = value.x,
+         AGBI = value.y) |>
+  select(-c(type.x, type.y)) |>
+  mutate(site = 'NRP')
+rooster_total <- rooster_total_agb |>
+  left_join(rooster_total_agbi, by = c('tree', 'year', 'iter',
+                                       'taxon', 'model', 'plot')) |>
+  rename(AGB = value.x,
+         AGBI = value.y) |>
+  select(-c(type.x, type.y)) |>
+  mutate(site = 'ROOSTER')
+
+sylvania_total <- sylvania_total_agb |>
+  left_join(sylvania_total_agbi, by = c('tree', 'year', 'iter',
+                                        'taxon', 'model', 'plot')) |>
+  rename(AGB = value.x,
+         AGBI = value.y) |>
+  select(-c(type.x, type.y)) |>
+  mutate(site = 'SYLVANIA')
+
+harvard_total <- harvard_total_agb |>
+  left_join(harvard_total_agbi, by = c('tree', 'year', 'iter',
+                                        'taxon', 'model', 'plot')) |>
+  rename(AGB = value.x,
+         AGBI = value.y) |>
+  select(-c(type.x, type.y)) |>
+  mutate(site = 'HARVARD')
+
+#combining data from all sites into one dataframe
+all_data <- rbind(goose_total, nrp_total, rooster_total, sylvania_total, harvard_total)
+
 #summarizing the data for both agb and agbi
 #here we are taking the mean of all the iterations for one tree in a given year
-all_tree <- goose_total |>
+all_tree <- all_data |>
   group_by(tree, year, plot, taxon, model, site) |>
   # Means across iterations
   summarize(AGB.mean = mean(AGB),
@@ -51,16 +97,74 @@ all_tree <- goose_total |>
             AGBI.low = quantile(AGBI, probs = 0.025, na.rm = T),
             AGBI.high = quantile(AGBI, probs = 0.975, na.rm = T))
 
+#summarizing for goose
+# all_tree <- goose_total |>
+#   group_by(tree, year, plot, taxon, model, site) |>
+#   # Means across iterations
+#   summarize(AGB.mean = mean(AGB),
+#             AGBI.mean = mean(AGBI),
+#             # Standard deviations across iterations
+#             AGB.sd = sd(AGB),
+#             AGBI.sd = sd(AGBI),
+#             # Credible intervals across iterations
+#             AGB.low = quantile(AGB, probs = 0.025, na.rm = T),
+#             AGB.high = quantile(AGB, probs = 0.975, na.rm = T),
+#             AGBI.low = quantile(AGBI, probs = 0.025, na.rm = T),
+#             AGBI.high = quantile(AGBI, probs = 0.975, na.rm = T))
+
+
+
+# Create summaries by species
+# all_species <- all_data |>
+#   group_by(year, iter, taxon, site) |>
+#   summarize(AGB.mean = mean(AGB),
+#             AGBI.mean = mean(AGBI),
+#             AGB.sd = sd(AGB),
+#             AGBI.sd = sd(AGBI),
+#             AGB.low = quantile(AGB, probs = 0.025, na.rm = T),
+#             AGB.high = quantile(AGB, probs = 0.975, na.rm = T),
+#             AGBI.low = quantile(AGBI, probs = 0.025, na.rm = T),
+#             AGBI.high = quantile(AGBI, probs = 0.975, na.rm = T),
+#             # Number of trees per species
+#             ntree = n(),
+#             # Average tree size per species
+#             agb_pertree = AGB.mean / ntree)
+
+
+# Create summaries by site
+all_site <- all_data |>
+  group_by(year, plot, model, site) |>
+  summarize(AGB.mean = mean(AGB),
+            AGBI.mean = mean(AGBI),
+            AGB.sd = sd(AGB),
+            AGBI.sd = sd(AGBI),
+            AGB.low = quantile(AGB, probs = 0.025, na.rm = T),
+            AGB.high = quantile(AGB, probs = 0.975, na.rm = T),
+            AGBI.low = quantile(AGBI, probs = 0.025, na.rm = T),
+            AGBI.high = quantile(AGBI, probs = 0.975, na.rm = T),
+            ntree = n(),
+            agb_persite = AGB.mean / ntree)
+
 
 #taxon_group takes the sum of all the trees in one taxon.
 #iterations for each taxon not individual trees 
-taxon_group <- goose_total |>
-  group_by(year, iter, taxon) |>
+taxon_group <- all_data |>
+  group_by(year, iter, taxon, site) |>
   # Means across iterations
   summarize(AGBI.sum = sum(AGBI, na.rm = T))
+
+
 ggplot(data=taxon_group) +
   geom_line(aes(x=year, y=AGBI.sum, group=iter)) +
   facet_wrap(~taxon)
+
+# taxon_group2 <- goose_total |>
+#   group_by(year, iter, taxon) |>
+#   # Means across iterations
+#   summarize(AGBI.sum = sum(AGBI, na.rm = T))
+# ggplot(data=taxon_group) +
+#   geom_line(aes(x=year, y=AGBI.sum, group=iter)) +
+#   facet_wrap(~taxon)
 
 
 taxon_summary = taxon_group %>%
@@ -75,35 +179,61 @@ ggplot(data=taxon_summary) +
   geom_line(aes(x=year, y=AGBI.mean, colour=taxon)) 
 
 site_summary = taxon_group %>% 
-  group_by(year, iter) %>% 
+  group_by(year, iter, taxon, site) %>% 
   summarize(AGBI.sum = sum(AGBI.sum, na.rm = T))
 
+site_AGBI = taxon_group %>% 
+  group_by(year, iter, site) %>% 
+  summarize(AGBI.sum = sum(AGBI.sum, na.rm = T))
+
+
 ggplot(data = site_summary)+
-  geom_line(aes(x = year, y = AGBI.sum, group = iter))
+  geom_line(aes(x = year, y = AGBI.sum, group = iter)) +
+  facet_wrap(~site)
 
 
 site_total = site_summary %>% 
-  group_by(year) %>% 
+  group_by(year, taxon, site) %>% 
   summarize(AGBI.mean = mean(AGBI.sum, na.rm = T),
             AGBI.sd = sd(AGBI.sum, na.rm = T),
             AGBI.lo = quantile(AGBI.sum, c(0.025), na.rm=TRUE),
             AGBI.hi = quantile(AGBI.sum, c(0.975), na.rm=TRUE))
 
+site_data = site_AGBI %>% 
+  group_by(year, site) %>% 
+  summarize(AGBI.mean = mean(AGBI.sum, na.rm = T),
+            AGBI.sd = sd(AGBI.sum, na.rm = T),
+            AGBI.lo = quantile(AGBI.sum, c(0.025), na.rm=TRUE),
+            AGBI.hi = quantile(AGBI.sum, c(0.975), na.rm=TRUE))
 
-ggplot(data=taxon_summary) +
-  geom_ribbon(aes(x=year, ymin=AGBI.mean-2*AGBI.sd, ymax=AGBI.mean+2*AGBI.sd), fill="blue", alpha=0.3) +
-  geom_line(aes(x=year, y=AGBI.mean)) +
-  facet_wrap(~taxon)
+#AGBI for all sites over time 
+#ggplot(data = site_total) +
+# geom_line(aes(x = year, y = AGBI.mean, colour = site))
+
+
+#AGBI for all sites including all taxon
+ggplot(data = site_total) +
+  geom_line(aes(x = year, y = AGBI.mean, colour = taxon))+
+  facet_wrap(~site)
+
+#######################3
+###this is where you stopped for full data
+ggplot(data=site_total) +
+  geom_ribbon(aes(x=year, ymin=AGBI.mean-2*AGBI.sd,
+                  ymax=AGBI.mean+2*AGBI.sd, color = taxon, fill = taxon), alpha=0.3) +
+  geom_line(aes(x=year, y=AGBI.mean, color = taxon)) +
+  facet_wrap(~site)
 
 #average biomass that increases for the whole time period
-taxon_3 = taxon_summary %>% 
-  group_by(taxon) %>% 
-  summarize(AGBI.mean2 = mean(AGBI.mean),
-            AGBI.sd = sd(AGBI.mean, na.rm = T))
+# taxon_3 = taxon_summary %>% 
+#   group_by(taxon) %>% 
+#   summarize(AGBI.mean2 = mean(AGBI.mean),
+#             AGBI.sd = sd(AGBI.mean, na.rm = T))
   
 #changing to wide format with taxons as column names and values = ABGI.mean 
 #values_fill=0 does not work 
-taxon_wide = pivot_wider(data = taxon_summary[,(colnames(taxon_summary) %in% c('year', 'taxon', 'AGBI.mean'))], 
+taxon_wide = pivot_wider(data = site_total[,(colnames(site_total) %in% c('year', 'taxon', 'AGBI.mean', 'site'))],
+                         id_cols = c(year, site),
                          names_from = taxon, 
                          values_from = AGBI.mean, 
                          values_fill = 0 )
@@ -133,15 +263,19 @@ ggcorrplot(correlation_B, type = "lower",)
 ################################################################################################
 
 load('climate/prism_clim.RData')
-goose_clim = subset(prism_long, loc =='GOOSE')
-goose_clim = data.frame(goose_clim)
-goose_clim = rename(goose_clim, site = loc, PPT = PPT2, 
-                    mean_temp = Tmean2)
+clim_data = prism_long
+clim_data = clim_data %>% 
+  rename(site = loc, PPT = PPT2, Tmean = Tmean2)
+
+# goose_clim = subset(prism_long, loc =='GOOSE')
+# goose_clim = data.frame(goose_clim)
+#goose_clim = rename(goose_clim, site = loc, PPT = PPT2, 
+#                   mean_temp = Tmean2)
 
 
-clim_wide =  pivot_wider(data = goose_clim,
+clim_wide =  pivot_wider(data = clim_data,
                          names_from = month, 
-                         values_from = c(PPT, mean_temp, Tmin2, Tmax2, Vpdmin2, Vpdmax2))
+                         values_from = c(PPT, Tmean, Tmin2, Tmax2, Vpdmin2, Vpdmax2))
 
 
 #PPT_mean is the mean of each month summed to get the mean of the year
@@ -152,7 +286,7 @@ clim_summary = clim_wide |>
          PPT_total_prev_tree = rowSums(dplyr::pick('PPT_09', 'PPT_10', 'PPT_11', 'PPT_12')),
          PPT_total_current_tree = rowSums(dplyr::pick('PPT_01', 'PPT_02', 'PPT_03', 'PPT_04', 
                                               'PPT_05', 'PPT_06', 'PPT_07', 'PPT_08')),
-         yearly_meanT = rowMeans(dplyr::select(clim_wide, starts_with('mean_temp'))),
+         yearly_meanT = rowMeans(dplyr::select(clim_wide, starts_with('Tmean'))),
          T_min_mean = rowMeans(dplyr::select(clim_wide, starts_with('Tmin'))),
           T_max_mean = rowMeans(dplyr::select(clim_wide, starts_with('Tmax'))),
          )
@@ -181,74 +315,56 @@ clim_summary$PPT_total_tree[2:N_years] = clim_summary$PPT_total_prev_tree[1:(N_y
 clim_summary$year <- as.numeric(clim_summary$year)
 
 climate_increment <- site_total|>
-  left_join(clim_summary, by = c('year'))
+  left_join(clim_summary, by = c('year', 'site'))
 
 climate_increment = subset(climate_increment, year>1950)
 
-clim_taxon = taxon_summary %>%
-  left_join(clim_summary,by = c('year') )
-clim_taxon = subset(clim_taxon, year>1950)
+clim_site <- site_data|>
+  left_join(clim_summary, by = c('year', 'site'))
 
 
-
-Vapor_pd = select(clim_taxon, year, AGBI.mean, taxon,
-                  starts_with('Vpdmean'))
-
-temp_min = select(clim_taxon, year, AGBI.mean, taxon,
-                  starts_with('Tmin'))
-temp_max = select(clim_taxon, year, AGBI.mean, taxon,
-                  starts_with('Tmax'))
-PPT = select(clim_taxon, year, AGBI.mean, taxon,
-             starts_with('PPT'))
-
-
-Vapor_melt = melt(Vapor_pd, 
-                  id.vars = c('year', 'AGBI.mean', 'taxon'))
-temp_min_melt = melt(temp_min,
-                     id.vars = c('year', 'AGBI.mean', 'taxon'))
-temp_max_melt = melt(temp_max, 
-                     id.vars = c('year', 'AGBI.mean', 'taxon'))
-
-PPT_melt = melt(PPT, id.vars = c('year', 'AGBI.mean', 'taxon'))
-
-
-# Vpd_sets = list(c("Vpdmin2_01", "Vpdmax2_01"), c("Vpdmin2_02", "Vpdmax2_02"), 
-#                 c("Vpdmin2_03", "Vpdmax2_03"), c("Vpdmin2_04", "Vpdmax2_04"),
-#                 c("Vpdmin2_05", "Vpdmax2_05"), c("Vpdmin2_06", "Vpdmax2_06"),
-#                 c("Vpdmin2_07", "Vpdmax2_07"), c("Vpdmin2_08", "Vpdmax2_08"),
-#                 c("Vpdmin2_09", "Vpdmax2_09"), c("Vpdmin2_10", "Vpdmax2_10"),
-#                 c("Vpdmin2_11", "Vpdmax2_11"), c("Vpdmin2_12", "Vpdmax2_12")
-# )
-# for (i in seq_along(Vpd_sets)) {
-#   set <- Vpd_sets[[i]]
-#   clim_summary <- clim_summary %>% 
-#     mutate(!!paste0("Vpdmean_", i) := rowMeans(select(., all_of(set))))
-#   
-# }
-# 
-# N_years = nrow(clim_summary)
-# 
-# clim_summary$PPT_total_tree = NA
-# clim_summary$PPT_total_tree[2:N_years] = clim_summary$PPT_total_prev_tree[1:(N_years-1)] + 
-#   clim_summary$PPT_total_current_tree[2:N_years]
-# 
-# 
-# clim_summary$year <- as.numeric(clim_summary$year)
-# 
-# climate_increment <- site_total|>
-#   left_join(clim_summary, by = c('year'))
-# 
-# climate_increment = subset(climate_increment, year>1950)
-# 
-# clim_taxon = taxon_summary %>% 
+####NOT WORKING
+# clim_taxon = taxon_summary %>%
 #   left_join(clim_summary,by = c('year') )
 # clim_taxon = subset(clim_taxon, year>1950)
 
 
+
+Vapor_pd = select(climate_increment, year, AGBI.mean, taxon, site,
+                  starts_with('Vpdmean'))
+
+temp_min = select(climate_increment, year, AGBI.mean, taxon, site,
+                  starts_with('Tmin'))
+temp_max = select(climate_increment, year, AGBI.mean, taxon, site,
+                  starts_with('Tmax'))
+PPT = select(climate_increment, year, AGBI.mean, taxon, site,
+             starts_with('PPT'))
+
+
+Vapor_melt = melt(Vapor_pd, 
+                  id.vars = c('year', 'AGBI.mean', 'taxon', 'site'))
+temp_min_melt = melt(temp_min,
+                     id.vars = c('year', 'AGBI.mean', 'taxon', 'site'))
+temp_max_melt = melt(temp_max, 
+                     id.vars = c('year', 'AGBI.mean', 'taxon', 'site'))
+
+PPT_melt = melt(PPT, id.vars = c('year', 'AGBI.mean', 'taxon', 'site'))
+
+
+
+
 #without taxon
 ggplot(data = climate_increment) +
+  geom_point(aes(x = yearly_meanT, y = AGBI.mean, color = taxon)) +
+  geom_smooth(aes(x = yearly_meanT, y = AGBI.mean, color = taxon), method='lm', formula= y~x)+
+  facet_wrap(~site, scales = 'free')+
+  xlab('Mean annual temperature') + ylab('Aboveground biomass increment')
+#ggsave("AGBI_temp.png")
+
+ggplot(data = clim_site) +
   geom_point(aes(x = yearly_meanT, y = AGBI.mean)) +
   geom_smooth(aes(x = yearly_meanT, y = AGBI.mean), method='lm', formula= y~x)+
+  facet_wrap(~site, scales = 'free')+
   xlab('Mean annual temperature') + ylab('Aboveground biomass increment')
 #ggsave("AGBI_temp.png")
 
@@ -266,6 +382,14 @@ ggplot(data = climate_increment) +
   xlab('Mean annual precipitation') + ylab('Aboveground biomass increment')
 ggsave("AGBI_precip.png")
 
+ggplot(data = clim_site) +
+  geom_point(aes(x = PPT_total, y = AGBI.mean)) +
+  geom_smooth(aes(x = PPT_total, y = AGBI.mean), method='lm', formula= y~x)+
+  facet_wrap(~site, scales = "free")+
+  xlab('Mean annual precipitation') + ylab('Aboveground biomass increment')
+ggsave("AGBI_precip.png")
+
+
 
 ggplot(data = climate_increment) +
   geom_point(aes(x = PPT_total_tree, y = AGBI.mean)) +
@@ -278,13 +402,21 @@ ggsave("AGBI_precip_tree.png")
 
 
 #with taxon
-ggplot(data = clim_taxon) +
+ggplot(data = climate_increment) +
   geom_point(aes(x = yearly_meanT, y = AGBI.mean)) +
   geom_linerange(aes(x=yearly_meanT, ymin=AGBI.lo, ymax=AGBI.hi)) +
   facet_wrap(~taxon, scales='free_y')+
   geom_smooth(aes(x = yearly_meanT, y = AGBI.mean), method='lm', formula= y~x )+
   xlab('Average annual temperature') + ylab('Aboveground biomass increment') 
 ggsave("ABGI_taxon_temp.png")
+
+# ggplot(data = clim_taxon) +
+#   geom_point(aes(x = yearly_meanT, y = AGBI.mean)) +
+#   geom_linerange(aes(x=yearly_meanT, ymin=AGBI.lo, ymax=AGBI.hi)) +
+#   facet_wrap(~taxon, scales='free_y')+
+#   geom_smooth(aes(x = yearly_meanT, y = AGBI.mean), method='lm', formula= y~x )+
+#   xlab('Average annual temperature') + ylab('Aboveground biomass increment') 
+# ggsave("ABGI_taxon_temp.png")
 
 ggplot(data = clim_taxon) +
   geom_point(aes(x = PPT_total, y = AGBI.mean)) +
@@ -456,7 +588,7 @@ tree_indiv_clim = subset(tree_indiv_clim, year>1950)
 
 
 ggplot(data = tree_indiv_clim)+
-  geom_point(aes(x = tree, y = AGB.mean))
+  geom_point(aes(x = tree, y = AGB.mean, color = year))
 
 ggplot(data = tree_indiv_clim)+
   geom_point(aes(x = PPT_total_tree, y = AGB.mean))
