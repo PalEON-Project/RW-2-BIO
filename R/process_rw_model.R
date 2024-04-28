@@ -22,7 +22,9 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
                     site, '_',mvers,'_',dvers,'.RDS')
     models = c('Model RW', 'Model RW + Census')
   }else{
-    fnames = paste0(c('ring_model_t_pdbh_sigd_STAN'), '_', site, '_',mvers,'_',dvers,'.RDS')
+    # fnames = paste0(c('ring_model_t_pdbh_sigd_STAN'), '_', site, '_',mvers,'_',dvers,'.RDS')
+    # fnames = paste0(c('ring_model_t_pdbh_sigd_species_STAN'), '_', site, '_',mvers,'_',dvers,'.RDS')
+    fnames = paste0(c('ring_model_t_pdbh_sigd_species_sigxk_STAN'), '_', site, '_',mvers,'_',dvers,'.RDS')
     models = c('Model RW')
   }
   
@@ -33,6 +35,7 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
   # we only need "D" for diameter and we only need the iterations that we are planning to keep
   post = list()
   post_rw = list()
+  post_bt = list()
   for (i in 1:length(fnames)) {
     fname_model = fnames[i]
     out = readRDS(paste0(output_dir,'/', fname_model))
@@ -41,14 +44,18 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
     variables = names(out[1,1,])
     allDs = grep('D\\[',variables)
     allRWs = grep('X\\[',variables)
+    allBTs = grep('beta_t\\[',variables)
     
     # we need to put into matrix for use in processing, some compile info from all chains
     out.temp = out[seq(dim(out)[1]-pool+1, dim(out)[1], pool/(keep/nchains)),,allDs]
     out.temp.rw = out[seq(dim(out)[1]-pool+1, dim(out)[1], pool/(keep/nchains)),,allRWs]
+    out.temp.bt = out[seq(dim(out)[1]-pool+1, dim(out)[1], pool/(keep/nchains)),,allBTs]
+    
     
     if(nchains>1){
       out = out.temp[,1,]
       out.rw = out.temp.rw[,1,]
+      out.bt = out.temp.bt[,1,]
       for (j in 2:ncol(out.temp)){
         out = rbind(out, out.temp[,j,])
         out.rw = rbind(out.rw, out.temp.rw[,j,])
@@ -192,6 +199,19 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
     rw_obs = data.frame(x_obs = Xobs$incr[idx_rw_obs],
                         year = years[Xobs$year[idx_rw_obs]])
     
+    rw_obs_mean = rw_obs %>% 
+      dplyr::group_by(year) %>% 
+      dplyr::summarize(x_obs = mean(x_obs, na.rm=TRUE), .groups = 'keep')
+      
+    rw_merge = merge(rw_tree, rw_obs_mean, by='year')
+    rw_merge$log_diff = log(rw_merge$x_median) - log(rw_merge$x_obs)
+    rw_poor = rw_merge[which(rw_merge$log_diff < -2),]
+    
+    rw_poor$log_diff
+    if (nrow(rw_poor)>0){
+      print(paste0('Poor fit alert for stem id: ', stem_id))
+    }
+                     
     # Create a text
     grob <- grobTree(textGrob(paste0('Tree ', tree, '; Stem ID ', stem_id, '; Species ', taxon[tree] ), x=0.05,  y=0.9, hjust=0,
                               gp=gpar(col="black", fontsize=22)))
@@ -201,6 +221,8 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
       geom_ribbon(data=rw_tree, aes(x=year, ymin=x_lo, ymax=x_hi), fill='lightgrey') +
       geom_line(data=rw_tree, aes(x=year, y=x_median)) +
       geom_point(data=rw_obs, aes(x=year, y=x_obs), size=2) +
+      geom_point(data=rw_obs_mean, aes(x=year, y=x_obs), size=2, color = 'blue') +
+      geom_point(data=rw_poor, aes(x=year, y=x_obs), size=4, color = 'red') +
       # geom_dog(data=rw_obs, aes(x=year, y=x_obs, dog='glasses'), size=2) +
       # ylim(c(0,500)) +
       xlab('year') +
@@ -686,7 +708,7 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
   
   # save file
   filename4b = file.path(output_dir,paste0('AGBI_TAXA_STAN_',site,'_',mvers,'_',dvers))
-  saveRDS(agb_taxa, paste0(filename4b,'.RDS'))
+  saveRDS(abi_taxa, paste0(filename4b,'.RDS'))
   
   #####################################################################################################
   ################ 10. Calculate approximate diameters from measured DBH and increments ################

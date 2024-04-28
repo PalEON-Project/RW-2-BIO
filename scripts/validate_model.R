@@ -22,7 +22,8 @@ validate_rw_model <- function(census_site, mvers, dvers, site, nest,
     models = c('Model RW', 'Model RW + Census')
   }else{
     # fnames = paste0(c('ring_model_t_pdbh_sigd_STAN'), '_', site, '_',mvers,'_',dvers,'.RDS')
-    fnames = paste0(c('ring_model_t_pdbh_sigd_species_STAN'), '_', site, '_',mvers,'_',dvers,'.RDS')
+    # fnames = paste0(c('ring_model_t_pdbh_sigd_species_STAN'), '_', site, '_',mvers,'_',dvers,'.RDS')
+    fnames = paste0(c('ring_model_t_pdbh_sigd_species_sigxk_STAN'), '_', site, '_',mvers,'_',dvers,'.RDS')
     models = c('Model RW')
   }
   
@@ -34,6 +35,7 @@ validate_rw_model <- function(census_site, mvers, dvers, site, nest,
   post = list()
   post_rw = list()
   post_bt = list()
+  post_sx = list()
   for (i in 1:length(fnames)) {
     fname_model = fnames[i]
     out = readRDS(paste0(output_dir,'/', fname_model))
@@ -43,26 +45,32 @@ validate_rw_model <- function(census_site, mvers, dvers, site, nest,
     allDs = grep('D\\[',variables)
     allRWs = grep('X\\[',variables)
     allBTs = grep('beta_t\\[',variables)
+    allSX = grep('sig_x\\[',variables)
     
     # we need to put into matrix for use in processing, some compile info from all chains
     out.temp = out[seq(dim(out)[1]-pool+1, dim(out)[1], pool/(keep/nchains)),,allDs]
     out.temp.rw = out[seq(dim(out)[1]-pool+1, dim(out)[1], pool/(keep/nchains)),,allRWs]
     out.temp.bt = out[seq(dim(out)[1]-pool+1, dim(out)[1], pool/(keep/nchains)),,allBTs]
-    
+    out.temp.sx = out[seq(dim(out)[1]-pool+1, dim(out)[1], pool/(keep/nchains)),,allSX]
     
     if(nchains>1){
       out = out.temp[,1,]
       out.rw = out.temp.rw[,1,]
       out.bt = out.temp.bt[,1,]
+      out.sx = out.temp.sx[,1,]
+      
       for (j in 2:ncol(out.temp)){
         out = rbind(out, out.temp[,j,])
         out.rw = rbind(out.rw, out.temp.rw[,j,])
+        out.sx = rbind(out.rw, out.temp.sx[,j,])
       }
       post[[i]] = out
       post_rw[[i]] = out.rw
     } else {
       post[[i]] = out.temp
       post_rw[[i]] = out.temp.rw
+      post_bt[[i]] = out.temp.bt
+      post_sx[[i]] = out.temp.sx
     }
   }  
   rm(out, out.temp, allDs, variables)
@@ -71,6 +79,7 @@ validate_rw_model <- function(census_site, mvers, dvers, site, nest,
   dat = readRDS(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'input',paste0('tree_data_', site ,'_STAN_',mvers,'_', dvers, '.RDS')))
   N_years = dat$N_years
   N_Tr = dat$N_Tr
+  N_taxa = dat$N_taxa
   X2Tr = dat$X2Tr
   X2year = dat$X2year
   Tr = dat$Tr %>% arrange(stat_id)
@@ -210,6 +219,34 @@ validate_rw_model <- function(census_site, mvers, dvers, site, nest,
     
   }
   dev.off()
+  #####################################################
+  ################ 1a. Plot model and data ############
+  #####################################################
+  
+  
+  colnames(post_sx[[1]]) = taxa
+  post_sx_melt = melt(post_sx[[1]])
+  colnames(post_sx_melt) = c('iteration', 'species_code', 'sigma_x')
+  
+  ggplot(data=post_sx_melt) +
+    geom_histogram(aes(x=sigma_x, y=after_stat(density))) +
+    facet_wrap(~species_code)
+  
+  sig_x_mean = post_sx_melt %>% 
+    group_by(species_code) %>%
+    dplyr::summarize(sig_x_mean = mean(sigma_x))
+  sig_x_mean = sig_x_mean[order(sig_x_mean$sig_x_mean),]
+  
+  post_sx_melt$species_code = factor(post_sx_melt$species_code, levels=sig_x_mean$species_code)
+  
+  p = ggplot(data=post_sx_melt) +
+    geom_boxplot(aes(x=species_code, y=sigma_x)) +
+    theme_bw(14) +
+    xlab('Species') +
+    ylab('sigma_x')
+  print(p)
+  ggsave(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','sig_x_boxplot_taxa.pdf'), width=10, height=6)
+  ggsave(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','sig_x_boxplot_taxa.png'), width=10, height=6)
   
   
   #####################################################
@@ -235,6 +272,22 @@ validate_rw_model <- function(census_site, mvers, dvers, site, nest,
                            rw_model_lo = numeric(0),
                            rw_model_hi = numeric(0),
                            rw_obs = numeric(0))
+  
+  # create data frame of DBH model and data values
+  tree_validate = data.frame(stat_id = numeric(0),
+                           stem_id = character(0),
+                           species_id = character(0),
+                           year = numeric(0),
+                           rw_model_mean = numeric(0),
+                           rw_model_median = numeric(0),
+                           rw_model_lo = numeric(0),
+                           rw_model_hi = numeric(0),
+                           rw_obs = numeric(0),
+                           d_model_mean = numeric(0),
+                           d_model_median = numeric(0),
+                           d_model_lo = numeric(0),
+                           d_model_hi = numeric(0),
+                           d_obs = numeric(0))
   
   for (tree in 1:N_Tr){
     
@@ -269,10 +322,18 @@ validate_rw_model <- function(census_site, mvers, dvers, site, nest,
                            d_model_lo = d_quant[,1], 
                            d_model_hi = d_quant[,3], 
                            year = years[yrinds])
-    dbh_model = subset(dbh_model, year %in% dbh_obs$year)
     
-    dbh_merged = merge(dbh_model, dbh_obs)
-    dbh_merged = data.frame(stat_id = rep(i),
+    dbh_merged_all = merge(dbh_model, dbh_obs, all.x=TRUE)
+    dbh_merged_all = data.frame(stat_id = rep(tree),
+                                stem_id = rep(stem_id),
+                                species_id = rep(species_id),
+                                dbh_merged_all)
+    
+    
+    dbh_model_in = subset(dbh_model, year %in% dbh_obs$year)
+    
+    dbh_merged = merge(dbh_model_in, dbh_obs)
+    dbh_merged = data.frame(stat_id = rep(tree),
                             stem_id = rep(stem_id),
                             species_id = rep(species_id),
                             dbh_merged)
@@ -325,8 +386,8 @@ validate_rw_model <- function(census_site, mvers, dvers, site, nest,
                         year = years[Xobs$year[idx_rw_obs]])
     
     rw_obs_avg = rw_obs %>% 
-      group_by(year) %>%
-      summarize(rw_obs = mean(rw_obs, na.rm=TRUE))
+      dplyr::group_by(year) %>%
+      dplyr::summarize(rw_obs = mean(rw_obs, na.rm=TRUE))
     
     
     rw_model = data.frame(rw_model_mean = rw_mean, 
@@ -336,10 +397,14 @@ validate_rw_model <- function(census_site, mvers, dvers, site, nest,
                           year = years[yrinds])
     rw_model = subset(rw_model, year %in% rw_obs_avg$year)
     
-    rw_merged = data.frame(stat_id = rep(i),
+    rw_merged = data.frame(stat_id = rep(tree),
                            stem_id = rep(stem_id),
                            species_id = rep(species_id),
                            merge(rw_model, rw_obs_avg))
+    
+    rw_merged_all = merge(rw_merged, dbh_merged_all)
+    tree_validate = rbind(tree_validate,
+                          rw_merged_all)
     
     rw_validate = rbind(rw_validate,
                         rw_merged)
@@ -351,6 +416,9 @@ validate_rw_model <- function(census_site, mvers, dvers, site, nest,
   
   filename1b = file.path(output_dir,paste0('RW_VALIDATE_',site,'_',mvers,'_',dvers))
   saveRDS(rw_validate, paste0(filename1b,'.RDS'))
+  
+  filename1c = file.path(output_dir,paste0('TREE_VALIDATE_',site,'_',mvers,'_',dvers))
+  saveRDS(tree_validate, paste0(filename1c,'.RDS'))
   
   # pdf(paste0(figure_dir, '/dbh_model_vs_data_scatter_update_', model_name, '.pdf'), width=10, height=6)
   p <- ggplot(data=dbh_validate) +
@@ -448,5 +516,182 @@ validate_rw_model <- function(census_site, mvers, dvers, site, nest,
   # ggsave(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','rw_avg_model_vs_data_scatter_update.pdf'), width=10, height=6)
   # ggsave(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','rw_avg_model_vs_data_scatter_update.png'), width=10, height=6)
   # 
+  # p <- ggplot(data=tree_validate) +
+  #   geom_abline(intercept=0, slope=1, lty=2, colour='red') +
+  #   geom_smooth(method='lm', aes(x=rw_obs, y=rw_model_median), fullrange=TRUE) +
+  #   geom_linerange(aes(x=rw_obs, ymin=rw_model_lo, ymax=rw_model_hi), colour='black', alpha=0.3) +
+  #   geom_point(aes(x=rw_obs, y=rw_model_median), colour='black', size=2, alpha=0.3) +
+  #   # geom_dog(data=rw_obs, aes(x=year, y=x_obs, dog='glasses'), size=2) +
+  #   # ylim(c(0,500)) +
+  #   xlab('rw obs (mm)') +
+  #   ylab('rw model (mm)') +
+  #   theme_bw(16) + 
+  #   coord_equal() +
+  #   xlim(c(rw_min, rw_max)) +
+  #   ylim(c(rw_min, rw_max))
+  # print(p)
+  # # dev.off()
+  # ggsave(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','rw_model_vs_data_scatter_update.pdf'), width=10, height=6)
+  # ggsave(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','rw_model_vs_data_scatter_update.png'), width=10, height=6)
+  
+  
+  p <- ggplot(data=tree_validate) +
+    geom_abline(intercept=0, slope=1, lty=2, colour='red') +
+    geom_linerange(aes(x=rw_obs, ymin=rw_model_lo, ymax=rw_model_hi, colour=species_id), alpha=0.3) +
+    geom_point(aes(x=rw_obs, y=rw_model_median, colour=species_id), size=2, alpha=0.3) +
+    geom_smooth(method='lm', aes(x=rw_obs, y=rw_model_median, colour=species_id), fullrange=TRUE) +
+    # geom_dog(data=rw_obs, aes(x=year, y=x_obs, dog='glasses'), size=2) +
+    # ylim(c(0,500)) +
+    xlab('rw obs (mm)') +
+    ylab('rw model (mm)') +
+    theme_bw(16) + 
+    coord_equal() +
+    xlim(c(rw_min, rw_max)) +
+    ylim(c(rw_min, rw_max))
+  print(p)
+  # dev.off()
+  ggsave(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','rw_model_vs_data_scatter_species.pdf'), width=10, height=6)
+  ggsave(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','rw_model_vs_data_scatter_species.png'), width=10, height=6)
+  
+  
+  p <- ggplot(data=tree_validate) +
+    geom_abline(intercept=0, slope=1, lty=2, colour='red') +
+    geom_linerange(aes(x=rw_obs, ymin=rw_model_lo, ymax=rw_model_hi), alpha=0.1) +
+    geom_point(aes(x=rw_obs, y=rw_model_median), size=2, alpha=0.1) +
+    geom_line(stat='smooth', method='lm', aes(x=rw_obs, y=rw_model_median), colour='dodgerblue', alpha=0.5, fullrange=TRUE) +
+    geom_smooth(method='lm', aes(x=rw_obs, y=rw_model_median), se=TRUE, colour=NA, fullrange=TRUE, alpha=0.5) +
+    # geom_dog(data=rw_obs, aes(x=year, y=x_obs, dog='glasses'), size=2) +
+    # ylim(c(0,500)) +
+    xlab('rw obs (mm)') +
+    ylab('rw model (mm)') +
+    theme_bw(16) + 
+    coord_equal() +
+    xlim(c(rw_min, rw_max)) +
+    ylim(c(rw_min, rw_max)) + 
+    facet_wrap(~species_id)
+  print(p)
+  # dev.off()
+  ggsave(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','rw_model_vs_data_scatter_species_facet.pdf'), width=10, height=6)
+  ggsave(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','rw_model_vs_data_scatter_species_facet.png'), width=10, height=6)
+  
+  
+  tree_validate$rw_diff = tree_validate$rw_model_mean - tree_validate$rw_obs
+  
+  
+  # p <- ggplot(data=tree_validate) +
+  #   # geom_histogram(aes(x=rw_diff, y = after_stat(density))) +  
+  #   geom_density(aes(x=rw_diff, y = after_stat(density))) +
+  #   geom_vline(xintercept=0, alpha=0.2) +
+  #   xlab('rw obs (mm)') +
+  #   ylab('rw model (mm)') +
+  #   theme_bw(16) + 
+  #   facet_wrap(~species_id)
+  # print(p)
+  
+  p <- ggplot(data=tree_validate) +
+    # geom_histogram(aes(x=rw_diff, y = after_stat(density))) +  
+    geom_density(aes(x=rw_diff, y=after_stat(density)), fill='lightgrey', alpha=0.5) +
+    geom_vline(xintercept=0, alpha=0.4, colour='dodgerblue') +
+    xlab('rw model - rw obs (mm)') +
+    # ylab('rw model (mm)') +
+    theme_bw(16) + 
+    xlim(c(-0.75, 0.5)) +
+    facet_wrap(~species_id)
+  print(p)
+  # dev.off()
+  ggsave(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','rw_diff_species_facet.pdf'), width=10, height=6)
+  ggsave(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','rw_diff_species_facet.png'), width=10, height=6)
+  
+  
+  p <- ggplot(data=tree_validate) +
+    # geom_abline(intercept=0, slope=1, lty=2, colour='red') +
+    # geom_linerange(aes(x=rw_obs, ymin=rw_model_lo, ymax=rw_model_hi), alpha=0.1) +
+    geom_point(aes(x=rw_obs, y=rw_diff), size=2, alpha=0.4) +
+    geom_smooth(method='lm', aes(x=rw_obs, y=rw_diff), colour=NA, fullrange=TRUE, alpha=0.4) +
+    geom_line(stat='smooth', method='lm', aes(x=rw_obs, y=rw_diff), colour='dodgerblue', fullrange=TRUE, alpha=0.4) +
+    # geom_dog(data=rw_obs, aes(x=year, y=x_obs, dog='glasses'), size=2) +
+    # ylim(c(0,500)) +
+    xlab('rw obs (mm)') +
+    ylab('rw model - rw data  (mm)') +
+    theme_bw(16) + 
+    # coord_equal() +
+    # xlim(c(rw_min, rw_max)) +
+    # ylim(c(rw_min, rw_max)) + 
+    facet_wrap(~species_id)
+  print(p)
+  # dev.off()
+  ggsave(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','rw_diff_vs_data_scatter_species_facet.pdf'), width=10, height=6)
+  ggsave(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','rw_diff_vs_data_scatter_species_facet.png'), width=10, height=6)
+  
+  
+  # ring_large = foo[which(foo$rw_obs > 4),]
+  # dim(ring_large)
+  # table(ring_large$stem_id)
+  # 
+  # table(ring_large$species_id)
+  
+  
+  
+  p <- ggplot(data=tree_validate) +
+    # geom_abline(intercept=0, slope=1, lty=2, colour='red') +
+    # geom_linerange(aes(x=rw_obs, ymin=rw_model_lo, ymax=rw_model_hi), alpha=0.1) +
+    geom_point(aes(x=d_model_median, y=rw_diff), size=2, alpha=0.4) +
+    geom_smooth(method='lm', aes(x=d_model_median, y=rw_diff), colour=NA, fullrange=TRUE, alpha=0.4) +
+    geom_line(stat='smooth', method='lm', aes(x=d_model_median, y=rw_diff), colour='dodgerblue', fullrange=TRUE, alpha=0.6, linewidth=1) +
+    # geom_dog(data=rw_obs, aes(x=year, y=x_obs, dog='glasses'), size=2) +
+    # ylim(c(0,500)) +
+    xlab('d model median (cm)') +
+    ylab('rw model - rw data  (mm)') +
+    theme_bw(16) + 
+    # coord_equal() +
+    # xlim(c(rw_min, rw_max)) +
+    # ylim(c(rw_min, rw_max)) + 
+    facet_wrap(~species_id, scales='free_x')
+  print(p)
+  # dev.off()
+  ggsave(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','rw_diff_vs_dbh_model_median_scatter_species_facet.pdf'), width=10, height=6)
+  ggsave(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','rw_diff_vs_dbh_model_median_scatter_species_facet.png'), width=10, height=6)
+  
+  
+  # p <- ggplot(data=tree_validate) +
+  #   # geom_abline(intercept=0, slope=1, lty=2, colour='red') +
+  #   # geom_linerange(aes(x=rw_obs, ymin=rw_model_lo, ymax=rw_model_hi), alpha=0.1) +
+  #   geom_boxplot(aes(x=factor(year), y=rw_diff)) +
+  #   # geom_smooth(method='lm', aes(x=d_model_median, y=rw_diff), fullrange=TRUE, alpha=0.4) +
+  #   # geom_dog(data=rw_obs, aes(x=year, y=x_obs, dog='glasses'), size=2) +
+  #   # ylim(c(0,500)) +
+  #   xlab('d model median (cm)') +
+  #   ylab('rw model - rw data  (mm)') +
+  #   theme_bw(16) + 
+  #   # coord_equal() +
+  #   # xlim(c(rw_min, rw_max)) +
+  #   # ylim(c(rw_min, rw_max)) + 
+  #   facet_wrap(~species_id)
+  # print(p)
+  # # dev.off()
+  # ggsave(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','rw_diff_vs_dbh_model_median_scatter_species_facet.pdf'), width=10, height=6)
+  # ggsave(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','rw_diff_vs_dbh_model_median_scatter_species_facet.png'), width=10, height=6)
+  
+  
+  p <- ggplot(data=tree_validate) +
+    # geom_abline(intercept=0, slope=1, lty=2, colour='red') +
+    # geom_linerange(aes(x=rw_obs, ymin=rw_model_lo, ymax=rw_model_hi), alpha=0.1) +
+    geom_point(aes(x=year, y=rw_diff), alpha=0.3) +
+    geom_point(data=subset(tree_validate, rw_diff<(-0.4)), aes(x=year, y=rw_diff), colour="dodgerblue", alpha=0.3) +
+    # geom_smooth(method='lm', aes(x=d_model_median, y=rw_diff), fullrange=TRUE, alpha=0.4) +
+    # geom_dog(data=rw_obs, aes(x=year, y=x_obs, dog='glasses'), size=2) +
+    # ylim(c(0,500)) +
+    xlab('year') +
+    ylab('rw model - rw data  (mm)') +
+    theme_bw(16) + 
+    # coord_equal() +
+    # xlim(c(rw_min, rw_max)) +
+    # ylim(c(rw_min, rw_max)) + 
+    facet_wrap(~species_id)
+  print(p)
+  # dev.off()
+  ggsave(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','rw_diff_vs_year_scatter_species_facet.pdf'), width=10, height=6)
+  ggsave(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','rw_diff_vs_year_scatter_species_facet.png'), width=10, height=6)
+  
   
 }
