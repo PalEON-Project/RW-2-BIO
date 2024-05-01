@@ -12,7 +12,7 @@
 
 rm(list = ls())
 
-library(dplyr)
+library(dplyr) 
 library(ggplot2)
 # library(forecast)
 #library(lme4)
@@ -97,6 +97,30 @@ sylvania_total <- sylvania_total_agb |>
 # all_data <- rbind(goose_total, nrp_total, rooster_total, sylvania_total, harvard_total)
 all_data <- rbind(goose_total, nrp_total, rooster_total, sylvania_total)
 
+goose_total_plot <- goose_total |>
+  group_by(year, iter, plot) |>
+  summarize(AGB.sum = sum(AGB),
+            AGBI.sum = sum(AGBI),
+            .groups = 'keep') 
+goose_total_plot = goose_total_plot %>%
+  group_by(year, plot) %>% 
+  summarize(AGB.mean = mean(AGB.sum, na.rm = T),
+            AGB.sd = sd(AGB.sum),
+            AGB.lo = quantile(AGB.sum, c(0.025), na.rm=TRUE),
+            AGB.hi = quantile(AGB.sum, c(0.975), na.rm=TRUE), 
+            AGBI.mean = mean(AGBI.sum, na.rm = T),
+            AGBI.sd = sd(AGBI.sum),
+            AGBI.lo = quantile(AGBI.sum, c(0.025), na.rm=TRUE),
+            AGBI.hi = quantile(AGBI.sum, c(0.975), na.rm=TRUE), 
+            .groups='keep')
+
+goose_plot_wide = pivot_wider(data = goose_total_plot[,(colnames(goose_total_plot) %in% 
+                                                          c('year','AGBI.mean', 'plot'))],
+                              id_cols = c(year),
+                              names_from = plot, 
+                              values_from = AGBI.mean, 
+                              values_fill = 0 )
+
 #summarizing the data for both agb and agbi
 #here we are taking the mean of all the iterations for one tree in a given year
 # all_tree <- all_data |>
@@ -172,6 +196,7 @@ all_site_plot_by_iter <- all_data |>
             AGBI.sum = sum(AGBI),
             .groups = 'keep') 
 
+
 all_site_plot_summary = all_site_plot_by_iter %>%
   group_by(year, plot, model, site) %>% 
   summarize(AGB.mean = mean(AGB.sum, na.rm = T),
@@ -226,7 +251,7 @@ all_taxon_plot_summary = all_taxon_plot_by_iter %>%
             .groups='keep')
 head(all_taxon_plot_summary)
 
-
+#no plot
 all_taxon_by_iter <- all_data |>
   group_by(year, iter, taxon, model, site) |>
   summarize(AGB.sum = sum(AGB),
@@ -265,7 +290,7 @@ ggplot(data=all_taxon_summary) +
 
 #######################3
 ###this is where you stopped for full data
-ggplot(data=site_total) +
+ggplot(data=all_taxon_summary) +
   geom_ribbon(aes(x=year, ymin=AGBI.mean-2*AGBI.sd,
                   ymax=AGBI.mean+2*AGBI.sd, color = taxon, fill = taxon), alpha=0.3) +
   geom_line(aes(x=year, y=AGBI.mean, color = taxon)) +
@@ -279,19 +304,25 @@ ggplot(data=site_total) +
   
 #changing to wide format with taxons as column names and values = ABGI.mean 
 #values_fill=0 does not work 
-taxon_wide = pivot_wider(data = site_total[,(colnames(site_total) %in% c('year', 'taxon', 'AGBI.mean', 'site'))],
+all_taxon_summary_wide = pivot_wider(data = all_taxon_summary[,(colnames(all_taxon_summary) %in% 
+                                                                  c('year', 'taxon', 'AGBI.mean', 'site'))],
                          id_cols = c(year, site),
                          names_from = taxon, 
                          values_from = AGBI.mean, 
                          values_fill = 0 )
 
-all_taxon_summary_wide = pivot_wider(data = all_taxon_summary[,(colnames(all_taxon_summary) %in% c('year', 'taxon', 'AGBI.mean', 'site'))],
-                         id_cols = c(year, site),
-                         names_from = taxon, 
-                         values_from = AGBI.mean, 
-                         values_fill = 0 )
+all_site_summary_wide = pivot_wider(data = all_site_summary[,(colnames(all_site_summary) %in% 
+                                                                c('year','AGBI.mean', 'site'))],
+                                    id_cols = c(year),
+                                    names_from = site, 
+                                    values_from = AGBI.mean, 
+                                    values_fill = 0 )
 
 ## NOW WE WANT TO DO BY SITE, SO NEED TO REWORK THIS
+#########################################################################################
+#CORRELATION
+################################################################################################
+
 
 #correlation matrix between all species for GOOSE for all trees found in one SITE for each given year....
 cor(all_taxon_summary_wide$ACSA, all_taxon_summary_wide$BEPA, use = "complete.obs")
@@ -301,12 +332,20 @@ correlation_A = data.frame(cor(taxon_wide[, c('ACRU','ACSA','BEPA', 'FAGR', 'PIS
 correlation_B = correlation_A
 correlation_B[correlation_B<0.4] = NA
 
-
 #correlation figure between species for ABGI.mean
 #shitty colours!!!
 ggcorrplot(correlation_A, method = "circle", type = "lower", hc.order = FALSE)
 ggcorrplot(correlation_B, type = "lower",)
 #  scale_fill_gradient2(low = "yellow", mid = 'pink', high = "light green", breaks=c(0, 1), limit=c(0, 1))
+
+
+#correlation between sites 
+cor_site = data.frame(cor(all_site_summary_wide[, c('GOOSE', 'ROOSTER', 'SYLVANIA', 'NRP')], use = "complete.obs"))
+ggcorrplot(cor_site, method = "circle", type = "lower", hc.order = FALSE)
+
+
+cor_plot_goose = data.frame(cor(goose_plot_wide[,c('1', '2', '3')], use = "complete.obs"))
+ggcorrplot(cor_plot_goose, method = "square", type = "lower")
 
 #########################################################################################
 #CLIMATE
@@ -325,6 +364,7 @@ clim_wide =  pivot_wider(data = clim_data,
 #PPT_mean is the mean of each month summed to get the mean of the year
 #yearly_meanT is the yearly temperature mean based on monthly means
 
+#summarizing climate data, total precipitation, yearly mean temp, 
 clim_summary = clim_wide |>
   mutate(PPT_total = rowSums(dplyr::select(clim_wide, starts_with('PPT'))),
          PPT_total_prev_tree = rowSums(dplyr::pick('PPT_09', 'PPT_10', 'PPT_11', 'PPT_12')),
@@ -342,6 +382,7 @@ Vpd_sets = list(c("Vpdmin2_01", "Vpdmax2_01"), c("Vpdmin2_02", "Vpdmax2_02"),
                 c("Vpdmin2_09", "Vpdmax2_09"), c("Vpdmin2_10", "Vpdmax2_10"),
                 c("Vpdmin2_11", "Vpdmax2_11"), c("Vpdmin2_12", "Vpdmax2_12")
 )
+#taking the mean of Vpd for each month 
 for (i in seq_along(Vpd_sets)) {
   set <- Vpd_sets[[i]]
   clim_summary <- clim_summary %>%
