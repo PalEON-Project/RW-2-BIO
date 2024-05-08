@@ -5,7 +5,7 @@
 rm(list = ls())
 
 # Load detrended AGBI
-load('out/detrended_AGBI.RData')
+load('out/tree_detrended_AGBI.RData')
 
 # Indexing for loops
 site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA')
@@ -39,7 +39,7 @@ ntrees <- c(length(unique(save_comb$tree[which(save_comb$site == 'GOOSE')])),
             length(unique(save_comb$tree[which(save_comb$site == 'SYLVANIA')])))
 
 # Storage
-coeff_save <- matrix(, nrow = sum(ntrees), ncol = 18)
+coeff_save <- matrix(, nrow = sum(ntrees), ncol = 15)
 
 row_ind <- 0
 # For each site, let's iteratively fit a simple linear model with
@@ -61,17 +61,9 @@ for(i in 1:4){
       # Join with annual climate drivers
       dplyr::left_join(y = prism_annual, by = c('site', 'year')) |>
       # Join with tree-level competition metrics
-      dplyr::left_join(y = ba_by_tree, by = c('tree', 'year', 'plot', 'taxon', 'site')) |>
+      dplyr::left_join(y = tree_dbh, by = c('tree', 'year', 'plot', 'taxon', 'site')) |>
       # only keep individual tree basal area (ba)
-      # and basal area greater than (bagt)
-      dplyr::select(-ind_frac, -total_ba, -dbh) |>
-      # Join with taxon-level competition metrics
-      dplyr::left_join(y = ba_by_taxon, by = c('plot', 'site', 'year', 'taxon')) |>
-      # only keep ba, bagt (from before)
-      # and fraction of total basal area from each taxon (frac)
-      dplyr::select(-total_ba.x, -total_ba.y) |>
-      # Join with plot-level competition metrics
-      dplyr::left_join(y = total_ba, by = c('plot', 'site', 'year'))
+      dplyr::select(-dbh)
     # Fit linear model
     # annual increment of individual tree is a function of 
     # mean annual precipitation, mean annual temperature,
@@ -86,22 +78,22 @@ for(i in 1:4){
       coeff_save[row_ind,2] <- unique(sub$plot)
       coeff_save[row_ind,3] <- unique(sub$taxon)
       coeff_save[row_ind,4] <- j
-      coeff_save[row_ind,5:17] <- NA
-      coeff_save[row_ind,18] <- NA
+      coeff_save[row_ind,5:14] <- NA
+      coeff_save[row_ind,15] <- NA
     }else{
       mod <- lm(formula = residual_AGBI ~ mean_PPT + mean_Tmean + 
                   sd_PPT + sd_Tmean +
                   mean_Tmin + mean_Tmax + 
                   mean_Vpdmin + mean_Vpdmax + 
-                  ba + bagt + frac + total_ba,
+                  ba,
                 data = joined)   
       # Save site name, tree number, coefficients, and r2 in matrix
       coeff_save[row_ind,1] <- i
       coeff_save[row_ind,2] <- unique(sub$plot)
       coeff_save[row_ind,3] <- unique(sub$taxon)
       coeff_save[row_ind,4] <- j
-      coeff_save[row_ind,5:17] <- coefficients(mod)
-      coeff_save[row_ind,18] <- summary(mod)$adj.r.squared
+      coeff_save[row_ind,5:14] <- coefficients(mod)
+      coeff_save[row_ind,15] <- summary(mod)$adj.r.squared
     }
     print(j)
   }
@@ -114,7 +106,7 @@ colnames(coeff_save) <- c('Site', 'Plot', 'Taxon', 'Tree', 'Intercept',
                           'SD_Precipitation', 'SD_Temperature',
                           'Minimum_temperature', 'Maximum_temperature',
                           'Minimum_VPD', 'Maximum_VPD', 
-                          'BA', 'BAGT', 'frac_ba', 'total_ba', 'R2')
+                          'BA', 'R2')
 # Format
 coeff_save <- as.data.frame(coeff_save)
 
@@ -136,9 +128,6 @@ coeff_save <- coeff_save |>
                 Minimum_VPD = as.numeric(Minimum_VPD),
                 Maximum_VPD = as.numeric(Maximum_VPD),
                 BA = as.numeric(BA),
-                BAGT = as.numeric(BAGT),
-                frac_ba = as.numeric(frac_ba),
-                total_ba = as.numeric(total_ba),
                 R2 = as.numeric(R2))
 
 # Distribution of R2 for each site with individual models
@@ -226,30 +215,6 @@ coeff_save |>
   ggplot2::geom_violin() +
   ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for tree basal area') +
-  ggplot2::theme_minimal()
-
-# Violin of BAGT
-coeff_save |>
-  ggplot2::ggplot(ggplot2::aes(x = Site, y = BAGT)) +
-  ggplot2::geom_violin() +
-  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
-  ggplot2::xlab('') + ggplot2::ylab('Coefficient for basal area greater than') +
-  ggplot2::theme_minimal()
-
-# Violin of fraction of plot-level basal area belonging to the taxon
-coeff_save |>
-  ggplot2::ggplot(ggplot2::aes(x = Site, y = frac_ba)) +
-  ggplot2::geom_violin() + 
-  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
-  ggplot2::xlab('') + ggplot2::ylab('Coefficient for fraction of basal area of each species') +
-  ggplot2::theme_minimal()
-
-# Violin of total plot level basal area
-coeff_save |>
-  ggplot2::ggplot(ggplot2::aes(x = Site, y = total_ba)) +
-  ggplot2::geom_violin() +
-  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
-  ggplot2::xlab('') + ggplot2::ylab('Coefficient for total basal area') +
   ggplot2::theme_minimal()
 
 save(coeff_save, file = 'out/ind_lm_coeff_save.RData')
