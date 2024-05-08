@@ -1,36 +1,38 @@
+## Detrending for individual trees
+
 rm(list = ls())
 
 # Load total increment
-goose_total_agbi <- readRDS('sites/GOOSE/runs/v2.0_012021/output/AGBI_STAN_GOOSE_v2.0_012021.RDS')
-nrp_total_agbi <- readRDS('sites/NORTHROUND/runs/v2.0_082020/output/AGBI_STAN_NORTHROUND_v2.0_082020.RDS')
-rooster_total_agbi <- readRDS('sites/ROOSTER/runs/v2.0_082020/output/AGBI_STAN_ROOSTER_v2.0_082020.RDS')
-sylv_total_agbi <- readRDS('sites/SYLVANIA/runs/v2.0_082020/output/AGBI_STAN_SYLVANIA_v2.0_082020.RDS')
+goose_tree_agbi <- readRDS('sites/GOOSE/runs/v2.0_012021/output/AGBI_STAN_GOOSE_v2.0_012021.RDS')
+nrp_tree_agbi <- readRDS('sites/NORTHROUND/runs/v2.0_082020/output/AGBI_STAN_NORTHROUND_v2.0_082020.RDS')
+rooster_tree_agbi <- readRDS('sites/ROOSTER/runs/v2.0_082020/output/AGBI_STAN_ROOSTER_v2.0_082020.RDS')
+sylv_tree_agbi <- readRDS('sites/SYLVANIA/runs/v2.0_082020/output/AGBI_STAN_SYLVANIA_v2.0_082020.RDS')
 
 # Subset for 1960 and beyond to reduce problem of fading record
-goose_total_agbi <- goose_total_agbi |>
+goose_tree_agbi <- goose_tree_agbi |>
   dplyr::mutate(site = 'GOOSE') |>
-  dplyr::filter(year > 1958)
-nrp_total_agbi <- nrp_total_agbi |>
+  dplyr::filter(year > 1959)
+nrp_tree_agbi <- nrp_tree_agbi |>
   dplyr::mutate(site = 'NRP') |>
-  dplyr::filter(year > 1958)
-rooster_total_agbi <- rooster_total_agbi |>
+  dplyr::filter(year > 1959)
+rooster_tree_agbi <- rooster_tree_agbi |>
   dplyr::mutate(site = 'ROOSTER') |>
-  dplyr::filter(year > 1958)
-sylv_total_agbi <- sylv_total_agbi |>
+  dplyr::filter(year > 1959)
+sylv_tree_agbi <- sylv_tree_agbi |>
   dplyr::mutate(site = 'SYLVANIA') |>
-  dplyr::filter(year > 1958)
+  dplyr::filter(year > 1959)
 
 # Combine sites
-total_agbi <- rbind(goose_total_agbi, nrp_total_agbi,
-                    rooster_total_agbi, sylv_total_agbi)
+tree_agbi <- rbind(goose_tree_agbi, nrp_tree_agbi,
+                   rooster_tree_agbi, sylv_tree_agbi)
 
 # Save mean over iterations in dataframe
-total_agbi <- total_agbi |>
+tree_agbi <- tree_agbi |>
   dplyr::group_by(tree, year, plot, taxon, site) |>
   dplyr::summarize(mean = mean(value))
 
 # Conduct box tests for each tree over time
-box_test <- total_agbi |>
+box_test <- tree_agbi |>
   dplyr::group_by(tree, plot, taxon, site) |>
   dplyr::summarize(box_test = Box.test(mean) |> broom::tidy())
 # Proportion of trees demonstrating significant temporal autocorrelation
@@ -41,10 +43,10 @@ site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA')
 # Loop over each site and tree
 for(i in 1:4){
   print(paste0('---------------',i,'------------------'))
-  tree <- unique(total_agbi$tree[which(total_agbi$site == site[i])])
+  tree <- unique(tree_agbi$tree[which(tree_agbi$site == site[i])])
   site_name <- site[i]
   for(j in tree){
-    sub <- dplyr::filter(total_agbi, site == site_name &
+    sub <- dplyr::filter(tree_agbi, site == site_name &
                            tree == j)
     current_step <- ts(sub$mean, start = min(sub$year), end = max(sub$year),
                        frequency = 1)
@@ -80,7 +82,7 @@ save$residual_AGBI <- as.numeric(save$residual_AGBI)
 save$tree <- as.numeric(save$tree)
 save$year <- as.numeric(save$year)
 
-save_comb <- total_agbi |>
+save_comb <- tree_agbi |>
   dplyr::left_join(y = save, by = c('site', 'tree', 'year')) |>
   tidyr::drop_na()
 
@@ -91,4 +93,4 @@ box_test <- save_comb |>
 # Proportion of trees demonstrating significant temporal autocorrelation
 length(which(box_test$box_test$p.value < 0.05)) / nrow(box_test)
 
-save(save_comb, file = 'out/detrended_AGBI.RData')
+save(save_comb, file = 'out/tree_detrended_AGBI.RData')
