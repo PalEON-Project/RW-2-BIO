@@ -1,12 +1,9 @@
+## Taxon-level climate correlations
+
 rm(list = ls())
 
 # Load detrended AGBI
-load('out/detrended_AGBI.RData')
-
-# Average over individuals
-save_comb <- save_comb |>
-  dplyr::group_by(year, plot, taxon, site) |>
-  dplyr::summarize(residual_AGBI = mean(residual_AGBI))
+load('out/taxon_detrended_AGBI.RData')
 
 # Indexing for loops
 site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA')
@@ -40,36 +37,28 @@ prism_annual <- prism_long |>
 load('data/competition_metrics.RData')
 
 # Storage
-coeff_save_taxon <- matrix(, nrow = sum(taxa), ncol = 14)
+coeff_save_taxon <- matrix(, nrow = sum(taxa), ncol = 12)
 
 row_ind <- 0
 # For each site, let's iteratively fit a simple linear model with
 # average temperature and precipitation as predictors of each tree's annual growth
 for(i in 1:4){
   # Taxon number index, unique to each site
-  taxon <- seq(from = 1, to = taxa[i], by = 1)
+  taxon <- unique(save_comb$taxon[which(save_comb$site == site[i])])
   # Save site name
   site_name <- site[i]
   # Loop through each taxon at a given site
   for(j in taxon){
     # Increment counter
     row_ind <- row_ind + 1
-    # Save taxon number
-    taxon_name <- unique(save_comb$taxon[which(save_comb$site == site_name)])[j]
     # Subset full data for one taxon
     sub <- dplyr::filter(save_comb, site == site_name &
-                           taxon == taxon_name)
+                           taxon == j)
     # Combine tree data with climate
     joined <- sub |>
       # Join with annual climate drivers
-      dplyr::left_join(y = prism_annual, by = c('site', 'year')) |>
-      # Join with taxon-level competition metrics
-      dplyr::left_join(y = ba_by_taxon, by = c('plot', 'site', 'year', 'taxon')) |>
-      # only keep fraction of total basal area from each taxon (frac)
-      dplyr::select(-total_ba.x, -total_ba.y) |>
-      # Join with plot-level competition metrics
-      dplyr::left_join(y = total_ba, by = c('plot', 'site', 'year'))
-    
+      dplyr::left_join(y = prism_annual, by = c('site', 'year'))
+
     # Fit linear model
     # annual increment of each taxon is a function of
     # mean annual precipitation, mean annual temperature,
@@ -81,14 +70,13 @@ for(i in 1:4){
     mod <- lm(formula = residual_AGBI ~ mean_PPT + mean_Tmean + 
                 sd_PPT + sd_Tmean +
                 mean_Tmin + mean_Tmax +
-                mean_Vpdmin + mean_Vpdmax +
-                frac + total_ba,
+                mean_Vpdmin + mean_Vpdmax,
               data = joined)   
     # Save site name, tree number, coefficients, and r2 in matrix
     coeff_save_taxon[row_ind,1] <- i
-    coeff_save_taxon[row_ind,2] <- taxon_name
-    coeff_save_taxon[row_ind,3:13] <- coefficients(mod)
-    coeff_save_taxon[row_ind,14] <- summary(mod)$adj.r.squared
+    coeff_save_taxon[row_ind,2] <- j
+    coeff_save_taxon[row_ind,3:11] <- coefficients(mod)
+    coeff_save_taxon[row_ind,12] <- summary(mod)$adj.r.squared
     print(j)
   }
   print(paste0('---------------------',i,'----------------'))
@@ -99,8 +87,7 @@ colnames(coeff_save_taxon) <- c('Site', 'Taxon', 'Intercept',
                                 'Precipitation', 'Temperature',
                                 'SD_Precipitation', 'SD_Temperature',
                                 'Minimum_temperature', 'Maximum_temperature',
-                                'Minimum_VPD', 'Maximum_VPD',
-                                'frac_ba', 'total_ba', 'R2')
+                                'Minimum_VPD', 'Maximum_VPD', 'R2')
 # Format
 coeff_save_taxon <- as.data.frame(coeff_save_taxon)
 
@@ -121,8 +108,6 @@ coeff_save_taxon <- coeff_save_taxon |>
                 Maximum_temperature = as.numeric(Maximum_temperature),
                 Minimum_VPD = as.numeric(Minimum_VPD),
                 Maximum_VPD = as.numeric(Maximum_VPD),
-                frac_ba = as.numeric(frac_ba),
-                total_ba = as.numeric(total_ba),
                 R2 = as.numeric(R2))
 
 # Distribution of R2 for each site with individual models
@@ -183,7 +168,7 @@ coeff_save_combined |>
   ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for precipitation') +
   ggplot2::theme_minimal() +
-  ggplot2::ylim(c(-0.2, 0.3)) +
+  ggplot2::ylim(c(-0.05, 0.05)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())
 
 # Violin of temperature coefficient
@@ -194,7 +179,7 @@ coeff_save_combined |>
   ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for temperature') +
   ggplot2::theme_minimal() +
-  ggplot2::ylim(c(-5, 5)) +
+  ggplot2::ylim(c(-0.05, 0.05)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())
 
 # Violin of precipitation seasonality coefficient
@@ -205,7 +190,7 @@ coeff_save_combined |>
   ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for precipitation seasonality') +
   ggplot2::theme_minimal() +
-  ggplot2::ylim(c(-0.25, 0.25)) +
+  ggplot2::ylim(c(-0.005, 0.005)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())
 
 # Violin of temperature seasonality coefficient
@@ -216,7 +201,7 @@ coeff_save_combined |>
   ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for temperature seasonality') +
   ggplot2::theme_minimal() +
-  ggplot2::ylim(c(-5, 5)) +
+  ggplot2::ylim(c(-0.1, 0.1)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())
 
 # Violin of minimum temperature coefficient
@@ -227,7 +212,7 @@ coeff_save_combined |>
   ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for minimum temperature') +
   ggplot2::theme_minimal() +
-  ggplot2::ylim(c(-1, 1)) +
+  ggplot2::ylim(c(-0.05, 0.05)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())
 
 # Violin of maximum temperature coefficient
@@ -238,7 +223,7 @@ coeff_save_combined |>
   ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for maximum temperature') +
   ggplot2::theme_minimal() +
-  ggplot2::ylim(c(-2, 3)) +
+  ggplot2::ylim(c(-0.05, 0.05)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())
 
 # Violin of minimum VPD coefficient
@@ -249,7 +234,7 @@ coeff_save_combined |>
   ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for minimum VPD') +
   ggplot2::theme_minimal() +
-  ggplot2::ylim(c(-10, 10)) +
+  ggplot2::ylim(c(-0.5, 0.5)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())
 
 # Violin of maximum VPD coefficient
@@ -260,28 +245,5 @@ coeff_save_combined |>
   ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for maximum VPD') +
   ggplot2::theme_minimal() +
-  ggplot2::ylim(c(-1, 1)) +
+  ggplot2::ylim(c(-0.05, 0.05)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())
-
-# Violin of fraction basal area/species coefficient
-coeff_save_combined |>
-  dplyr::filter(var == 'frac_ba') |>
-  ggplot2::ggplot(ggplot2::aes(x = Site, y = val, fill = type)) +
-  ggplot2::geom_violin() +
-  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
-  ggplot2::xlab('') + ggplot2::ylab('Coefficient for taxon fraction basal area') +
-  ggplot2::theme_minimal() +
-  ggplot2::ylim(c(-500, 750)) +
-  ggplot2::theme(legend.title = ggplot2::element_blank())
-
-# Violin of total plot basal area
-coeff_save_combined |>
-  dplyr::filter(var == 'total_ba') |>
-  ggplot2::ggplot(ggplot2::aes(x = Site, y = val, fill = type)) +
-  ggplot2::geom_violin() +
-  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
-  ggplot2::xlab('') + ggplot2::ylab('Coefficient for plot basal area') +
-  ggplot2::theme_minimal() +
-  ggplot2::ylim(c(-0.005, 0.005)) +
-  ggplot2::theme(legend.title = ggplot2::element_blank())
-
