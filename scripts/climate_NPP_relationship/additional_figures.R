@@ -205,66 +205,6 @@ coeff_save |>
   ggplot2::xlab('') + ggplot2::ylab('Basal area coefficient') +
   ggplot2::ylim(c(-1, 1))
 
-# Basal area greater than
-coeff_save |>
-  ggplot2::ggplot() +
-  ggplot2::geom_jitter(ggplot2::aes(x = Site, y = BAGT, color = Taxon)) +
-  ggplot2::geom_violin(ggplot2::aes(x = Site, y = BAGT), fill = NA) +
-  ggplot2::theme_minimal() +
-  ggplot2::scale_color_manual(values = sp_col) +
-  ggplot2::ylim(c(-2,2)) +
-  ggplot2::xlab('') + ggplot2::ylab('Basal area greater than coefficient')
-
-coeff_save |>
-  ggplot2::ggplot() +
-  ggplot2::geom_violin(ggplot2::aes(x = Taxon, y = BAGT, fill = Taxon)) +
-  ggplot2::theme_minimal() +
-  ggplot2::facet_wrap(~Site) +
-  ggplot2::scale_fill_manual(values = sp_col) +
-  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90)) +
-  ggplot2::xlab('') + ggplot2::ylab('Basal area greater than coefficient') +
-  ggplot2::ylim(c(-1, 1))
-
-# Fraction basal area per taxon
-coeff_save |>
-  ggplot2::ggplot() +
-  ggplot2::geom_jitter(ggplot2::aes(x = Site, y = frac_ba, color = Taxon)) +
-  ggplot2::geom_violin(ggplot2::aes(x = Site, y = frac_ba), fill = NA) +
-  ggplot2::theme_minimal() +
-  ggplot2::scale_color_manual(values = sp_col) +
-  ggplot2::ylim(c(-2,2)) +
-  ggplot2::xlab('') + ggplot2::ylab('Fraction of basal area per taxon coefficient')
-
-coeff_save |>
-  ggplot2::ggplot() +
-  ggplot2::geom_violin(ggplot2::aes(x = Taxon, y = frac_ba, fill = Taxon)) +
-  ggplot2::theme_minimal() +
-  ggplot2::facet_wrap(~Site) +
-  ggplot2::scale_fill_manual(values = sp_col) +
-  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90)) +
-  ggplot2::xlab('') + ggplot2::ylab('Fraction of basal area per taxon coefficient') +
-  ggplot2::ylim(c(-1, 1))
-
-# Total plot-level basal area
-coeff_save |>
-  ggplot2::ggplot() +
-  ggplot2::geom_jitter(ggplot2::aes(x = Site, y = total_ba, color = Taxon)) +
-  ggplot2::geom_violin(ggplot2::aes(x = Site, y = total_ba), fill = NA) +
-  ggplot2::theme_minimal() +
-  ggplot2::scale_color_manual(values = sp_col) +
-  ggplot2::ylim(c(-2,2)) +
-  ggplot2::xlab('') + ggplot2::ylab('Plot-level basal area coefficient')
-
-coeff_save |>
-  ggplot2::ggplot() +
-  ggplot2::geom_violin(ggplot2::aes(x = Taxon, y = total_ba, fill = Taxon)) +
-  ggplot2::theme_minimal() +
-  ggplot2::facet_wrap(~Site) +
-  ggplot2::scale_fill_manual(values = sp_col) +
-  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90)) +
-  ggplot2::xlab('') + ggplot2::ylab('Plot-level basal area coefficient') +
-  ggplot2::ylim(c(-1, 1))
-
 #### By plot ####
 
 # R2
@@ -445,60 +385,6 @@ coeff_save |>
   ggplot2::xlab('') + ggplot2::ylab('Basal area coefficient') +
   ggplot2::ylim(c(-1, 1))
 
-# Basal area greater than
-coeff_save |>
-  ggplot2::ggplot() +
-  ggplot2::geom_jitter(ggplot2::aes(x = Site, y = BAGT, color = Plot)) +
-  ggplot2::geom_violin(ggplot2::aes(x = Site, y = BAGT), fill = NA) +
-  ggplot2::theme_minimal() +
-  ggplot2::ylim(c(-2,2)) +
-  ggplot2::xlab('') + ggplot2::ylab('Basal area greater than coefficient')
-
-coeff_save |>
-  ggplot2::ggplot() +
-  ggplot2::geom_violin(ggplot2::aes(x = Taxon, y = BAGT, fill = Plot)) +
-  ggplot2::theme_minimal() +
-  ggplot2::facet_wrap(~Site) +
-  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90)) +
-  ggplot2::xlab('') + ggplot2::ylab('Basal area greater than coefficient') +
-  ggplot2::ylim(c(-1, 1))
-
-# Fraction basal area per taxon
-coeff_save |>
-  ggplot2::ggplot() +
-  ggplot2::geom_jitter(ggplot2::aes(x = Site, y = frac_ba, color = Plot)) +
-  ggplot2::geom_violin(ggplot2::aes(x = Site, y = frac_ba), fill = NA) +
-  ggplot2::theme_minimal() +
-  ggplot2::ylim(c(-2,2)) +
-  ggplot2::xlab('') + ggplot2::ylab('Fraction of basal area per taxon coefficient')
-
-coeff_save |>
-  ggplot2::ggplot() +
-  ggplot2::geom_violin(ggplot2::aes(x = Taxon, y = frac_ba, fill = Plot)) +
-  ggplot2::theme_minimal() +
-  ggplot2::facet_wrap(~Site) +
-  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90)) +
-  ggplot2::xlab('') + ggplot2::ylab('Fraction of basal area per taxon coefficient') +
-  ggplot2::ylim(c(-1, 1))
-
-# Total plot-level basal area
-coeff_save |>
-  ggplot2::ggplot() +
-  ggplot2::geom_jitter(ggplot2::aes(x = Site, y = total_ba, color = Plot)) +
-  ggplot2::geom_violin(ggplot2::aes(x = Site, y = total_ba), fill = NA) +
-  ggplot2::theme_minimal() +
-  ggplot2::ylim(c(-2,2)) +
-  ggplot2::xlab('') + ggplot2::ylab('Plot-level basal area coefficient')
-
-coeff_save |>
-  ggplot2::ggplot() +
-  ggplot2::geom_violin(ggplot2::aes(x = Taxon, y = total_ba, fill = Plot)) +
-  ggplot2::theme_minimal() +
-  ggplot2::facet_wrap(~Site) +
-  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90)) +
-  ggplot2::xlab('') + ggplot2::ylab('Plot-level basal area coefficient') +
-  ggplot2::ylim(c(-1, 1))
-
 #### By tree size ####
 
 GOOSE_size <- readRDS('sites/GOOSE/runs/v2.0_012021/output/DBH_STAN_GOOSE_v2.0_012021.RDS')
@@ -668,16 +554,6 @@ coeff_size_1960 |>
   ggplot2::ylim(c(-1, 1)) +
   ggplot2::xlab('') + ggplot2::ylab('Basal area coefficient')
 
-# Basal area greater than
-coeff_size_1960 |>
-  ggplot2::ggplot() +
-  ggplot2::geom_jitter(ggplot2::aes(x = Site, y = BAGT, color = DBH)) +
-  ggplot2::geom_violin(ggplot2::aes(x = Site, y = BAGT), fill = NA) +
-  ggplot2::theme_minimal() +
-  ggplot2::scale_color_viridis_c(option = 'H') +
-  ggplot2::ylim(c(-0.05, 0.05)) +
-  ggplot2::xlab('') + ggplot2::ylab('Basal area greater than coefficient')
-
 ## Separating eastern sites & Sylvania
 
 # R2
@@ -888,27 +764,6 @@ p2 <- coeff_size_1960 |>
   ggplot2::scale_color_viridis_c(option = 'H') +
   ggplot2::ylim(c(-1, 1)) +
   ggplot2::xlab('') + ggplot2::ylab('Basal area coefficient')
-cowplot::plot_grid(p1, p2, nrow = 1, rel_widths = c(0.3, 0.7))
-
-# Basal area greater than
-p1 <- coeff_size_1960 |>
-  dplyr::filter(Site == 'SYLVANIA') |>
-  ggplot2::ggplot() +
-  ggplot2::geom_jitter(ggplot2::aes(x = Site, y = BAGT, color = DBH)) +
-  ggplot2::geom_violin(ggplot2::aes(x = Site, y = BAGT), fill = NA) +
-  ggplot2::theme_minimal() +
-  ggplot2::scale_color_viridis_c(option = 'H') +
-  ggplot2::ylim(c(-0.05, 0.05)) +
-  ggplot2::xlab('') + ggplot2::ylab('Basal area greater than coefficient')
-p2 <- coeff_size_1960 |>
-  dplyr::filter(Site != 'SYLVANIA') |>
-  ggplot2::ggplot() +
-  ggplot2::geom_jitter(ggplot2::aes(x = Site, y = BAGT, color = DBH)) +
-  ggplot2::geom_violin(ggplot2::aes(x = Site, y = BAGT), fill = NA) +
-  ggplot2::theme_minimal() +
-  ggplot2::scale_color_viridis_c(option = 'H') +
-  ggplot2::ylim(c(-0.05, 0.05)) +
-  ggplot2::xlab('') + ggplot2::ylab('Basal area greater than coefficient')
 cowplot::plot_grid(p1, p2, nrow = 1, rel_widths = c(0.3, 0.7))
 
 ## Size in middle of series
@@ -1012,16 +867,6 @@ coeff_size_1985 |>
   ggplot2::ylim(c(-1, 1)) +
   ggplot2::xlab('') + ggplot2::ylab('Basal area coefficient')
 
-# Basal area greater than
-coeff_size_1985 |>
-  ggplot2::ggplot() +
-  ggplot2::geom_jitter(ggplot2::aes(x = Site, y = BAGT, color = DBH)) +
-  ggplot2::geom_violin(ggplot2::aes(x = Site, y = BAGT), fill = NA) +
-  ggplot2::theme_minimal() +
-  ggplot2::scale_color_viridis_c(option = 'H') +
-  ggplot2::ylim(c(-0.05, 0.05)) +
-  ggplot2::xlab('') + ggplot2::ylab('Basal area greater than coefficient')
-
 ## Separating eastern sites & Sylvania
 
 # R2
@@ -1232,27 +1077,6 @@ p2 <- coeff_size_1985 |>
   ggplot2::scale_color_viridis_c(option = 'H') +
   ggplot2::ylim(c(-1, 1)) +
   ggplot2::xlab('') + ggplot2::ylab('Basal area coefficient')
-cowplot::plot_grid(p1, p2, nrow = 1, rel_widths = c(0.3, 0.7))
-
-# Basal area greater than
-p1 <- coeff_size_1985 |>
-  dplyr::filter(Site == 'SYLVANIA') |>
-  ggplot2::ggplot() +
-  ggplot2::geom_jitter(ggplot2::aes(x = Site, y = BAGT, color = DBH)) +
-  ggplot2::geom_violin(ggplot2::aes(x = Site, y = BAGT), fill = NA) +
-  ggplot2::theme_minimal() +
-  ggplot2::scale_color_viridis_c(option = 'H') +
-  ggplot2::ylim(c(-0.05, 0.05)) +
-  ggplot2::xlab('') + ggplot2::ylab('Basal area greater than coefficient')
-p2 <- coeff_size_1985 |>
-  dplyr::filter(Site != 'SYLVANIA') |>
-  ggplot2::ggplot() +
-  ggplot2::geom_jitter(ggplot2::aes(x = Site, y = BAGT, color = DBH)) +
-  ggplot2::geom_violin(ggplot2::aes(x = Site, y = BAGT), fill = NA) +
-  ggplot2::theme_minimal() +
-  ggplot2::scale_color_viridis_c(option = 'H') +
-  ggplot2::ylim(c(-0.05, 0.05)) +
-  ggplot2::xlab('') + ggplot2::ylab('Basal area greater than coefficient')
 cowplot::plot_grid(p1, p2, nrow = 1, rel_widths = c(0.3, 0.7))
 
 ## Size at end of series
@@ -1356,16 +1180,6 @@ coeff_size_2010 |>
   ggplot2::ylim(c(-1, 1)) +
   ggplot2::xlab('') + ggplot2::ylab('Basal area coefficient')
 
-# Basal area greater than
-coeff_size_2010 |>
-  ggplot2::ggplot() +
-  ggplot2::geom_jitter(ggplot2::aes(x = Site, y = BAGT, color = DBH)) +
-  ggplot2::geom_violin(ggplot2::aes(x = Site, y = BAGT), fill = NA) +
-  ggplot2::theme_minimal() +
-  ggplot2::scale_color_viridis_c(option = 'H') +
-  ggplot2::ylim(c(-0.05, 0.05)) +
-  ggplot2::xlab('') + ggplot2::ylab('Basal area greater than coefficient')
-
 ## Separating eastern sites & Sylvania
 
 # R2
@@ -1578,27 +1392,6 @@ p2 <- coeff_size_2010 |>
   ggplot2::xlab('') + ggplot2::ylab('Basal area coefficient')
 cowplot::plot_grid(p1, p2, nrow = 1, rel_widths = c(0.3, 0.7))
 
-# Basal area greater than
-p1 <- coeff_size_2010 |>
-  dplyr::filter(Site == 'SYLVANIA') |>
-  ggplot2::ggplot() +
-  ggplot2::geom_jitter(ggplot2::aes(x = Site, y = BAGT, color = DBH)) +
-  ggplot2::geom_violin(ggplot2::aes(x = Site, y = BAGT), fill = NA) +
-  ggplot2::theme_minimal() +
-  ggplot2::scale_color_viridis_c(option = 'H') +
-  ggplot2::ylim(c(-0.05, 0.05)) +
-  ggplot2::xlab('') + ggplot2::ylab('Basal area greater than coefficient')
-p2 <- coeff_size_2010 |>
-  dplyr::filter(Site != 'SYLVANIA') |>
-  ggplot2::ggplot() +
-  ggplot2::geom_jitter(ggplot2::aes(x = Site, y = BAGT, color = DBH)) +
-  ggplot2::geom_violin(ggplot2::aes(x = Site, y = BAGT), fill = NA) +
-  ggplot2::theme_minimal() +
-  ggplot2::scale_color_viridis_c(option = 'H') +
-  ggplot2::ylim(c(-0.05, 0.05)) +
-  ggplot2::xlab('') + ggplot2::ylab('Basal area greater than coefficient')
-cowplot::plot_grid(p1, p2, nrow = 1, rel_widths = c(0.3, 0.7))
-
 ## Growth rate through series
 
 # R2
@@ -1699,16 +1492,6 @@ coeff_growth |>
   ggplot2::scale_color_viridis_c(option = 'A') +
   ggplot2::ylim(c(-1, 1)) +
   ggplot2::xlab('') + ggplot2::ylab('Basal area coefficient')
-
-# Basal area greater than
-coeff_growth |>
-  ggplot2::ggplot() +
-  ggplot2::geom_jitter(ggplot2::aes(x = Site, y = BAGT, color = Rate)) +
-  ggplot2::geom_violin(ggplot2::aes(x = Site, y = BAGT), fill = NA) +
-  ggplot2::theme_minimal() +
-  ggplot2::scale_color_viridis_c(option = 'A') +
-  ggplot2::ylim(c(-0.05, 0.05)) +
-  ggplot2::xlab('') + ggplot2::ylab('Basal area greater than coefficient')
 
 ## Separating NRP
 
@@ -1921,25 +1704,3 @@ p2 <- coeff_growth |>
   ggplot2::ylim(c(-1, 1)) +
   ggplot2::xlab('') + ggplot2::ylab('Basal area coefficient')
 cowplot::plot_grid(p1, p2, nrow = 1, rel_widths = c(0.3, 0.7))
-
-# Basal area greater than
-p1 <- coeff_growth |>
-  dplyr::filter(Site == 'NRP') |>
-  ggplot2::ggplot() +
-  ggplot2::geom_jitter(ggplot2::aes(x = Site, y = BAGT, color = Rate)) +
-  ggplot2::geom_violin(ggplot2::aes(x = Site, y = BAGT), fill = NA) +
-  ggplot2::theme_minimal() +
-  ggplot2::scale_color_viridis_c(option = 'A') +
-  ggplot2::ylim(c(-0.05, 0.05)) +
-  ggplot2::xlab('') + ggplot2::ylab('Basal area greater than coefficient')
-p2 <- coeff_growth |>
-  dplyr::filter(Site != 'NRP') |>
-  ggplot2::ggplot() +
-  ggplot2::geom_jitter(ggplot2::aes(x = Site, y = BAGT, color = Rate)) +
-  ggplot2::geom_violin(ggplot2::aes(x = Site, y = BAGT), fill = NA) +
-  ggplot2::theme_minimal() +
-  ggplot2::scale_color_viridis_c(option = 'A') +
-  ggplot2::ylim(c(-0.05, 0.05)) +
-  ggplot2::xlab('') + ggplot2::ylab('Basal area greater than coefficient')
-cowplot::plot_grid(p1, p2, nrow = 1, rel_widths = c(0.3, 0.7))
-
