@@ -38,9 +38,6 @@ prism_annual <- prism_long |>
                    mean_Vpdmin = min(Vpdmin2),
                    mean_Vpdmax = max(Vpdmax2))
 
-# Load competition information
-load('data/competition_metrics.RData')
-
 # Storage
 coeff_save_plot <- matrix(, nrow = sum(plot), ncol = 12)
 
