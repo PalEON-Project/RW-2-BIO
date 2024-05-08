@@ -765,71 +765,39 @@ PPT_lm = clim_agb %>%
 
 PPT_lm_slope = subset(PPT_lm, term == 'PPT_total_tree')
 PPT_lm_slope$sig = ifelse(PPT_lm_slope$p.value < 0.05, TRUE, FALSE)
+#plotting the p-value of PPT_total_tree intercept for each site 
+#if p<0.05 then TRUE, else FALSE
 ggplot(data=PPT_lm_slope) +
   geom_point(aes(x=estimate, y=site, colour=sig))
 
 
-
-
-Vpd_lm = Vapor_melt %>% 
-  group_by(taxon, variable) %>%
+Vpd_lm = vpd_melt %>% 
+  group_by(site) %>%
   do(tidy(lm(AGBI.mean ~ value, .)))
 
-VPD_lm_slope = subset(Vpd_lm, term == 'value')
-VPD_lm_slope$sig = ifelse(VPD_lm_slope$p.value < 0.05, TRUE, FALSE)
-ggplot(data=VPD_lm_slope) +
-  geom_point(aes(x=estimate, y=taxon, colour=sig)) +
-  facet_wrap(~variable)
+vpd_lm_slope = subset(vpd_lm, term == 'value')
+vpd_lm_slope$sig = ifelse(vpd_lm_slope$p.value < 0.05, TRUE, FALSE)
+ggplot(data=vpd_lm_slope) +
+  geom_point(aes(x=estimate, y=site, colour=sig)) 
 
 
-Tmin_lm = temp_min_melt %>% 
-  group_by(taxon, variable) %>%
+tmin_lm = tmin_melt %>% 
+  group_by(site) %>%
   do(tidy(lm(AGBI.mean ~ value, .)))
 
-Tmin_lm_slope = subset(Tmin_lm, term == 'value')
-Tmin_lm_slope$sig = ifelse(Tmin_lm_slope$p.value < 0.05, TRUE, FALSE)
-ggplot(data=Tmin_lm_slope) +
-  geom_point(aes(x=estimate, y=taxon, colour=sig)) +
-  facet_wrap(~variable)
+tmin_lm_slope = subset(tmin_lm, term == 'value')
+tmin_lm_slope$sig = ifelse(tmin_lm_slope$p.value < 0.05, TRUE, FALSE)
+ggplot(data=tmin_lm_slope) +
+  geom_point(aes(x=estimate, y=site, colour=sig)) 
 
-Tmax_lm = temp_max_melt %>% 
-  group_by(taxon, variable) %>%
+tmax_lm = tmax_melt %>% 
+  group_by(site) %>%
   do(tidy(lm(AGBI.mean ~ value, .)))
+tmax_lm_slope = subset(tmax_lm, term == 'value')
+tmax_lm_slope$sig = ifelse(tmax_lm_slope$p.value < 0.05, TRUE, FALSE)
+ggplot(data=tmax_lm_slope) +
+  geom_point(aes(x=estimate, y=site, colour=sig)) 
 
-# PPT_lm = clim_taxon %>% 
-#   group_by(taxon) %>%
-#   do(tidy(lm(AGBI.mean ~ PPT_total_tree, .)))
-# 
-# PPT_lm_slope = subset(PPT_lm, term == 'PPT_total_tree')
-# PPT_lm_slope$sig = ifelse(PPT_lm_slope$p.value < 0.05, TRUE, FALSE)
-# ggplot(data=PPT_lm_slope) +
-#   geom_point(aes(x=estimate, y=taxon, colour=sig))
-# 
-# Vpd_lm = Vapor_melt %>% 
-#   group_by(taxon, variable) %>%
-#   do(tidy(lm(AGBI.mean ~ value, .)))
-# 
-# VPD_lm_slope = subset(Vpd_lm, term == 'value')
-# VPD_lm_slope$sig = ifelse(VPD_lm_slope$p.value < 0.05, TRUE, FALSE)
-# ggplot(data=VPD_lm_slope) +
-#   geom_point(aes(x=estimate, y=taxon, colour=sig)) +
-#   facet_wrap(~variable)
-# 
-# 
-# Tmin_lm = temp_min_melt %>% 
-#   group_by(taxon, variable) %>%
-#   do(tidy(lm(AGBI.mean ~ value, .)))
-# 
-# Tmin_lm_slope = subset(Tmin_lm, term == 'value')
-# Tmin_lm_slope$sig = ifelse(Tmin_lm_slope$p.value < 0.05, TRUE, FALSE)
-# ggplot(data=Tmin_lm_slope) +
-#   geom_point(aes(x=estimate, y=taxon, colour=sig)) +
-#   facet_wrap(~variable)
-# 
-# Tmax_lm = temp_max_melt %>% 
-#   group_by(taxon, variable) %>%
-#   do(tidy(lm(AGBI.mean ~ value, .)))
-# 
 
 
 #################################################################################
