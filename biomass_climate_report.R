@@ -758,6 +758,13 @@ PPT_lm_slope$sig = ifelse(PPT_lm_slope$p.value < 0.05, TRUE, FALSE)
 ggplot(data=PPT_lm_slope) +
   geom_point(aes(x=estimate, y=variable, colour=site, shape=sig), size =4)
 
+#plotting only months and time where PPT is significant 
+PPT_sig = subset(PPT_lm_slope, sig == "TRUE")
+ggplot(data=PPT_sig) +
+  geom_point(aes(x=estimate, y=variable, colour=site), size = 3)+
+  ggtitle("months where PPT is significant")
+
+
 #by month
 PPT_lm_month = ppt_melt %>% 
   group_by(variable) %>%
@@ -774,7 +781,7 @@ ggplot(data=PPT_lm_slope_month) +
 
 #bysite 
 vpd_lm = vpd_melt %>% 
-  group_by(site) %>%
+  group_by(site, variable) %>%
   do(tidy(lm(AGBI.mean ~ value, .)))
 vpd_lm_slope = subset(vpd_lm, term == 'value')
 vpd_lm_slope$sig = ifelse(vpd_lm_slope$p.value < 0.05, TRUE, FALSE)
@@ -791,11 +798,15 @@ vpd_lm_slope_month$sig = ifelse(vpd_lm_slope_month$p.value < 0.05, TRUE, FALSE)
 ggplot(data=vpd_lm_slope_month) +
   geom_point(aes(x=estimate, y=variable, colour=sig)) 
 
-
+#plotting only months and time where VPD is significant 
+VPD_sig = subset(vpd_lm_slope, sig == "TRUE")
+ggplot(data=VPD_sig) +
+  geom_point(aes(x=estimate, y=variable, colour=site), size = 3)+
+  ggtitle("months where VPD is significant")
 
 #by site
 tmin_lm = tmin_melt %>% 
-  group_by(site) %>%
+  group_by(site, variable) %>%
   do(tidy(lm(AGBI.mean ~ value, .)))
 
 tmin_lm_slope = subset(tmin_lm, term == 'value')
@@ -812,11 +823,15 @@ tmin_lm_slope_month$sig = ifelse(tmin_lm_slope_month$p.value < 0.05, TRUE, FALSE
 ggplot(data=tmin_lm_slope_month) +
   geom_point(aes(x=estimate, y=variable, colour=sig)) 
 
-
+#plotting only months and time where VPD is significant 
+tmin_sig = subset(tmin_lm_slope, sig == "TRUE")
+ggplot(data=tmin_sig) +
+  geom_point(aes(x=estimate, y=variable, colour=site), size = 3)+
+  ggtitle("months where tmin is significant")
 
 #by site
 tmax_lm = tmax_melt %>% 
-  group_by(site) %>%
+  group_by(site, variable) %>%
   do(tidy(lm(AGBI.mean ~ value, .)))
 tmax_lm_slope = subset(tmax_lm, term == 'value')
 tmax_lm_slope$sig = ifelse(tmax_lm_slope$p.value < 0.05, TRUE, FALSE)
@@ -833,7 +848,11 @@ tmax_lm_slope_month$sig = ifelse(tmax_lm_slope_month$p.value < 0.05, TRUE, FALSE
 ggplot(data=tmax_lm_slope_month) +
   geom_point(aes(x=estimate, y=variable, colour=sig)) 
 
-
+#plotting only months and time where VPD is significant 
+tmax_sig = subset(tmax_lm_slope, sig == "TRUE")
+ggplot(data=tmax_sig) +
+  geom_point(aes(x=estimate, y=variable, colour=site), size = 3)+
+  ggtitle("months where tmax is significant")
 #################################################################################
 # Individual tree 
 #################################################################################
