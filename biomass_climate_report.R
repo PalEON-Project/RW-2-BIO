@@ -22,6 +22,7 @@ library(ggcorrplot)
 library(reshape2)
 library(broom)
 library(gam)
+library(correlation)
 
 # #above ground biomass
 # goose_total_agb <- readRDS('sites/GOOSE/runs/v2.0_012021/output/AGB_STAN_GOOSE_v2.0_012021.RDS')
@@ -388,6 +389,28 @@ tmean_melt = melt(tmean,
 ppt_melt = melt(ppt, id.vars = c('model', 'year', 'AGBI.mean', 'site'))
 
 annual_vars_melt = melt(annual_vars, id.vars = c('model', 'year', 'AGBI.mean', 'site'))
+
+##################################################################################################
+#plotting climate variables over time 
+###################################################################################################
+ggplot(data = ppt_melt)+
+  geom_line(aes(x = year, y = value, color = site))+
+  facet_wrap(~variable, scales = "free_y")
+
+cor_PPT = ppt_melt %>% 
+  group_by(variable, site) %>% 
+  summarize(cor(AGBI.mean, variable == "PPT_total_tree"))
+
+cor(clim_agb$AGBI.mean, clim_agb$PPT_total_tree, use = "complete.obs")
+
+ppt_melt  %>% 
+  group_by(variable) %>%
+  correlation(method = "spearman")
+
+
+  
+ggcorrplot(cor_PPT, method = "square", type = "lower", hc.order = FALSE)
+
 
 #without taxon
 ggplot(data = clim_agb) +
