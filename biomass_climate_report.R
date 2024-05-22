@@ -21,6 +21,7 @@ library(tidyr)
 library(ggcorrplot)
 library(reshape2)
 library(broom)
+library(gam)
 
 # #above ground biomass
 # goose_total_agb <- readRDS('sites/GOOSE/runs/v2.0_012021/output/AGB_STAN_GOOSE_v2.0_012021.RDS')
@@ -288,6 +289,9 @@ cor_plot_goose = data.frame(cor(goose_plot_wide[,c('1', '2', '3')], use = "compl
 ggcorrplot(cor_plot_goose, method = "square", type = "lower")
 
 
+cor(clim_agb$AGBI.mean, clim_agb$PPT_01, use = "complete.obs")
+
+
 # all_site_plot_summary
 goose_plot_summary = subset(all_site_plot_summary, site == 'GOOSE')
 goose_plot_summary_wide = pivot_wider(data = goose_plot_summary[,(colnames(goose_plot_summary) %in% 
@@ -437,6 +441,13 @@ ggplot(data = clim_agb) +
 ggplot(data = ppt_melt) +
   geom_point(aes(x = value, y = AGBI.mean)) +
   geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
+  facet_wrap(~variable, scales = "free") +
+  xlab('PPT') + 
+  ylab('Aboveground biomass increment')
+
+ggplot(data = ppt_melt) +
+  geom_point(aes(x = value, y = AGBI.mean, color = site)) +
+  geom_smooth(aes(x = value, y = AGBI.mean, color = site), method='lm', formula= y~x) +  
   facet_wrap(~variable, scales = "free") +
   xlab('PPT') + 
   ylab('Aboveground biomass increment')
@@ -702,6 +713,27 @@ ggplot(data = annual_vars_melt) +
 #################################################################################
 #STATS
 #################################################################################
+PPT_gam_month = ppt_melt %>% 
+  group_by(variable) %>%
+  do(tidy(gam(AGBI.mean ~ s(value), ., family  = Gamma(link = "identity"))))
+
+PPT_gam_slope_month = subset(PPT_gam_month, term == 'value')
+PPT_gam_slope_month$sig = ifelse(PPT_gam_slope_month$p.value < 0.05, TRUE, FALSE)
+#plotting the p-value of PPT_total_tree intercept for each site 
+#if p<0.05 then TRUE, else FALSE
+ggplot(data=PPT_gam_slope_month) +
+  geom_point(aes(x=estimate, y=variable, colour=sig))
+
+
+ggplot(data = ppt_melt) +
+  geom_point(aes(x = value, y = AGBI.mean)) +
+  geom_smooth(aes(x = value, y = AGBI.mean), method='gam', formula= y~s(x, k=10)) +  
+  facet_wrap(~variable, scales = "free") +
+  xlab('PPT') + 
+  ylab('Aboveground biomass increment')
+
+
+
 #by site
 PPT_lm = clim_agb %>% 
   group_by(site) %>%
@@ -714,6 +746,17 @@ PPT_lm_slope$sig = ifelse(PPT_lm_slope$p.value < 0.05, TRUE, FALSE)
 ggplot(data=PPT_lm_slope) +
   geom_point(aes(x=estimate, y=site, colour=sig))
 
+#site and month
+PPT_lm = ppt_melt %>% 
+  group_by(site, variable) %>%
+  do(tidy(lm(AGBI.mean ~ value, .)))
+
+PPT_lm_slope = subset(PPT_lm, term == 'value')
+PPT_lm_slope$sig = ifelse(PPT_lm_slope$p.value < 0.05, TRUE, FALSE)
+#plotting the p-value of PPT_total_tree intercept for each site 
+#if p<0.05 then TRUE, else FALSE
+ggplot(data=PPT_lm_slope) +
+  geom_point(aes(x=estimate, y=variable, colour=site, shape=sig), size =4)
 
 #by month
 PPT_lm_month = ppt_melt %>% 
