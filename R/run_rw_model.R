@@ -2,8 +2,10 @@
 
 ## This script takes the built data from the last step and fits the STAN model, giving annual DBH estimates for each individual. 
 
-run_rw_model <- function(census_site, site, mvers, 
-                         dvers, keep = 300, nchains = 3, pool = 2500, iter = iter){
+# run_rw_model <- function(census_site, site, mvers, 
+#                          dvers, keep = 300, nchains = 3, pool = 2500, iter = iter){
+  run_rw_model <- function(census_site, site, mvers, 
+                           dvers, keep = 300, nchains = 3, iter = iter){
   
   ##############################################
   ################ 1. Load data ################
@@ -26,8 +28,10 @@ run_rw_model <- function(census_site, site, mvers,
   if (census_site){
     
     # compile STAN model
-    compiled <- stan_model(file = paste0('models/ring_model_t_pdbh_STAN.stan'))
+    #compiled <- stan_model(file = paste0('models/ring_model_t_pdbh_STAN.stan'))
+    # compiled <- stan_model(file = paste0('models/ring_model_t_pdbh_STAN.stan'))
     
+    compiled <- stan_model(file = paste0('models/ring_model_t_pdbh_species_sigxk_STAN.stan'))
     
     # fit and extract values
     fit <- sampling(compiled, 
@@ -154,29 +158,57 @@ run_rw_model <- function(census_site, site, mvers,
       trk_ind = trk_ind + 1
     }
     
+    # # lastly, for all beta years 
+    # for (byr in 1:dat$N_years){
+    #   for (tree in 1:dat$N_Tr){
+    #   print(byr)
+    #   temp.ind = which(substr(variables, 1, 7) == 'beta_t[')#which(variables == paste0('beta_t[', tree, ',' ,byr, ']'))
+    #   temp.data = reshape2::melt(post[,,temp.ind])
+    #   # temp.data$iterations = seq(1, nrow(temp.data))
+    #   var.split = strsplit(as.vector(temp.data$parameters), "\\[|,|\\]")
+    #   temp.data$year = as.numeric(lapply(var.split, function(x) x[[2]]))
+    #   temp.data$taxon_id = as.numeric(lapply(var.split, function(x) x[[3]]))
+    #   if (nchains==1){
+    #     temp.data$chains = rep(1)
+    #   }
+    #   # if (nchains==1){
+    #   #   pl.temp = ggplot(temp.data) + 
+    #   #     geom_line(aes(x = iterations, y = value)) + 
+    #   #     labs(x = 'iteration', y = 'value', title = paste0('trace plot for beta year ',byr), 
+    #   #          color = 'chain')
+    #   # } else {
+    #     pl.temp = ggplot(temp.data) + 
+    #       geom_line(aes(x = iterations, y = value, group = as.factor(chains), color = as.factor(chains))) + 
+    #       labs(x = 'iteration', y = 'value', title = paste0('trace plot for beta year ',byr), 
+    #            color = 'chain')
+    #   # }
+    #   mcmc_diags[[trk_ind]] = pl.temp
+    #   trk_ind = trk_ind + 1
+    # }
+    
     # lastly, for all beta years 
-    for (byr in 1:dat$N_years){
-      print(byr)
-      temp.ind = which(variables == paste0('beta_t[',byr,']'))
-      temp.data = reshape2::melt(post[,,temp.ind])
-      temp.data$iterations = seq(1, nrow(temp.data))
-      if (nchains==1){
-        temp.data$chains = rep(1)
-      }
-      # if (nchains==1){
-      #   pl.temp = ggplot(temp.data) + 
-      #     geom_line(aes(x = iterations, y = value)) + 
-      #     labs(x = 'iteration', y = 'value', title = paste0('trace plot for beta year ',byr), 
-      #          color = 'chain')
-      # } else {
-        pl.temp = ggplot(temp.data) + 
-          geom_line(aes(x = iterations, y = value, group = as.factor(chains), color = as.factor(chains))) + 
-          labs(x = 'iteration', y = 'value', title = paste0('trace plot for beta year ',byr), 
-               color = 'chain')
-      # }
-      mcmc_diags[[trk_ind]] = pl.temp
-      trk_ind = trk_ind + 1
-    }
+    # for (byr in 1:dat$N_years){
+    #   print(byr)
+    #   temp.ind = which(variables == paste0('beta_t[',byr,']'))
+    #   temp.data = reshape2::melt(post[,,temp.ind])
+    #   temp.data$iterations = seq(1, nrow(temp.data))
+    #   if (nchains==1){
+    #     temp.data$chains = rep(1)
+    #   }
+    #   # if (nchains==1){
+    #   #   pl.temp = ggplot(temp.data) + 
+    #   #     geom_line(aes(x = iterations, y = value)) + 
+    #   #     labs(x = 'iteration', y = 'value', title = paste0('trace plot for beta year ',byr), 
+    #   #          color = 'chain')
+    #   # } else {
+    #   pl.temp = ggplot(temp.data) + 
+    #     geom_line(aes(x = iterations, y = value, group = as.factor(chains), color = as.factor(chains))) + 
+    #     labs(x = 'iteration', y = 'value', title = paste0('trace plot for beta year ',byr), 
+    #          color = 'chain')
+    #   # }
+    #   mcmc_diags[[trk_ind]] = pl.temp
+    #   trk_ind = trk_ind + 1
+    # }
     
     pdf(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','RWC_MCMC_diagnostics.pdf'), onefile = TRUE)
     for (i in seq(length(mcmc_diags))) {
@@ -197,8 +229,9 @@ run_rw_model <- function(census_site, site, mvers,
     rm(ess)
     
     # save as RDS file 
-    saveRDS(post, file = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'output', paste0('ring_model_t_pdbh_STAN_', site, '_', mvers, '_', dvers, '.RDS')))
-  
+    # saveRDS(post, file = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'output', paste0('ring_model_t_pdbh_STAN_', site, '_', mvers, '_', dvers, '.RDS')))
+    saveRDS(post, file = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'output', paste0('ring_model_t_pdbh_species_sigxk_STAN_', site, '_', mvers, '_', dvers, '.RDS')))
+    
     # generate a quick figure to roughly check model output  
     X2taxon_C = sapply(dat$X2C, function(id){dat$allTrees$taxon[which(dat$allTrees$stat_id == id)]})
     variables = names(post[1,1,])
@@ -262,14 +295,17 @@ run_rw_model <- function(census_site, site, mvers,
   }
 
   # compile STAN model
-  compiled <- stan_model(file = paste0('models/ring_model_t_pdbh_sigd_STAN.stan'))
+  # compiled <- stan_model(file = paste0('models/ring_model_t_pdbh_sigd_STAN.stan'))
+  # compiled <- stan_model(file = paste0('models/ring_model_t_pdbh_sigd_species_STAN.stan'))
+  compiled <- stan_model(file = paste0('models/ring_model_t_pdbh_sigd_species_sigxk_STAN.stan'))
+  
 
   # fit and extract values
   fit <- sampling(compiled, 
                   data = dat, 
                   iter = iter, 
                   chains = nchains,
-                  verbose=TRUE)
+                  verbose = TRUE)
   # rm(compiled)
   
   ##############################################################
@@ -350,9 +386,27 @@ run_rw_model <- function(census_site, site, mvers,
   
   # diagnostic 3 : trace plots 
   # first, for the singulars 
+  # nchains = dim(post)[2]
+  # niter = dim(post)[1]
+  # for (par in c('beta0','beta_sd','beta_t_sd','sig_x','sig_x_obs')){
+  #   temp.ind = which(variables == par)
+  #   temp.data = reshape2::melt(post[,,temp.ind])
+  #   temp.data$iterations = seq(1, nrow(temp.data))
+  #   if(nchains == 1){
+  #     temp.data$chains = rep(1, nrow(temp.data))
+  #   }
+  #   pl.temp = ggplot(temp.data) + 
+  #     geom_line(aes(x = iterations, y = value, group = as.factor(chains), color = as.factor(chains))) + 
+  #     labs(x = 'iteration', y = 'value', title = paste0('trace plot for ',par), 
+  #          color = 'chain')
+  #   print(pl.temp)
+  #   mcmc_diags[[trk_ind]] = pl.temp
+  #   trk_ind = trk_ind + 1
+  # }
+  
   nchains = dim(post)[2]
   niter = dim(post)[1]
-  for (par in c('beta0','beta_sd','beta_t_sd','sig_x','sig_x_obs')){
+  for (par in c('beta0','beta_sd','beta_t_sd','sig_x_obs')){
     temp.ind = which(variables == par)
     temp.data = reshape2::melt(post[,,temp.ind])
     temp.data$iterations = seq(1, nrow(temp.data))
@@ -362,6 +416,24 @@ run_rw_model <- function(census_site, site, mvers,
     pl.temp = ggplot(temp.data) + 
       geom_line(aes(x = iterations, y = value, group = as.factor(chains), color = as.factor(chains))) + 
       labs(x = 'iteration', y = 'value', title = paste0('trace plot for ',par), 
+           color = 'chain')
+    print(pl.temp)
+    mcmc_diags[[trk_ind]] = pl.temp
+    trk_ind = trk_ind + 1
+  }
+  
+  nchains = dim(post)[2]
+  niter = dim(post)[1]
+  for (k in 1:dat$N_taxa){
+    temp.ind = which(variables == paste0('sig_x[',k,']'))
+    temp.data = reshape2::melt(post[,,temp.ind])
+    temp.data$iterations = seq(1, nrow(temp.data))
+    if(nchains == 1){
+      temp.data$chains = rep(1, nrow(temp.data))
+    }
+    pl.temp = ggplot(temp.data) + 
+      geom_line(aes(x = iterations, y = value, group = as.factor(chains), color = as.factor(chains))) + 
+      labs(x = 'iteration', y = 'value', title = paste0('trace plot for sig_x ', k), 
            color = 'chain')
     print(pl.temp)
     mcmc_diags[[trk_ind]] = pl.temp
@@ -386,24 +458,53 @@ run_rw_model <- function(census_site, site, mvers,
     trk_ind = trk_ind + 1
   }
   
-  # lastly, for all beta years 
-  for (byr in 1:dat$N_years){
-    print(byr)
-    temp.ind = which(variables == paste0('beta_t[',byr,']'))
-    temp.data = reshape2::melt(post[,,temp.ind])
-    temp.data$iterations = seq(1, nrow(temp.data))
-    if(nchains == 1){
-      temp.data$chains = rep(1, nrow(temp.data))
-    }
-    pl.temp = ggplot(temp.data) + 
-      geom_line(aes(x = iterations, y = value, group = as.factor(chains), color = as.factor(chains))) + 
-      labs(x = 'iteration', y = 'value', title = paste0('trace plot for beta year ',byr), 
-           color = 'chain')
-    print(pl.temp)
-    mcmc_diags[[trk_ind]] = pl.temp
-    trk_ind = trk_ind + 1
-  }
   
+  # # lastly, for all beta years 
+  # for (byr in 1:dat$N_years){
+  #   for (tree in 1:dat$N_Tr){
+  #   print(byr)
+  #   temp.ind = which(substr(variables, 1, 7) == 'beta_t[')#which(variables == paste0('beta_t[', tree, ',' ,byr, ']'))
+  #   temp.data = reshape2::melt(post[,,temp.ind])
+  #   # temp.data$iterations = seq(1, nrow(temp.data))
+  #   var.split = strsplit(as.vector(temp.data$parameters), "\\[|,|\\]")
+  #   temp.data$year = as.numeric(lapply(var.split, function(x) x[[2]]))
+  #   temp.data$taxon_id = as.numeric(lapply(var.split, function(x) x[[3]]))
+  #   if (nchains==1){
+  #     temp.data$chains = rep(1)
+  #   }
+  #   # if (nchains==1){
+  #   #   pl.temp = ggplot(temp.data) + 
+  #   #     geom_line(aes(x = iterations, y = value)) + 
+  #   #     labs(x = 'iteration', y = 'value', title = paste0('trace plot for beta year ',byr), 
+  #   #          color = 'chain')
+  #   # } else {
+  #     pl.temp = ggplot(temp.data) + 
+  #       geom_line(aes(x = iterations, y = value, group = as.factor(chains), color = as.factor(chains))) + 
+  #       labs(x = 'iteration', y = 'value', title = paste0('trace plot for beta year ',byr), 
+  #            color = 'chain')
+  #   # }
+  #   mcmc_diags[[trk_ind]] = pl.temp
+  #   trk_ind = trk_ind + 1
+  # }
+  
+  # # lastly, for all beta years 
+  # for (byr in 1:dat$N_years){
+  #   print(byr)
+  #   temp.ind = which(variables == paste0('beta_t[',byr,']'))
+  #   temp.data = reshape2::melt(post[,,temp.ind])
+  #   temp.data$iterations = seq(1, nrow(temp.data))
+  #   if(nchains == 1){
+  #     temp.data$chains = rep(1, nrow(temp.data))
+  #   }
+  #   pl.temp = ggplot(temp.data) + 
+  #     geom_line(aes(x = iterations, y = value, group = as.factor(chains), color = as.factor(chains))) + 
+  #     labs(x = 'iteration', y = 'value', title = paste0('trace plot for beta year ',byr), 
+  #          color = 'chain')
+  #   print(pl.temp)
+  #   mcmc_diags[[trk_ind]] = pl.temp
+  #   trk_ind = trk_ind + 1
+  # }
+  # 
   pdf(file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','RW_MCMC_diagnostics.pdf'), onefile = TRUE)
   for (i in seq(length(mcmc_diags))) {
     print(i)
@@ -422,7 +523,8 @@ run_rw_model <- function(census_site, site, mvers,
   #rm(postTemp)
   
   # save as RDS file 
-  saveRDS(post, file = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'output',paste0('ring_model_t_pdbh_sigd_STAN_', site, '_', mvers,'_', dvers, '.RDS')))
+  # saveRDS(post, file = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'output',paste0('ring_model_t_pdbh_sigd_species_STAN_', site, '_', mvers,'_', dvers, '.RDS')))
+  saveRDS(post, file = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'output',paste0('ring_model_t_pdbh_sigd_species_sigxk_STAN_', site, '_', mvers,'_', dvers, '.RDS')))
   
   # generate a quick figure to roughly check model output 
   allDs = grep('D\\[',variables)

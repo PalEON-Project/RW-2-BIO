@@ -18,7 +18,7 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
   
   # decide how many models you need
   if (census_site){
-    fnames = paste0(c('ring_model_t_pdbh_sigd_STAN', 'ring_model_t_pdbh_STAN'), '_', 
+    fnames = paste0(c('ring_model_t_pdbh_sigd_species_sigxk_STAN', 'ring_model_t_pdbh_species_sigxk_STAN'), '_', 
                     site, '_',mvers,'_',dvers,'.RDS')
     models = c('Model RW', 'Model RW + Census')
   }else{
@@ -838,7 +838,8 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
     labs(x = 'Year', y = 'Biomass (Mg/ha)', color = 'Species', fill = 'Species',
          title = 'Aboveground Biomass by PFT')
   print(pl1)
-  ggsave(pl1, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_pft_AGB.jpg'))
+  ggsave(pl1, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_pft_AGB.pdf'), width=10, height=8)
+  # ggsave(pl1, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_pft_AGB.jpg'))
   # ggsave(pl1, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_pft_AGB.jpg'))
   
   # determine quantiles for graphing 
@@ -882,7 +883,8 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
     labs(x = 'Year', y = 'Biomass Increment (Mg/ha)', color = 'Species', fill = 'Species',
          title = 'Aboveground Biomass Increment by PFT')
   print(pl1)
-  ggsave(pl1, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_pft_ABI.jpg'))
+  ggsave(pl1, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_pft_ABI.pdf'), width=10, height=8)
+  # ggsave(pl1, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_pft_ABI.jpg'))
   
   
   # figure to compare total biomass for each plot 
@@ -897,7 +899,8 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
     labs(x = 'Year', y = 'Biomass Increment (Mg/ha)', color = 'Model', fill = 'Model', 
          title = "Total Aboveground Biomass Increment by Plot") 
   print(pl2)
-  ggsave(pl2, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_total_plot_ABI.jpg'))
+  ggsave(pl2, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_total_plot_ABI.pdf'), width=10, height=8)
+  # ggsave(pl2, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_total_plot_ABI.jpg'))
   
   # figure to compare total site biomass 
   sum_site = agb_taxa %>%
@@ -926,7 +929,8 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
     labs(x = 'Year', y = 'Biomass (Mg/ha)', color = 'Model', fill = 'Model', 
          title = "Total Aboveground Biomass") 
   print(pl3)
-  ggsave(pl3, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_total_site_AGB.jpg'))
+  ggsave(pl3, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_total_site_AGB.pdf'), width=10, height=8)
+  # ggsave(pl3, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_total_site_AGB.jpg'))
   
   # figure to compare total site biomass 
   abi_sum_site = abi_taxa %>%
@@ -958,7 +962,8 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
     labs(x = 'Year', y = 'Biomass (Mg/ha)', color = 'Model', fill = 'Model', 
          title = "Total Aboveground Biomass Increment") 
   print(pl3)
-  ggsave(pl3, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_total_site_ABI.jpg'))
+  ggsave(pl3, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_total_site_ABI.pdf'), width=10, height=8)
+  # ggsave(pl3, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_total_site_ABI.jpg'))
   
 
   
@@ -989,7 +994,8 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
       labs(x = 'Year', y = 'Biomass (Mg/ha)', color = 'Model', fill = 'Model',
            title = "Total Aboveground Biomass")
     print(pl3)
-    ggsave(pl3, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_pft_site_AGB.jpg'))
+    ggsave(pl3, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_pft_site_AGB.pdf'), width=10, height=8)
+    # ggsave(pl3, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_pft_site_AGB.jpg'))
     
     # figure to compare total site biomass
     abi_sum_site_pft = abi_taxa %>%
@@ -1018,7 +1024,8 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
       labs(x = 'Year', y = 'Biomass Increment (Mg/ha)', color = 'Model', fill = 'Model',
            title = "Total Aboveground Biomass Increment")
     print(pl3)
-    ggsave(pl3, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_pft_site_ABI.jpg'))
+    ggsave(pl3, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_pft_site_ABI.pdf'), width=10, height=8)
+    # ggsave(pl3, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','processed_pft_site_ABI.jpg'))
     
   # }
   
@@ -1046,7 +1053,8 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
          y = 'cumulative proportion of biomass', 
          x = 'species')
   print(pl4)
-  ggsave(pl4, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','98_biomass_modelRW.jpg'))
+  ggsave(pl4, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','98_biomass_modelRW.pdf'), width=10, height=8)
+  # ggsave(pl4, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','98_biomass_modelRW.jpg'))
   
   # then RW + Census model if applicable 
   if (census_site){
@@ -1060,6 +1068,7 @@ process_rw_model <- function(census_site, mvers, dvers, site, nest,
       labs(title = 'overall cumulative proportion of biomass by species - Model RW + Census', 
            y = 'cumulative proportion of biomass', 
            x = 'species')
-    ggsave(pl5, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','98_biomass_modelRW_census.jpg'))
+    ggsave(pl5, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','98_biomass_modelRW_census.pdf'), width=10, height=8)
+    # ggsave(pl5, filename = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'figures','98_biomass_modelRW_census.jpg'))
   }
 }

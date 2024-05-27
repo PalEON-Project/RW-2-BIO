@@ -58,6 +58,33 @@ build_data <- function(site, dvers, mvers, prefix,
   rownames(incr) = as.vector(unlist(lapply(rwData, rownames)))
   incr[,1] = rownames(incr)
   
+  incr_missing = incr
+  incr_missing_data = melt(incr_missing)
+  colnames(incr_missing_data) = c('id', 'year', 'incr')
+  incr_missing_data$year = as.vector(incr_missing_data$year)
+  # Assign core ID to each core
+  incr_missing_data$id = substr(incr_missing_data$id, 1, len)
+  
+  # foo = incr_missing_data %>%
+  #   group_by(id, year) %>%
+  #   mutate(any_missing = any(incr==0, na.rm=TRUE),
+  #          not_missing = any(incr>0, na.rm=TRUE))
+  
+  foo = incr_missing_data %>%
+    group_by(id, year) %>%
+    summarize(any_missing = any(incr==0, na.rm=TRUE),
+           not_missing = any(incr>0, na.rm=TRUE))
+  
+  head(foo)
+  
+  sum(foo$not_missing)
+  sum(foo$any_missing)
+  
+  bar = foo[which(foo$any_missing),]
+  bar2 = foo[which((foo$any_missing)),]
+  
+  incr = replace(incr, incr==0, NA)
+  
   # Create incr_data data frame 
   incr_data = melt(incr)
   colnames(incr_data) = c('id', 'year', 'incr')
@@ -66,7 +93,9 @@ build_data <- function(site, dvers, mvers, prefix,
   # Remove NA values right away to quicken processing (only keep the series for which trees were alive/existed)
   # Also remove all increment values for before the determined cut off year, which has a default value of 1900
   # Also remove all data that comes after the first year of full data (some sites have multiple years of coring)
-  incr_data = incr_data %>% mutate(year = as.numeric(year)) %>% filter(!is.na(incr), year >= cutoff)
+  incr_data = incr_data %>% 
+    mutate(year = as.numeric(year)) %>% 
+    filter(!is.na(incr), year >= cutoff)
   
   # Assign core ID to each core
   incr_data$id = substr(incr_data$id, 1, len)
@@ -148,6 +177,11 @@ build_data <- function(site, dvers, mvers, prefix,
                         year_end=as.numeric(aggregate(year~stat_id, incr_data, max)[,2]))
   year_idx$year_start = rep(1, length(year_idx$stat_id))
   
+  
+  taxa = unique(incr_data$taxon)
+  N_taxa = length(taxa)
+  # X2taxon = Tr2taxon[X2Tr]
+  
   #########################################################
   ################ 4. Organize RW DBH data ################
   #########################################################
@@ -161,6 +195,7 @@ build_data <- function(site, dvers, mvers, prefix,
   pdbh$taxon = plyr::mapvalues(pdbh$id, from = treeMeta$ID, to = treeMeta$species, 
                                warn_missing = FALSE)
   
+  Tr2taxon = match(pdbh$taxon, taxa)
   #####################################################################
   ################ 5. Organize RW only Model estimates ################
   #####################################################################
@@ -188,10 +223,18 @@ build_data <- function(site, dvers, mvers, prefix,
     
     # create dataframe that would hold all RW values we need to estimate based on both RW + Census data 
     # AKA loop through all trees and create a row of info for each RW value we need to estimate
-    X_data_C = data.frame(meas=numeric(0), stat_id=numeric(0), year=numeric(0))
+    X_data_C = data.frame(meas=numeric(0), 
+                          stat_id=numeric(0), 
+                          species_id = numeric(0), 
+                          year=numeric(0))
     n = 1
     for (tree in 1:length(allTrees$stat_id)){
+      print(tree)
       stat = allTrees$stat_id[tree]
+      
+      if (stat==23){
+        print(tree)
+      }
       
       # check to see if available in RW data
       in.RW = ifelse(stat %in% year_idx$stat_id, TRUE, FALSE)
@@ -210,7 +253,8 @@ build_data <- function(site, dvers, mvers, prefix,
         firstyr = 1
         
         # what was the last census this tree was in?
-        lastCensus = max(which(which(years %in% census_years) %in% as.numeric(census_long$year[which(census_long$stat_id == stat)])))
+        lastCensus = max(which(which(years %in% census_years) %in% 
+                                 as.numeric(census_long$year[which(census_long$stat_id == stat)])))
         lastData = year_idx$year_end[year_idx$stat_id == stat]
         
         # if RW ends after census, then we just use last RW year
@@ -229,12 +273,23 @@ build_data <- function(site, dvers, mvers, prefix,
             census_long$finalCond[which(census_long$stat_id == stat)] = 'dead'
           }
         }
+        
+        species = census_long$species[which(census_long$stat_id == stat)][1]
+        species_id = match(species, taxa)
       }
       
       # if only in RW, use year_idx 
       if (in.RW & !in.C){
         firstyr = 1
         lastyr = year_idx$year_end[year_idx$stat_id == stat]
+        # if (stat == 23){
+        #   species_id = match('BEAL', taxa)
+        # } else if (stat == 31) {
+        #   
+        # } else{
+          species = pdbh$taxon[match(stat, pdbh$stat_id)]
+          species_id = match(species, taxa)
+        # }
       }
       
       # if only in census, last year is either:
@@ -257,6 +312,9 @@ build_data <- function(site, dvers, mvers, prefix,
           lastyr = which(years == (census_years[lastCensus+1] - 1))
           census_long$finalCond[which(census_long$stat_id == stat)] = 'dead'
         }
+        
+        species = census_long$species[which(census_long$stat_id == stat)][1]
+        species_id = match(species, taxa)
       }
       
       if (!in.RW & !in.C){
@@ -268,7 +326,9 @@ build_data <- function(site, dvers, mvers, prefix,
       year = seq(firstyr, lastyr)
       meas = seq(n, n+length(year)-1)
       n = n + length(year)
-      X_data_C = rbind(X_data_C, data.frame(meas=meas, stat_id=rep(stat, length(year)), year=year))
+      X_data_C = rbind(X_data_C, 
+                       data.frame(meas=meas, stat_id=rep(stat, length(year)), 
+                                  species_id =rep(species_id, length(year)), year=year))
     }
   }
   
@@ -339,17 +399,40 @@ build_data <- function(site, dvers, mvers, prefix,
                     function(ind){
                       which((X_data_C$stat_id == pdbh$stat_id[ind]) & (X_data_C$year == pdbh$year[ind]))
                     })
+    # Tr2X_C = unlist(Tr2X_C)
     
     # Maps RW estimates to year index and stat_id for RW + Census model 
     X2year_C = X_data_C$year
     X2C = X_data_C$stat_id
+    X2Tr_C = X_data_C$stat_id 
     
+    # Tr2taxon_C = as.numeric(X_data_C$species_id[match(seq(1, N_C), X_data_C$stat_id)])
+    Tr2taxon_C = match(allTrees$taxon, taxa)
 
     # Maps observed values of RW to respective RW estimate index for RW + Census model 
-    Xobs2X_C = sapply((1:length(incr_data$id)),
-                    function(ind){
-                      which((X_data_C$stat_id == incr_data$stat_id[ind]) & (X_data_C$year == incr_data$year[ind]))
-                    })
+    # Xobs2X_C = sapply((1:length(incr_data$id)),
+    #                 function(ind){
+    #                   which((X_data_C$stat_id == incr_data$stat_id[ind]) & (X_data_C$year == incr_data$year[ind]))
+    #                 })
+    # Xobs2X_C = unlist(Xobs2X_C)
+    
+    
+    # Xobs2X_C = lapply((1:length(incr_data$id)),
+    #                   function(ind){
+    #                     which((X_data_C$stat_id == incr_data$stat_id[ind]) & (X_data_C$year == incr_data$year[ind]))
+    #                   })
+    
+    Xobs2X_C = rep(NA, length=N_Xobs)
+    for (i in 1:N_Xobs){
+      idx = which((X_data_C$stat_id == incr_data$stat_id[i]) & (X_data_C$year == incr_data$year[i]))
+      
+      if (length(idx)>1){
+        print(paste0("Ring width obs ", i, "; match ", idx))
+        stop()
+      }
+
+      Xobs2X_C[i] =  idx
+    }
     
     # Data frame that contains all census measurements/data
     Dobs = census_long
@@ -386,10 +469,17 @@ build_data <- function(site, dvers, mvers, prefix,
   # Determine log of all RW diameter measurements to fit with RW STAN model
   logTr = log(pdbh$dbh)
   
+  
+
+  
   # Determine log of all RW increment measurements to fit with RW STAN model
   Xobs    = incr_data$incr
   Xobs[Xobs==0] = 0.0001
   logXobs = log(Xobs)
+  
+  # X2taxon = match(incr_data$taxon, taxa)
+  X2taxon = Tr2taxon[X2Tr]
+  X2taxon_C = Tr2taxon_C[X2Tr_C]
   
   # Larger save matrices
   # All RW measurement data
@@ -409,12 +499,18 @@ build_data <- function(site, dvers, mvers, prefix,
                  N_Tr = N_Tr,
                  N_Dobs = N_Dobs,
                  N_C = N_C, 
+                 N_taxa = N_taxa,
                  Tr2X = Tr2X,
                  Tr2X_C = Tr2X_C,
+                 Tr2taxon = Tr2taxon,
+                 Tr2taxon_C = Tr2taxon_C,
                  X2C = X2C, 
                  X2Tr = X2Tr,
+                 X2Tr_C = X2Tr_C,
                  X2year = X2year, 
                  X2year_C = X2year_C,
+                 X2taxon = X2taxon,
+                 X2taxon_C = X2taxon_C,
                  idx_C = idx_C, 
                  idx_Tr = idx_Tr, 
                  Dobs2X = Dobs2X, 
@@ -427,7 +523,8 @@ build_data <- function(site, dvers, mvers, prefix,
                  Tr = Tr,
                  Xobs = Xobs,
                  allTrees = allTrees,
-                 years = years 
+                 years = years,
+                 taxa = taxa
     ),
     file=RDS_loc)
   }else{
@@ -435,16 +532,20 @@ build_data <- function(site, dvers, mvers, prefix,
                  N_years = N_years, 
                  N_X = N_X, 
                  N_Tr = N_Tr,
+                 N_taxa = N_taxa,
                  Tr2X = Tr2X,
+                 Tr2taxon = Tr2taxon,
                  X2Tr = X2Tr,
                  X2year = X2year, 
+                 X2taxon = X2taxon,
                  idx_Tr = idx_Tr, 
                  Xobs2X = Xobs2X, 
                  logTr = logTr, 
                  logXobs = logXobs,
                  Xobs = Xobs, 
                  Tr = Tr,
-                 years = years
+                 years = years,
+                 taxa = taxa
     ),
     file=RDS_loc) 
   }

@@ -21,6 +21,8 @@ library(tidyr)
 library(ggcorrplot)
 library(reshape2)
 library(broom)
+library(gam)
+library(correlation)
 
 # #above ground biomass
 # goose_total_agb <- readRDS('sites/GOOSE/runs/v2.0_012021/output/AGB_STAN_GOOSE_v2.0_012021.RDS')
@@ -288,6 +290,9 @@ cor_plot_goose = data.frame(cor(goose_plot_wide[,c('1', '2', '3')], use = "compl
 ggcorrplot(cor_plot_goose, method = "square", type = "lower")
 
 
+cor(clim_agb$AGBI.mean, clim_agb$PPT_01, use = "complete.obs")
+
+
 # all_site_plot_summary
 goose_plot_summary = subset(all_site_plot_summary, site == 'GOOSE')
 goose_plot_summary_wide = pivot_wider(data = goose_plot_summary[,(colnames(goose_plot_summary) %in% 
@@ -385,6 +390,28 @@ ppt_melt = melt(ppt, id.vars = c('model', 'year', 'AGBI.mean', 'site'))
 
 annual_vars_melt = melt(annual_vars, id.vars = c('model', 'year', 'AGBI.mean', 'site'))
 
+##################################################################################################
+#plotting climate variables over time 
+###################################################################################################
+ggplot(data = ppt_melt)+
+  geom_line(aes(x = year, y = value, color = site))+
+  facet_wrap(~variable, scales = "free_y")
+
+cor_PPT = ppt_melt %>% 
+  group_by(variable, site) %>% 
+  summarize(cor(AGBI.mean, variable == "PPT_total_tree"))
+
+cor(clim_agb$AGBI.mean, clim_agb$PPT_total_tree, use = "complete.obs")
+
+ppt_melt  %>% 
+  group_by(variable) %>%
+  correlation(method = "spearman")
+
+
+  
+ggcorrplot(cor_PPT, method = "square", type = "lower", hc.order = FALSE)
+
+
 #without taxon
 ggplot(data = clim_agb) +
   geom_point(aes(x = yearly_meanT, y = AGBI.mean)) +
@@ -437,6 +464,13 @@ ggplot(data = clim_agb) +
 ggplot(data = ppt_melt) +
   geom_point(aes(x = value, y = AGBI.mean)) +
   geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
+  facet_wrap(~variable, scales = "free") +
+  xlab('PPT') + 
+  ylab('Aboveground biomass increment')
+
+ggplot(data = ppt_melt) +
+  geom_point(aes(x = value, y = AGBI.mean, color = site)) +
+  geom_smooth(aes(x = value, y = AGBI.mean, color = site), method='lm', formula= y~x) +  
   facet_wrap(~variable, scales = "free") +
   xlab('PPT') + 
   ylab('Aboveground biomass increment')
@@ -702,6 +736,27 @@ ggplot(data = annual_vars_melt) +
 #################################################################################
 #STATS
 #################################################################################
+PPT_gam_month = ppt_melt %>% 
+  group_by(variable) %>%
+  do(tidy(gam(AGBI.mean ~ s(value), ., family  = Gamma(link = "identity"))))
+
+PPT_gam_slope_month = subset(PPT_gam_month, term == 'value')
+PPT_gam_slope_month$sig = ifelse(PPT_gam_slope_month$p.value < 0.05, TRUE, FALSE)
+#plotting the p-value of PPT_total_tree intercept for each site 
+#if p<0.05 then TRUE, else FALSE
+ggplot(data=PPT_gam_slope_month) +
+  geom_point(aes(x=estimate, y=variable, colour=sig))
+
+
+ggplot(data = ppt_melt) +
+  geom_point(aes(x = value, y = AGBI.mean)) +
+  geom_smooth(aes(x = value, y = AGBI.mean), method='gam', formula= y~s(x, k=10)) +  
+  facet_wrap(~variable, scales = "free") +
+  xlab('PPT') + 
+  ylab('Aboveground biomass increment')
+
+
+
 #by site
 PPT_lm = clim_agb %>% 
   group_by(site) %>%
@@ -713,6 +768,24 @@ PPT_lm_slope$sig = ifelse(PPT_lm_slope$p.value < 0.05, TRUE, FALSE)
 #if p<0.05 then TRUE, else FALSE
 ggplot(data=PPT_lm_slope) +
   geom_point(aes(x=estimate, y=site, colour=sig))
+
+#site and month
+PPT_lm = ppt_melt %>% 
+  group_by(site, variable) %>%
+  do(tidy(lm(AGBI.mean ~ value, .)))
+
+PPT_lm_slope = subset(PPT_lm, term == 'value')
+PPT_lm_slope$sig = ifelse(PPT_lm_slope$p.value < 0.05, TRUE, FALSE)
+#plotting the p-value of PPT_total_tree intercept for each site 
+#if p<0.05 then TRUE, else FALSE
+ggplot(data=PPT_lm_slope) +
+  geom_point(aes(x=estimate, y=variable, colour=site, shape=sig), size =4)
+
+#plotting only months and time where PPT is significant 
+PPT_sig = subset(PPT_lm_slope, sig == "TRUE")
+ggplot(data=PPT_sig) +
+  geom_point(aes(x=estimate, y=variable, colour=site), size = 3)+
+  ggtitle("months where PPT is significant")
 
 
 #by month
@@ -731,7 +804,7 @@ ggplot(data=PPT_lm_slope_month) +
 
 #bysite 
 vpd_lm = vpd_melt %>% 
-  group_by(site) %>%
+  group_by(site, variable) %>%
   do(tidy(lm(AGBI.mean ~ value, .)))
 vpd_lm_slope = subset(vpd_lm, term == 'value')
 vpd_lm_slope$sig = ifelse(vpd_lm_slope$p.value < 0.05, TRUE, FALSE)
@@ -748,11 +821,15 @@ vpd_lm_slope_month$sig = ifelse(vpd_lm_slope_month$p.value < 0.05, TRUE, FALSE)
 ggplot(data=vpd_lm_slope_month) +
   geom_point(aes(x=estimate, y=variable, colour=sig)) 
 
-
+#plotting only months and time where VPD is significant 
+VPD_sig = subset(vpd_lm_slope, sig == "TRUE")
+ggplot(data=VPD_sig) +
+  geom_point(aes(x=estimate, y=variable, colour=site), size = 3)+
+  ggtitle("months where VPD is significant")
 
 #by site
 tmin_lm = tmin_melt %>% 
-  group_by(site) %>%
+  group_by(site, variable) %>%
   do(tidy(lm(AGBI.mean ~ value, .)))
 
 tmin_lm_slope = subset(tmin_lm, term == 'value')
@@ -769,11 +846,15 @@ tmin_lm_slope_month$sig = ifelse(tmin_lm_slope_month$p.value < 0.05, TRUE, FALSE
 ggplot(data=tmin_lm_slope_month) +
   geom_point(aes(x=estimate, y=variable, colour=sig)) 
 
-
+#plotting only months and time where VPD is significant 
+tmin_sig = subset(tmin_lm_slope, sig == "TRUE")
+ggplot(data=tmin_sig) +
+  geom_point(aes(x=estimate, y=variable, colour=site), size = 3)+
+  ggtitle("months where tmin is significant")
 
 #by site
 tmax_lm = tmax_melt %>% 
-  group_by(site) %>%
+  group_by(site, variable) %>%
   do(tidy(lm(AGBI.mean ~ value, .)))
 tmax_lm_slope = subset(tmax_lm, term == 'value')
 tmax_lm_slope$sig = ifelse(tmax_lm_slope$p.value < 0.05, TRUE, FALSE)
@@ -790,7 +871,11 @@ tmax_lm_slope_month$sig = ifelse(tmax_lm_slope_month$p.value < 0.05, TRUE, FALSE
 ggplot(data=tmax_lm_slope_month) +
   geom_point(aes(x=estimate, y=variable, colour=sig)) 
 
-
+#plotting only months and time where VPD is significant 
+tmax_sig = subset(tmax_lm_slope, sig == "TRUE")
+ggplot(data=tmax_sig) +
+  geom_point(aes(x=estimate, y=variable, colour=site), size = 3)+
+  ggtitle("months where tmax is significant")
 #################################################################################
 # Individual tree 
 #################################################################################
