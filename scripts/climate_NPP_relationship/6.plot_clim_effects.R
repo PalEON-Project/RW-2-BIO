@@ -264,3 +264,4 @@ coeff_save_combined |>
   ggplot2::scale_color_manual(values = 'black') +
   ggplot2::ylim(c(-0.05, 0.05)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())
+
