@@ -432,6 +432,15 @@ ggplot(data = clim_agb) +
 #   ylab('Aboveground biomass increment')
 # # ggsave("AGBI_precip_tree.png")
 
+
+#PPT
+ggplot(data = ppt_melt) +
+  geom_point(aes(x = value, y = AGBI.mean)) +
+  geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
+  facet_wrap(~variable, scales = "free") +
+  xlab('PPT') + 
+  ylab('Aboveground biomass increment')
+
 ## VPD by month
 ggplot(data = vpd_melt) +
   geom_point(aes(x = value, y = AGBI.mean)) +
@@ -693,6 +702,7 @@ ggplot(data = annual_vars_melt) +
 #################################################################################
 #STATS
 #################################################################################
+#by site
 PPT_lm = clim_agb %>% 
   group_by(site) %>%
   do(tidy(lm(AGBI.mean ~ PPT_total_tree, .)))
@@ -705,16 +715,42 @@ ggplot(data=PPT_lm_slope) +
   geom_point(aes(x=estimate, y=site, colour=sig))
 
 
-Vpd_lm = vpd_melt %>% 
-  group_by(site) %>%
+#by month
+PPT_lm_month = ppt_melt %>% 
+  group_by(variable) %>%
   do(tidy(lm(AGBI.mean ~ value, .)))
 
+PPT_lm_slope_month = subset(PPT_lm_month, term == 'value')
+PPT_lm_slope_month$sig = ifelse(PPT_lm_slope_month$p.value < 0.05, TRUE, FALSE)
+#plotting the p-value of PPT_total_tree intercept for each site 
+#if p<0.05 then TRUE, else FALSE
+ggplot(data=PPT_lm_slope_month) +
+  geom_point(aes(x=estimate, y=variable, colour=sig))
+
+
+
+#bysite 
+vpd_lm = vpd_melt %>% 
+  group_by(site) %>%
+  do(tidy(lm(AGBI.mean ~ value, .)))
 vpd_lm_slope = subset(vpd_lm, term == 'value')
 vpd_lm_slope$sig = ifelse(vpd_lm_slope$p.value < 0.05, TRUE, FALSE)
 ggplot(data=vpd_lm_slope) +
   geom_point(aes(x=estimate, y=site, colour=sig)) 
 
+#bymonth
+#do we want month and site on one?
+vpd_lm_month = vpd_melt %>% 
+  group_by(variable) %>%
+  do(tidy(lm(AGBI.mean ~ value, .)))
+vpd_lm_slope_month = subset(vpd_lm_month, term == 'value')
+vpd_lm_slope_month$sig = ifelse(vpd_lm_slope_month$p.value < 0.05, TRUE, FALSE)
+ggplot(data=vpd_lm_slope_month) +
+  geom_point(aes(x=estimate, y=variable, colour=sig)) 
 
+
+
+#by site
 tmin_lm = tmin_melt %>% 
   group_by(site) %>%
   do(tidy(lm(AGBI.mean ~ value, .)))
@@ -724,6 +760,18 @@ tmin_lm_slope$sig = ifelse(tmin_lm_slope$p.value < 0.05, TRUE, FALSE)
 ggplot(data=tmin_lm_slope) +
   geom_point(aes(x=estimate, y=site, colour=sig)) 
 
+#by month
+tmin_lm_month = tmin_melt %>% 
+  group_by(variable) %>%
+  do(tidy(lm(AGBI.mean ~ value, .)))
+tmin_lm_slope_month = subset(tmin_lm_month, term == 'value')
+tmin_lm_slope_month$sig = ifelse(tmin_lm_slope_month$p.value < 0.05, TRUE, FALSE)
+ggplot(data=tmin_lm_slope_month) +
+  geom_point(aes(x=estimate, y=variable, colour=sig)) 
+
+
+
+#by site
 tmax_lm = tmax_melt %>% 
   group_by(site) %>%
   do(tidy(lm(AGBI.mean ~ value, .)))
@@ -732,6 +780,15 @@ tmax_lm_slope$sig = ifelse(tmax_lm_slope$p.value < 0.05, TRUE, FALSE)
 ggplot(data=tmax_lm_slope) +
   geom_point(aes(x=estimate, y=site, colour=sig)) 
 
+
+#by month
+tmax_lm_month = tmax_melt %>% 
+  group_by(variable) %>%
+  do(tidy(lm(AGBI.mean ~ value, .)))
+tmax_lm_slope_month = subset(tmax_lm_month, term == 'value')
+tmax_lm_slope_month$sig = ifelse(tmax_lm_slope_month$p.value < 0.05, TRUE, FALSE)
+ggplot(data=tmax_lm_slope_month) +
+  geom_point(aes(x=estimate, y=variable, colour=sig)) 
 
 
 #################################################################################
