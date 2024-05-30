@@ -376,18 +376,24 @@ annual_vars = select(clim_agb, year, AGBI.mean, site,
 
 vpd_melt = melt(vpd, 
                 id.vars = c('model', 'year', 'AGBI.mean', 'site'))
+vpd_melt$site = factor(vpd_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA'))
 
 # vpd_melt$variable = sapply(as.vector(vpd_melt$variable), function(x) {strsplit(x, '\\_')[[1]][2]})
 
 tmin_melt = melt(tmin,
                  id.vars = c('model', 'year', 'AGBI.mean', 'site'))
+tmin_melt$site = factor(tmin_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA'))
+
 tmax_melt = melt(tmax, 
                  id.vars = c('model', 'year', 'AGBI.mean', 'site'))
+tmax_melt$site = factor(tmax_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA'))
 
 tmean_melt = melt(tmean, 
                   id.vars = c('model', 'year', 'AGBI.mean', 'site'))
+tmean_melt$site = factor(tmean_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA'))
 
 ppt_melt = melt(ppt, id.vars = c('model', 'year', 'AGBI.mean', 'site'))
+ppt_melt$site = factor(ppt_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA'))
 
 annual_vars_melt = melt(annual_vars, id.vars = c('model', 'year', 'AGBI.mean', 'site'))
 
@@ -789,11 +795,15 @@ ggplot(data=PPT_lm_slope) +
   geom_point(aes(x=estimate, y=variable, colour=site, shape=sig), size =4)+
   geom_vline(aes(xintercept = 0, linetype = "dashed"))
 
+
+
 #plotting only months and time where PPT is significant 
 PPT_sig = subset(PPT_lm_slope, sig == "TRUE")
+PPT_sig$site = factor(PPT_sig$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA'))
+
 ggplot(data=PPT_sig) +
-  geom_point(aes(x=estimate, y=variable), size = 3)+
-  geom_vline(aes(xintercept = 0, linetype = "dashed", color = "green"))+
+  geom_point(aes(x=estimate, y=variable, color = site), size = 3)+
+  geom_vline(aes(xintercept = 0, linetype = "dashed"), color = "darkgreen")+
   ggtitle("months where PPT is significant")
 
 
@@ -900,6 +910,17 @@ ggplot(data=tmax_sig) +
 #################################################################################
 # taxon data 
 #################################################################################
+
+
+taxon_site_total = all_taxon_summary %>% 
+  group_by(taxon, site) %>% 
+  summarize(total_AGBI_mean = sum(AGBI.mean, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  arrange(site, desc(total_AGBI_mean)) %>% 
+  group_by(site) %>% 
+  slice(1:3)
+
+
 #taking the sum of each taxon for a given site
 taxon_summed = all_taxon_summary %>% 
   group_by(year, taxon, site) %>% 
