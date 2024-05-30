@@ -2,7 +2,7 @@
 
 # data details
 dvers = '102020'
-mvers = 'v2.0'
+mvers = 'v3.1'
 
 # site details
 site = 'HARVARD'

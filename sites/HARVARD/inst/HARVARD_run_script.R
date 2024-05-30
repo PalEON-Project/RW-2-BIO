@@ -6,8 +6,8 @@
 #####################################################
 library(RW2BIO)
 
-rm(list=ls())
-setwd('/Users/marissakivi/Desktop/PalEON/RW-2-BIO')
+# rm(list=ls())
+# setwd('/Users/marissakivi/Desktop/PalEON/RW-2-BIO')
 
 # Load config file 
 source('sites/HARVARD/inst/config.R')
@@ -15,7 +15,7 @@ source('sites/HARVARD/inst/config.R')
 # run reformatting script 
 source(paste0('sites/',site,'/data/raw/past/',site,'_reformatting_',dvers,'.R'))
 
-rm(list=ls())
+# rm(list=ls())
 source('sites/HARVARD/inst/config.R')
 
 #########################################################
