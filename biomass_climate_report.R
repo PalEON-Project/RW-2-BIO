@@ -216,6 +216,7 @@ ggplot(data=all_site_summary) +
   theme_bw(14) +
   xlab('Year') +
   ylab('AGBI (Mg/ha)')
+ggsave("figures/AGBI_over_time.jpg")
 
 ggplot(data=all_taxon_summary) +
   geom_ribbon(aes(x=year, ymin=AGBI.lo, ymax=AGBI.hi, colour=taxon, fill=taxon)) +
@@ -224,6 +225,8 @@ ggplot(data=all_taxon_summary) +
   xlab('Year') +
   ylab('AGBI (Mg/ha)') +
   facet_wrap(~site)
+ggsave("figures/AGBI_over_time_taxons.jpg")
+
 
 #######################3
 ###this is where you stopped for full data
@@ -232,6 +235,8 @@ ggplot(data=all_taxon_summary) +
                   ymax=AGBI.mean+2*AGBI.sd, color = taxon, fill = taxon), alpha=0.3) +
   geom_line(aes(x=year, y=AGBI.mean, color = taxon)) +
   facet_wrap(~site)
+ggsave("figures/AGBI_site_taxon_with_sd.jpg")
+
 
 #average biomass that increases for the whole time period
 # taxon_3 = taxon_summary %>% 
@@ -403,7 +408,7 @@ annual_vars_melt = melt(annual_vars, id.vars = c('model', 'year', 'AGBI.mean', '
 ggplot(data = ppt_melt)+
   geom_line(aes(x = year, y = value, color = site))+
   facet_wrap(~variable, scales = "free_y")
-
+ggsave("figures/PPT_over_time.jpg")
 
 #correlation between PPT and AGBI
 cor_PPT = ppt_melt %>%
@@ -430,6 +435,8 @@ ggplot(data = clim_agb) +
   # facet_wrap(~site, scales = 'free')+
   xlab('Mean annual temperature') + 
   ylab('Aboveground biomass increment')
+ggsave("figures/AGBI_vs_meantemp.jpg")
+
 
 ggplot(data = clim_agb) +
   geom_point(aes(x = yearly_meanT, y = AGBI.mean)) +
@@ -437,13 +444,13 @@ ggplot(data = clim_agb) +
   facet_wrap(~site, scales = 'free')+
   xlab('Mean annual temperature') + 
   ylab('Aboveground biomass increment')
-#ggsave("AGBI_temp.png")
+ggsave("figures/AGBI_temp_site.jpg")
 
 ggplot(data = clim_agb) +
   geom_point(aes(x = PPT_total, y = AGBI.mean)) +
   geom_smooth(aes(x = PPT_total, y = AGBI.mean), method='lm', formula= y~x)+
   xlab('Mean annual precipitation') + ylab('Aboveground biomass increment')
-# ggsave("AGBI_precip.png")
+ggsave("figures/AGBI_precip.png")
 
 ggplot(data = clim_agb) +
   geom_point(aes(x = PPT_total, y = AGBI.mean)) +
@@ -451,24 +458,24 @@ ggplot(data = clim_agb) +
   facet_wrap(~site, scales = "free")+
   xlab('Mean annual precipitation') + 
   ylab('Aboveground biomass increment')
-# ggsave("AGBI_precip.png")
+ggsave("figures/AGBI_precip_site.png")
 
 
-# # by month
-# ggplot(data = clim_agb) +
-#   geom_point(aes(x = PPT_total_tree, y = AGBI.mean)) +
-#   geom_smooth(aes(x = PPT_total_tree, y = AGBI.mean), method='lm', formula= y~x)+
-#   xlab('VPD') + 
-#   ylab('Aboveground biomass increment')
-# # ggsave("AGBI_precip_tree.png")
+# by month
+ggplot(data = clim_agb) +
+  geom_point(aes(x = PPT_total_tree, y = AGBI.mean)) +
+  geom_smooth(aes(x = PPT_total_tree, y = AGBI.mean), method='lm', formula= y~x)+
+  xlab('PPT_total_tree') +
+  ylab('Aboveground biomass increment')
+ggsave("figures/AGBI_precip_tree.png")
 # 
-# ggplot(data = clim_agb) +
-#   geom_point(aes(x = PPT_total_tree, y = AGBI.mean)) +
-#   geom_smooth(aes(x = PPT_total_tree, y = AGBI.mean), method='lm', formula= y~x) +  
-#   facet_wrap(~site, scales = "free") +
-#   xlab('VPD') + 
-#   ylab('Aboveground biomass increment')
-# # ggsave("AGBI_precip_tree.png")
+ggplot(data = clim_agb) +
+  geom_point(aes(x = PPT_total_tree, y = AGBI.mean)) +
+  geom_smooth(aes(x = PPT_total_tree, y = AGBI.mean), method='lm', formula= y~x) +
+  facet_wrap(~site, scales = "free") +
+  xlab('PPT_total_tree') +
+  ylab('Aboveground biomass increment')
+ggsave("figures/AGBI_precip_tree_site.png")
 
 
 #PPT
@@ -478,6 +485,7 @@ ggplot(data = ppt_melt) +
   facet_wrap(~variable, scales = "free") +
   xlab('PPT') + 
   ylab('Aboveground biomass increment')
+ggsave("figures/AGBI_PPT_monthly.jpg")
 
 ggplot(data = ppt_melt) +
   geom_point(aes(x = value, y = AGBI.mean, color = site)) +
@@ -485,6 +493,7 @@ ggplot(data = ppt_melt) +
   facet_wrap(~variable, scales = "free") +
   xlab('PPT') + 
   ylab('Aboveground biomass increment')
+ggsave("figures/AGBI_PPT_monthly_site.jpg")
 
 ## VPD by month
 ggplot(data = vpd_melt) +
@@ -493,6 +502,7 @@ ggplot(data = vpd_melt) +
   facet_wrap(~variable, scales = "free") +
   xlab('VPD') + 
   ylab('Aboveground biomass increment')
+ggsave("figures/AGBI_VPD_monthly.jpg")
 
 ggplot(data = vpd_melt) +
   geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
@@ -500,20 +510,16 @@ ggplot(data = vpd_melt) +
   facet_wrap(~variable, scales = "free") +
   xlab('VPD') + 
   ylab('Aboveground biomass increment')
+ggsave("figures/AGBI_PPT_monthly_site.jpg")
 
-ggplot(data = vpd_melt) +
-  geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
-  geom_smooth(aes(x = value, y = AGBI.mean, colour=site), method='lm', formula= y~x) +  
-  facet_wrap(~variable, scales = "free") +
-  xlab('VPD') + 
-  ylab('Aboveground biomass increment')
 
-ggplot(data = vpd_melt) +
-  geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
-  geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
-  facet_grid(variable~site, scales = "free") +
-  xlab('VPD') + 
-  ylab('Aboveground biomass increment')
+#not a great figure
+# ggplot(data = vpd_melt) +
+#   geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
+#   geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
+#   facet_grid(variable~site, scales = "free") +
+#   xlab('VPD') + 
+#   ylab('Aboveground biomass increment')
 
 
 ## TMIN by month
@@ -523,13 +529,8 @@ ggplot(data = tmin_melt) +
   facet_wrap(~variable, scales = "free") +
   xlab('TMIN') + 
   ylab('Aboveground biomass increment')
+ggsave("figures/AGBI_Tmin_monthly.jpg")
 
-ggplot(data = tmin_melt) +
-  geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
-  geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
-  facet_wrap(~variable, scales = "free") +
-  xlab('TMIN') + 
-  ylab('Aboveground biomass increment')
 
 ggplot(data = tmin_melt) +
   geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
@@ -537,13 +538,18 @@ ggplot(data = tmin_melt) +
   facet_wrap(~variable, scales = "free") +
   xlab('TMIN') + 
   ylab('Aboveground biomass increment')
+ggsave("figures/AGBI_Tmin_monthly_site.jpg")
 
-ggplot(data = tmin_melt) +
-  geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
-  geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
-  facet_grid(variable~site, scales = "free") +
-  xlab('TMIN') + 
-  ylab('Aboveground biomass increment')
+
+#not a great figure
+#site vs ABGI separted by month
+# ggplot(data = tmin_melt) +
+#   geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
+#   geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
+#   facet_grid(variable~site, scales = "free") +
+#   xlab('TMIN') + 
+#   ylab('Aboveground biomass increment')
+
 
 ## TMAX by month
 ggplot(data = tmax_melt) +
@@ -552,13 +558,15 @@ ggplot(data = tmax_melt) +
   facet_wrap(~variable, scales = "free") +
   xlab('TMAX') + 
   ylab('Aboveground biomass increment')
+ggsave("figures/AGBI_Tmax_monthly.jpg")
 
-ggplot(data = tmax_melt) +
-  geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
-  geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
-  facet_wrap(~variable, scales = "free") +
-  xlab('TMAX') + 
-  ylab('Aboveground biomass increment')
+
+# ggplot(data = tmax_melt) +
+#   geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
+#   geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
+#   facet_wrap(~variable, scales = "free") +
+#   xlab('TMAX') + 
+#   ylab('Aboveground biomass increment')
 
 ggplot(data = tmax_melt) +
   geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
@@ -566,13 +574,16 @@ ggplot(data = tmax_melt) +
   facet_wrap(~variable, scales = "free") +
   xlab('TMAX') + 
   ylab('Aboveground biomass increment')
+ggsave("figures/AGBI_Tmax_monthly_site.jpg")
 
-ggplot(data = tmax_melt) +
-  geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
-  geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
-  facet_grid(variable~site, scales = "free") +
-  xlab('TMAX') + 
-  ylab('Aboveground biomass increment')
+
+#not great figure
+# ggplot(data = tmax_melt) +
+#   geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
+#   geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
+#   facet_grid(variable~site, scales = "free") +
+#   xlab('TMAX') + 
+#   ylab('Aboveground biomass increment')
 
 ## TMEAN by month
 ggplot(data = tmean_melt) +
@@ -588,6 +599,7 @@ ggplot(data = tmean_melt) +
   facet_wrap(~variable, scales = "free") +
   xlab('TMEAN') + 
   ylab('Aboveground biomass increment')
+ggsave("figures/AGBI_Tmean_monthly.jpg")
 
 ggplot(data = tmean_melt) +
   geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
@@ -595,13 +607,15 @@ ggplot(data = tmean_melt) +
   facet_wrap(~variable, scales = "free") +
   xlab('TMEAN') + 
   ylab('Aboveground biomass increment')
+ggsave("figures/AGBI_Tmean_monthly_site.jpg")
 
-ggplot(data = tmean_melt) +
-  geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
-  geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
-  facet_grid(variable~site, scales = "free") +
-  xlab('TMEAN') + 
-  ylab('Aboveground biomass increment')
+#not a great figure
+# ggplot(data = tmean_melt) +
+#   geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
+#   geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
+#   facet_grid(variable~site, scales = "free") +
+#   xlab('TMEAN') + 
+#   ylab('Aboveground biomass increment')
 
 
 ## ANNUAL vars by month
@@ -611,13 +625,15 @@ ggplot(data = annual_vars_melt) +
   facet_wrap(~variable, scales = "free") +
   xlab('temp or precip') + 
   ylab('Aboveground biomass increment')
+ggsave("figures/AGBI_annual_vars.jpg")
 
-ggplot(data = annual_vars_melt) +
-  geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
-  geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
-  facet_wrap(~variable, scales = "free") +
-  xlab('temp or precip') + 
-  ylab('Aboveground biomass increment')
+#same as figure below only one y=x line vs one for each site
+# ggplot(data = annual_vars_melt) +
+#   geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
+#   geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
+#   facet_wrap(~variable, scales = "free") +
+#   xlab('temp or precip') + 
+#   ylab('Aboveground biomass increment')
 
 ggplot(data = annual_vars_melt) +
   geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
@@ -625,124 +641,8 @@ ggplot(data = annual_vars_melt) +
   facet_wrap(~variable, scales = "free") +
   xlab('temp or precip') + 
   ylab('Aboveground biomass increment')
-# ggsave("AGBI_precip_tree.png")
+ggsave("figures/AGBI_annual_vars_site.jpg")
 
-
-
-# #with taxon
-# 
-# 
-# 
-# # clim_agb <- all_site_summary|>
-# #   left_join(clim_summary, by = c('year', 'site'))
-# # 
-# # clim_agb = subset(clim_agb, year>1950)
-# # 
-# # vpd = select(clim_agb, year, AGBI.mean, taxon, site,
-# #              starts_with('Vpdmean'))
-# # tmin = select(clim_agb, year, AGBI.mean, taxon, site,
-# #               starts_with('Tmin'))
-# # tmax = select(clim_agb, year, AGBI.mean, taxon, site,
-# #               starts_with('Tmax'))
-# # ppt = select(clim_agb, year, AGBI.mean, taxon, site,
-# #              starts_with('PPT'))
-# # vpd_melt = melt(vpd, 
-# #                 id.vars = c('year', 'AGBI.mean', 'taxon', 'site'))
-# # temp_min_melt = melt(temp_min,
-# #                      id.vars = c('year', 'AGBI.mean', 'taxon', 'site'))
-# # temp_max_melt = melt(temp_max, 
-# #                      id.vars = c('year', 'AGBI.mean', 'taxon', 'site'))
-# # 
-# # PPT_melt = melt(PPT, id.vars = c('year', 'AGBI.mean', 'taxon', 'site'))
-# ggplot(data = climate_increment) +
-#   geom_point(aes(x = yearly_meanT, y = AGBI.mean)) +
-#   geom_linerange(aes(x=yearly_meanT, ymin=AGBI.lo, ymax=AGBI.hi)) +
-#   facet_wrap(~taxon, scales='free_y')+
-#   geom_smooth(aes(x = yearly_meanT, y = AGBI.mean), method='lm', formula= y~x )+
-#   xlab('Average annual temperature') + ylab('Aboveground biomass increment') 
-# ggsave("ABGI_taxon_temp.png")
-# 
-# # ggplot(data = clim_taxon) +
-# #   geom_point(aes(x = yearly_meanT, y = AGBI.mean)) +
-# #   geom_linerange(aes(x=yearly_meanT, ymin=AGBI.lo, ymax=AGBI.hi)) +
-# #   facet_wrap(~taxon, scales='free_y')+
-# #   geom_smooth(aes(x = yearly_meanT, y = AGBI.mean), method='lm', formula= y~x )+
-# #   xlab('Average annual temperature') + ylab('Aboveground biomass increment') 
-# # ggsave("ABGI_taxon_temp.png")
-# 
-# ggplot(data = clim_taxon) +
-#   geom_point(aes(x = PPT_total, y = AGBI.mean)) +
-#   geom_linerange(aes(x=PPT_total, ymin=AGBI.lo, ymax=AGBI.hi)) +
-#   facet_wrap(~taxon, scales = 'free_y')+
-#   geom_smooth(aes(x = PPT_total, y = AGBI.mean), method='lm', formula= y~x )+
-#   xlab('Mean annual precipitation') + ylab('Aboveground biomass increment')
-# ggsave("AGBI_taxon_precip.png")
-# 
-# ggplot(data = clim_taxon) +
-#   geom_point(aes(x = PPT_total_tree, y = AGBI.mean)) +
-#   geom_linerange(aes(x=PPT_total_tree, ymin=AGBI.lo, ymax=AGBI.hi)) +
-#   facet_wrap(~taxon, scales = 'free_y')+
-#   geom_smooth(aes(x = PPT_total_tree, y = AGBI.mean), method='lm', formula= y~x )+
-#   xlab('Mean Total Tree Precip') + ylab('Aboveground biomass increment')
-# ggsave("AGBI_taxon_precip.png")
-# 
-# ggplot(data = clim_taxon) +
-#   geom_point(aes(x = year, y = AGBI.mean))+
-#   facet_wrap(~taxon, scales = 'free_y')
-# ggsave("AGBI_time_taxon.png") 
-#  
-# 
-# 
-# 
-# ggplot(data = climate_increment) +
-#   geom_point(aes(x = year, y = AGBI.mean))
-# ggsave("AGBI_time.png")  
-#   
-#   
-# ggplot(data = climate_increment) +
-#   geom_point(aes(x = T_min_mean, y = AGBI.mean))#+
-#   # geom_point(aes(x = T_max_mean, y = AGBI.mean))
-# 
-# ggplot(data = climate_increment) +
-#   geom_point(aes(x = T_max_mean, y = AGBI.mean))#+
-# # geom_point(aes(x = T_max_mean, y = AGBI.mean))
-# 
-# 
-# 
-# #unsure what this tells us
-# ggplot(data = Vapor_melt) +
-#   geom_point(aes(x = value, y = AGBI.mean, color = variable))
-# 
-# ggplot(data = Vapor_melt) +
-#   geom_point(aes(x = value, y = AGBI.mean, color=taxon)) +
-#   facet_wrap(~variable, scales='free_x') +
-#   geom_smooth(aes(x = value, y = AGBI.mean, color=taxon), method='lm', formula= y~x )
-#   
-# 
-# ggplot(data = climate_increment)+
-#   geom_point(aes(x = PPT_total_prev_tree, y = AGBI.mean))
-# 
-# ggplot(data = climate_increment)+
-#   geom_point(aes(x = PPT_03, y = AGBI.mean))
-# 
-# ggplot(data = PPT_melt)+
-#   geom_point(aes(x = value, y = AGBI.mean, color = variable))
-# 
-# ggplot(data = PPT_melt)+
-#   geom_point(aes(x = value, y = AGBI.mean, color = taxon)) +
-#   facet_wrap(~variable, scales='free_x') +
-#   geom_smooth(aes(x = value, y = AGBI.mean, color=taxon), method='lm', formula= y~x )
-# #+
-#  # facet_wrap(~)
-# 
-# ggplot(data = clim_taxon)+
-#   geom_point(aes(x = PPT_03, y = AGBI.mean, color = taxon)) +
-#   geom_smooth(aes(x = PPT_03, y = AGBI.mean, color=taxon), method='lm', formula= y~x )
-# 
-# 
-# ggplot(data = clim_taxon)+
-#   geom_point(aes(x = PPT_total, y = AGBI.mean, color = taxon)) +
-#   geom_smooth(aes(x = PPT_total, y = AGBI.mean, color=taxon), method='lm', formula= y~x )
 
 #################################################################################
 #STATS
@@ -1019,3 +919,139 @@ ggplot(data = fractional_biomass) +
 # taxon_lm = clim_tree %>% 
 #   group_by(taxon) %>%
 #   do(tidy(lm(AGBI.mean ~ PPT_total_tree + AGB.mean, .)))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# #with taxon
+# 
+# 
+# 
+# # clim_agb <- all_site_summary|>
+# #   left_join(clim_summary, by = c('year', 'site'))
+# # 
+# # clim_agb = subset(clim_agb, year>1950)
+# # 
+# # vpd = select(clim_agb, year, AGBI.mean, taxon, site,
+# #              starts_with('Vpdmean'))
+# # tmin = select(clim_agb, year, AGBI.mean, taxon, site,
+# #               starts_with('Tmin'))
+# # tmax = select(clim_agb, year, AGBI.mean, taxon, site,
+# #               starts_with('Tmax'))
+# # ppt = select(clim_agb, year, AGBI.mean, taxon, site,
+# #              starts_with('PPT'))
+# # vpd_melt = melt(vpd, 
+# #                 id.vars = c('year', 'AGBI.mean', 'taxon', 'site'))
+# # temp_min_melt = melt(temp_min,
+# #                      id.vars = c('year', 'AGBI.mean', 'taxon', 'site'))
+# # temp_max_melt = melt(temp_max, 
+# #                      id.vars = c('year', 'AGBI.mean', 'taxon', 'site'))
+# # 
+# # PPT_melt = melt(PPT, id.vars = c('year', 'AGBI.mean', 'taxon', 'site'))
+# ggplot(data = climate_increment) +
+#   geom_point(aes(x = yearly_meanT, y = AGBI.mean)) +
+#   geom_linerange(aes(x=yearly_meanT, ymin=AGBI.lo, ymax=AGBI.hi)) +
+#   facet_wrap(~taxon, scales='free_y')+
+#   geom_smooth(aes(x = yearly_meanT, y = AGBI.mean), method='lm', formula= y~x )+
+#   xlab('Average annual temperature') + ylab('Aboveground biomass increment') 
+# ggsave("ABGI_taxon_temp.png")
+# 
+# # ggplot(data = clim_taxon) +
+# #   geom_point(aes(x = yearly_meanT, y = AGBI.mean)) +
+# #   geom_linerange(aes(x=yearly_meanT, ymin=AGBI.lo, ymax=AGBI.hi)) +
+# #   facet_wrap(~taxon, scales='free_y')+
+# #   geom_smooth(aes(x = yearly_meanT, y = AGBI.mean), method='lm', formula= y~x )+
+# #   xlab('Average annual temperature') + ylab('Aboveground biomass increment') 
+# # ggsave("ABGI_taxon_temp.png")
+# 
+# ggplot(data = clim_taxon) +
+#   geom_point(aes(x = PPT_total, y = AGBI.mean)) +
+#   geom_linerange(aes(x=PPT_total, ymin=AGBI.lo, ymax=AGBI.hi)) +
+#   facet_wrap(~taxon, scales = 'free_y')+
+#   geom_smooth(aes(x = PPT_total, y = AGBI.mean), method='lm', formula= y~x )+
+#   xlab('Mean annual precipitation') + ylab('Aboveground biomass increment')
+# ggsave("AGBI_taxon_precip.png")
+# 
+# ggplot(data = clim_taxon) +
+#   geom_point(aes(x = PPT_total_tree, y = AGBI.mean)) +
+#   geom_linerange(aes(x=PPT_total_tree, ymin=AGBI.lo, ymax=AGBI.hi)) +
+#   facet_wrap(~taxon, scales = 'free_y')+
+#   geom_smooth(aes(x = PPT_total_tree, y = AGBI.mean), method='lm', formula= y~x )+
+#   xlab('Mean Total Tree Precip') + ylab('Aboveground biomass increment')
+# ggsave("AGBI_taxon_precip.png")
+# 
+# ggplot(data = clim_taxon) +
+#   geom_point(aes(x = year, y = AGBI.mean))+
+#   facet_wrap(~taxon, scales = 'free_y')
+# ggsave("AGBI_time_taxon.png") 
+#  
+# 
+# 
+# 
+# ggplot(data = climate_increment) +
+#   geom_point(aes(x = year, y = AGBI.mean))
+# ggsave("AGBI_time.png")  
+#   
+#   
+# ggplot(data = climate_increment) +
+#   geom_point(aes(x = T_min_mean, y = AGBI.mean))#+
+#   # geom_point(aes(x = T_max_mean, y = AGBI.mean))
+# 
+# ggplot(data = climate_increment) +
+#   geom_point(aes(x = T_max_mean, y = AGBI.mean))#+
+# # geom_point(aes(x = T_max_mean, y = AGBI.mean))
+# 
+# 
+# 
+# #unsure what this tells us
+# ggplot(data = Vapor_melt) +
+#   geom_point(aes(x = value, y = AGBI.mean, color = variable))
+# 
+# ggplot(data = Vapor_melt) +
+#   geom_point(aes(x = value, y = AGBI.mean, color=taxon)) +
+#   facet_wrap(~variable, scales='free_x') +
+#   geom_smooth(aes(x = value, y = AGBI.mean, color=taxon), method='lm', formula= y~x )
+#   
+# 
+# ggplot(data = climate_increment)+
+#   geom_point(aes(x = PPT_total_prev_tree, y = AGBI.mean))
+# 
+# ggplot(data = climate_increment)+
+#   geom_point(aes(x = PPT_03, y = AGBI.mean))
+# 
+# ggplot(data = PPT_melt)+
+#   geom_point(aes(x = value, y = AGBI.mean, color = variable))
+# 
+# ggplot(data = PPT_melt)+
+#   geom_point(aes(x = value, y = AGBI.mean, color = taxon)) +
+#   facet_wrap(~variable, scales='free_x') +
+#   geom_smooth(aes(x = value, y = AGBI.mean, color=taxon), method='lm', formula= y~x )
+# #+
+#  # facet_wrap(~)
+# 
+# ggplot(data = clim_taxon)+
+#   geom_point(aes(x = PPT_03, y = AGBI.mean, color = taxon)) +
+#   geom_smooth(aes(x = PPT_03, y = AGBI.mean, color=taxon), method='lm', formula= y~x )
+# 
+# 
+# ggplot(data = clim_taxon)+
+#   geom_point(aes(x = PPT_total, y = AGBI.mean, color = taxon)) +
+#   geom_smooth(aes(x = PPT_total, y = AGBI.mean, color=taxon), method='lm', formula= y~x )
+
