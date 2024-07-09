@@ -2,6 +2,7 @@
 ## climate drivers at annual scale
 ## Previously attempted to use monthly data and this was too much
 ## for a linear regression model
+
 rm(list = ls())
 
 # Load detrended AGBI
@@ -14,21 +15,22 @@ site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA')
 load('climate/prism_clim.RData')
 
 # Format
-prism_long <- dplyr::rename(prism_long, site = loc) |>
-  dplyr::mutate(year = as.numeric(year))
-
-# Pivot wider
-prism_annual <- prism_long |>
-  dplyr::group_by(year, site) |>
-  # Average over months
-  dplyr::summarize(mean_PPT = mean(PPT2),
-                   mean_Tmean = mean(Tmean2),
+prism_growing <- prism_long |> 
+  dplyr::mutate(year = as.numeric(year)) |>
+  dplyr::mutate(growing_year = dplyr::if_else(month %in% c('01', '02', '03', '04', 
+                                                           '05', '06', '07', '08'),
+                                              year, year + 1)) |>
+  dplyr::group_by(growing_year, loc) |>
+  dplyr::summarize(PPT = mean(PPT2),
+                   Tmean = mean(Tmean2),
                    sd_PPT = sd(PPT2),
                    sd_Tmean = sd(Tmean2),
-                   mean_Tmin = min(Tmin2),
-                   mean_Tmax = max(Tmax2),
-                   mean_Vpdmin = min(Vpdmin2),
-                   mean_Vpdmax = max(Vpdmax2)) 
+                   Tmin = min(Tmin2),
+                   Tmax = max(Tmax2),
+                   Vpdmin = min(Vpdmin2),
+                   Vpdmax = max(Vpdmax2)) |>
+  dplyr::rename(year = growing_year,
+                site = loc)
 
 # Load competition information
 load('data/competition_metrics.RData')
@@ -39,9 +41,10 @@ ntrees <- c(length(unique(save_comb$tree[which(save_comb$site == 'GOOSE')])),
             length(unique(save_comb$tree[which(save_comb$site == 'SYLVANIA')])))
 
 # Storage
-coeff_save <- matrix(, nrow = sum(ntrees), ncol = 15)
+coeff_save <- matrix(, nrow = sum(ntrees), ncol = 11)
 
 row_ind <- 0
+
 # For each site, let's iteratively fit a simple linear model with
 # average temperature and precipitation as predictors of each tree's annual growth
 for(i in 1:4){
@@ -59,32 +62,28 @@ for(i in 1:4){
     # Combine tree data with climate
     joined <- sub |>
       # Join with annual climate drivers
-      dplyr::left_join(y = prism_annual, by = c('site', 'year')) |>
+      dplyr::left_join(y = prism_growing, by = c('site', 'year')) |>
       # Join with tree-level competition metrics
       dplyr::left_join(y = tree_dbh, by = c('tree', 'year', 'plot', 'taxon', 'site')) |>
       # only keep individual tree basal area (ba)
       dplyr::select(-dbh)
+    
     # Fit linear model
     # annual increment of individual tree is a function of 
     # mean annual precipitation, mean annual temperature,
-    # annual precipitation seasonality, annual temperature seasonality
-    # minimum annual temperature, maximum annual temperature,
-    # minimum annual VPD, maximum annual VPD,
-    # individual tree basal area, basal area greater than,
-    # fraction of basal area for given taxon,
-    # total plot basal area
-    if(nrow(joined) == 1){
+    # annual temperature seasonality
+    # maximum annual VPD,
+    # individual tree basal area
+    if(nrow(joined) < 4){
       coeff_save[row_ind,1] <- i
       coeff_save[row_ind,2] <- unique(sub$plot)
       coeff_save[row_ind,3] <- unique(sub$taxon)
       coeff_save[row_ind,4] <- j
-      coeff_save[row_ind,5:14] <- NA
-      coeff_save[row_ind,15] <- NA
+      coeff_save[row_ind,5:10] <- NA
+      coeff_save[row_ind,11] <- NA
     }else{
-      mod <- lm(formula = residual_AGBI ~ mean_PPT + mean_Tmean + 
-                  sd_PPT + sd_Tmean +
-                  mean_Tmin + mean_Tmax + 
-                  mean_Vpdmin + mean_Vpdmax + 
+      mod <- lm(formula = residual_AGBI ~ PPT + Tmean + 
+                  sd_Tmean + Vpdmax + 
                   ba,
                 data = joined)   
       # Save site name, tree number, coefficients, and r2 in matrix
@@ -92,8 +91,8 @@ for(i in 1:4){
       coeff_save[row_ind,2] <- unique(sub$plot)
       coeff_save[row_ind,3] <- unique(sub$taxon)
       coeff_save[row_ind,4] <- j
-      coeff_save[row_ind,5:14] <- coefficients(mod)
-      coeff_save[row_ind,15] <- summary(mod)$adj.r.squared
+      coeff_save[row_ind,5:10] <- coefficients(mod)
+      coeff_save[row_ind,11] <- summary(mod)$adj.r.squared
     }
     print(j)
   }
@@ -103,10 +102,10 @@ for(i in 1:4){
 # Column names
 colnames(coeff_save) <- c('Site', 'Plot', 'Taxon', 'Tree', 'Intercept',
                           'Precipitation', 'Temperature', 
-                          'SD_Precipitation', 'SD_Temperature',
-                          'Minimum_temperature', 'Maximum_temperature',
-                          'Minimum_VPD', 'Maximum_VPD', 
+                          'SD_Temperature',
+                          'Maximum_VPD', 
                           'BA', 'R2')
+
 # Format
 coeff_save <- as.data.frame(coeff_save)
 
@@ -121,11 +120,7 @@ coeff_save <- coeff_save |>
   dplyr::mutate(Intercept = as.numeric(Intercept),
                 Precipitation = as.numeric(Precipitation),
                 Temperature = as.numeric(Temperature),
-                SD_Precipitation = as.numeric(SD_Precipitation),
                 SD_Temperature = as.numeric(SD_Temperature),
-                Minimum_temperature = as.numeric(Minimum_temperature),
-                Maximum_temperature = as.numeric(Maximum_temperature),
-                Minimum_VPD = as.numeric(Minimum_VPD),
                 Maximum_VPD = as.numeric(Maximum_VPD),
                 BA = as.numeric(BA),
                 R2 = as.numeric(R2))
@@ -162,12 +157,12 @@ coeff_save |>
   ggplot2::theme_minimal()
 
 # Violin of precipitation seasonality coefficient
-coeff_save |>
-  ggplot2::ggplot(ggplot2::aes(x = Site, y = SD_Precipitation)) +
-  ggplot2::geom_violin() +
-  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
-  ggplot2::xlab('') + ggplot2::ylab('Coefficient for precipitation seasonality') +
-  ggplot2::theme_minimal()
+#coeff_save |>
+#  ggplot2::ggplot(ggplot2::aes(x = Site, y = SD_Precipitation)) +
+#  ggplot2::geom_violin() +
+#  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
+#  ggplot2::xlab('') + ggplot2::ylab('Coefficient for precipitation seasonality') +
+#  ggplot2::theme_minimal()
 
 # Violin for temperature seasonality coefficient
 coeff_save |>
@@ -178,28 +173,28 @@ coeff_save |>
   ggplot2::theme_minimal()
 
 # Violin of minimum temperature coefficient
-coeff_save |>
-  ggplot2::ggplot(ggplot2::aes(x = Site, y = Minimum_temperature)) +
-  ggplot2::geom_violin() +
-  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
-  ggplot2::xlab('') + ggplot2::ylab('Coefficient for minimum temperature') +
-  ggplot2::theme_minimal()
+#coeff_save |>
+#  ggplot2::ggplot(ggplot2::aes(x = Site, y = Minimum_temperature)) +
+#  ggplot2::geom_violin() +
+#  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
+#  ggplot2::xlab('') + ggplot2::ylab('Coefficient for minimum temperature') +
+#  ggplot2::theme_minimal()
 
 # Violin of maximum temperature coefficient
-coeff_save |>
-  ggplot2::ggplot(ggplot2::aes(x = Site, y = Maximum_temperature)) +
-  ggplot2::geom_violin() +
-  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
-  ggplot2::xlab('') + ggplot2::ylab('Coefficient for maximum temperature') +
-  ggplot2::theme_minimal()
+#coeff_save |>
+#  ggplot2::ggplot(ggplot2::aes(x = Site, y = Maximum_temperature)) +
+#  ggplot2::geom_violin() +
+#  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
+#  ggplot2::xlab('') + ggplot2::ylab('Coefficient for maximum temperature') +
+#  ggplot2::theme_minimal()
 
 # Violin of minimum VPD
-coeff_save |>
-  ggplot2::ggplot(ggplot2::aes(x = Site, y = Minimum_VPD)) +
-  ggplot2::geom_violin() +
-  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
-  ggplot2::xlab('') + ggplot2::ylab('Coefficient for minimum VPD') +
-  ggplot2::theme_minimal()
+#coeff_save |>
+#  ggplot2::ggplot(ggplot2::aes(x = Site, y = Minimum_VPD)) +
+#  ggplot2::geom_violin() +
+#  ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
+#  ggplot2::xlab('') + ggplot2::ylab('Coefficient for minimum VPD') +
+#  ggplot2::theme_minimal()
 
 # Violin of maximum VPD
 coeff_save |>
