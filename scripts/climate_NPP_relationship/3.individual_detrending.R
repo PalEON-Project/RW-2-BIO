@@ -1,4 +1,5 @@
 ## Detrending for individual trees
+## Also removing years for out-of-sample prediction
 
 rm(list = ls())
 
@@ -93,4 +94,21 @@ box_test <- save_comb |>
 # Proportion of trees demonstrating significant temporal autocorrelation
 length(which(box_test$box_test$p.value < 0.05)) / nrow(box_test)
 
-save(save_comb, file = 'out/tree_detrended_AGBI.RData')
+# Set seed to ensure reproducibility
+set.seed(1996)
+
+# Remove some years for OOS prediction
+unique_years <- unique(save_comb$year)
+n_oos <- length(unique_years) * 0.2
+oos_years <- sample(unique_years, size = n_oos,
+                    replace = FALSE)
+insample_years <- unique_years[!(unique_years %in% oos_years)]
+
+# OOS
+save_comb_oos <- dplyr::filter(save_comb, year %in% oos_years)
+# in sample
+save_comb <- dplyr::filter(save_comb, year %in% insample_years)
+
+# Save
+save(save_comb, save_comb_oos,
+     file = 'out/tree_detrended_AGBI.RData')

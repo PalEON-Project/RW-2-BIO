@@ -17,21 +17,22 @@ taxa[4] <- length(unique(save_comb$taxon[which(save_comb$site == 'SYLVANIA')]))
 load('climate/prism_clim.RData')
 
 # Format
-prism_long <- dplyr::rename(prism_long, site = loc) |>
-  dplyr::mutate(year = as.numeric(year))
-
-# Pivot wider
-prism_annual <- prism_long |>
-  dplyr::group_by(year, site) |>
-  # Average over months
-  dplyr::summarize(mean_PPT = mean(PPT2),
-                   mean_Tmean = mean(Tmean2),
+prism_growing <- prism_long |> 
+  dplyr::mutate(year = as.numeric(year)) |>
+  dplyr::mutate(growing_year = dplyr::if_else(month %in% c('01', '02', '03', '04', 
+                                                           '05', '06', '07', '08'),
+                                              year, year + 1)) |>
+  dplyr::group_by(growing_year, loc) |>
+  dplyr::summarize(PPT = mean(PPT2),
+                   Tmean = mean(Tmean2),
                    sd_PPT = sd(PPT2),
                    sd_Tmean = sd(Tmean2),
-                   mean_Tmin = min(Tmin2),
-                   mean_Tmax = max(Tmax2),
-                   mean_Vpdmin = min(Vpdmin2),
-                   mean_Vpdmax = max(Vpdmax2))
+                   Tmin = min(Tmin2),
+                   Tmax = max(Tmax2),
+                   Vpdmin = min(Vpdmin2),
+                   Vpdmax = max(Vpdmax2)) |>
+  dplyr::rename(year = growing_year,
+                site = loc)
 
 # Storage
 coeff_save_taxon <- matrix(, nrow = sum(taxa), ncol = 12)
