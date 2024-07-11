@@ -23,7 +23,8 @@ library(reshape2)
 library(broom)
 library(gam)
 library(correlation)
-library(RColorBrewer)
+#library(RColorBrewer)
+library(stringr)
 
 # #above ground biomass
 # goose_total_agb <- readRDS('sites/GOOSE/runs/v2.0_012021/output/AGB_STAN_GOOSE_v2.0_012021.RDS')
@@ -427,6 +428,7 @@ tmax_melt$site = factor(tmax_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'S
 
 tmean_melt = melt(tmean, 
                   id.vars = c('model', 'year', 'AGBI.mean', 'site'))
+
 tmean_melt$site = factor(tmean_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA'))
 
 ppt_melt = melt(ppt, id.vars = c('model', 'year', 'AGBI.mean', 'site'))
@@ -439,17 +441,29 @@ annual_vars_melt = melt(annual_vars, id.vars = c('model', 'year', 'AGBI.mean', '
 ######################################################################################################################
 #correlation between tree ring data and climate variables
 ######################################################################################################################
+clim_total = na.omit(clim_total)
+
 #correlation between AGBI and all climate variables
-cor_clim_vars = clim_total %>%
+cor_clim_vars <- clim_total %>%
   # Filter to keep only the relevant rows for correlation
-  filter(variable %in%  c("PPT", "Tmean", "Tmax2", 'Tmin2', "Vpdmin2", "Vpdmax2" )) %>%
-  # Group by site
+  filter(str_detect(variable, "^(PPT|Tmean|Tmax2|Tmin2|Vpdmin2|Vpdmax2)")) %>%
+  # Group by site and variable
   group_by(site, variable) %>%
-  # Summarize by calculating correlation between AGBI.mean and value (assuming 'value' holds the PPT_total_tree data)
-  summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"))
+  # Summarize by calculating correlation between AGBI.mean and value
+  summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"), .groups = 'drop')
 head(cor_clim_vars)
 
-correlation_AGBI_clim = write.csv(cor_clim_vars, file = "AGBI_clim_correlation.csv")
+write.csv(cor_clim_vars, file = "AGBI_clim_correlation.csv")
+
+
+# cor_clim_vars = clim_total %>% 
+#   # Filter to keep only the relevant rows for correlation
+#   filter(variable %in%  starts_with(c("PPT", "Tmean", "Tmax2", 'Tmin2', "Vpdmin2", "Vpdmax2" ))) %>%
+#   # Group by site
+#   group_by(site, variable) %>%
+#   # Summarize by calculating correlation between AGBI.mean and value (assuming 'value' holds the PPT_total_tree data)
+#   summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"))
+
 
 ##################################################################################################
 #plotting climate variables over time 
