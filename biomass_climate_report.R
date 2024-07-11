@@ -243,17 +243,17 @@ ggplot(data=all_taxon_summary) +
   xlab('Year') +
   ylab('AGBI (Mg/ha)') +
   facet_wrap(~site)
-ggsave("figures/AGBI_over_time_taxons.jpg")
+ggsave("figures1950/AGBI_over_time_taxons.jpg")
 
 
 #######################3
-###this is where you stopped for full data
+
 ggplot(data=all_taxon_summary) +
   geom_ribbon(aes(x=year, ymin=AGBI.mean-2*AGBI.sd,
                   ymax=AGBI.mean+2*AGBI.sd, color = taxon, fill = taxon), alpha=0.3) +
   geom_line(aes(x=year, y=AGBI.mean, color = taxon)) +
   facet_wrap(~site)
-ggsave("figures/AGBI_site_taxon_with_sd.jpg")
+ggsave("figures1950/AGBI_site_taxon_with_sd.jpg")
 
   
 #changing to wide format with taxons as column names and values = ABGI.mean 
@@ -288,7 +288,6 @@ all_site_summary_wide = pivot_wider(data = all_site_summary[,(colnames(all_site_
 #correlation_B[correlation_B<0.4] = NA
 
 #correlation figure between species for ABGI.mean
-#shitty colours!!!
 #ggcorrplot(correlation_A, method = "circle", type = "lower", hc.order = FALSE)
 #ggcorrplot(correlation_B, type = "lower",)
 #  scale_fill_gradient2(low = "yellow", mid = 'pink', high = "light green", breaks=c(0, 1), limit=c(0, 1))
@@ -298,6 +297,7 @@ all_site_summary_wide = pivot_wider(data = all_site_summary[,(colnames(all_site_
 cor_site = data.frame(cor(all_site_summary_wide[, c('GOOSE', 'ROOSTER', 'SYLVANIA', 'NRP')], 
                           use = "complete.obs"))
 ggcorrplot(cor_site, method = "circle", type = "lower", hc.order = FALSE)
+write.csv(cor_site, "correlation_AGBI_site.csv")  
 
 
 cor_plot_goose = data.frame(cor(goose_plot_wide[,c('1', '2', '3')], use = "complete.obs"))
@@ -333,8 +333,11 @@ clim_data = clim_data %>%
 clim_wide =  pivot_wider(data = clim_data,
                          names_from = month, 
                          values_from = c(PPT, Tmean, Tmin2, Tmax2, Vpdmin2, Vpdmax2))
-clim_melt = melt(clim_data, 
-                id.vars = c('year', 'month', 'site'))
+# clim_melt = melt(clim_data, 
+#                 id.vars = c('year', 'month', 'site'))
+# 
+# clim_melt$year = as.integer(clim_melt$year)
+# summary(clim_melt)
 
 #PPT_mean is the mean of each month summed to get the mean of the year
 #yearly_meanT is the yearly temperature mean based on monthly means
@@ -375,15 +378,23 @@ clim_summary$year <- as.numeric(clim_summary$year)
 clim_agb <- all_site_summary|>
   left_join(clim_summary, by = c('year', 'site'))
 
-clim_agb = subset(clim_agb, year>1950)
+#shouldnt be needed since we subset in the beginning of the code
+# clim_agb = subset(clim_agb, year>1950)
 
+clim_agb_filtered = clim_agb %>% 
+  select(-AGB.mean,-AGB.sd,-AGB.lo,-AGB.hi,-AGBI.sd,
+         -AGBI.lo,-AGBI.hi,-AGBI.sd, -AGBI.mean)
 
+clim_melt = melt(clim_agb_filtered,
+                id.vars = c('year', 'site','model'))
 
 clim_melt$year = as.integer(clim_melt$year)
 summary(clim_melt)
 
+
+
 clim_total <- all_site_summary|>
-  left_join(clim_melt, by = c('year', 'site'))
+  left_join(clim_melt, by = c('year', 'site','model'))
 head(clim_total)
 summary(clim_melt)
 
