@@ -471,7 +471,7 @@ write.csv(cor_clim_vars, file = "AGBI_clim_correlation.csv")
 ggplot(data = ppt_melt)+
   geom_line(aes(x = year, y = value, color = site))+
   facet_wrap(~variable, scales = "free_y")
-ggsave("figures/PPT_over_time.jpg")
+ggsave("figures1950/PPT_over_time.jpg")
 
 #correlation between PPT and AGBI
 cor_PPT = ppt_melt %>%
@@ -498,7 +498,7 @@ ggplot(data = clim_agb) +
   # facet_wrap(~site, scales = 'free')+
   xlab('Mean annual temperature') + 
   ylab('Aboveground biomass increment')
-ggsave("figures/AGBI_vs_meantemp.jpg")
+ggsave("figures1950/AGBI_vs_meantemp.jpg")
 
 
 ggplot(data = clim_agb) +
@@ -507,13 +507,13 @@ ggplot(data = clim_agb) +
   facet_wrap(~site, scales = 'free')+
   xlab('Mean annual temperature') + 
   ylab('Aboveground biomass increment')
-ggsave("figures/AGBI_temp_site.jpg")
+ggsave("figures1950/AGBI_temp_site.jpg")
 
 ggplot(data = clim_agb) +
   geom_point(aes(x = PPT_total, y = AGBI.mean)) +
   geom_smooth(aes(x = PPT_total, y = AGBI.mean), method='lm', formula= y~x)+
   xlab('Mean annual precipitation') + ylab('Aboveground biomass increment')
-ggsave("figures/AGBI_precip.png")
+ggsave("figures1950/AGBI_meanprecip.png")
 
 ggplot(data = clim_agb) +
   geom_point(aes(x = PPT_total, y = AGBI.mean)) +
@@ -521,7 +521,7 @@ ggplot(data = clim_agb) +
   facet_wrap(~site, scales = "free")+
   xlab('Mean annual precipitation') + 
   ylab('Aboveground biomass increment')
-ggsave("figures/AGBI_precip_site.png")
+ggsave("figures1950/AGBI_meanprecip_site.png")
 
 
 # by month
@@ -530,7 +530,7 @@ ggplot(data = clim_agb) +
   geom_smooth(aes(x = PPT_total_tree, y = AGBI.mean), method='lm', formula= y~x)+
   xlab('PPT_total_tree') +
   ylab('Aboveground biomass increment')
-ggsave("figures/AGBI_precip_tree.png")
+ggsave("figures1950/AGBI_ppt_total_tree.png")
 # 
 ggplot(data = clim_agb) +
   geom_point(aes(x = PPT_total_tree, y = AGBI.mean)) +
@@ -538,7 +538,7 @@ ggplot(data = clim_agb) +
   facet_wrap(~site, scales = "free") +
   xlab('PPT_total_tree') +
   ylab('Aboveground biomass increment')
-ggsave("figures/AGBI_precip_tree_site.png")
+ggsave("figures1950/AGBI_ppt_total_tree_site.png")
 
 
 #PPT
@@ -548,7 +548,7 @@ ggplot(data = ppt_melt) +
   facet_wrap(~variable, scales = "free") +
   xlab('PPT') + 
   ylab('Aboveground biomass increment')
-ggsave("figures/AGBI_PPT_monthly.jpg")
+ggsave("figures1950/AGBI_PPT_monthly.jpg")
 
 ggplot(data = ppt_melt) +
   geom_point(aes(x = value, y = AGBI.mean, color = site)) +
@@ -556,7 +556,7 @@ ggplot(data = ppt_melt) +
   facet_wrap(~variable, scales = "free") +
   xlab('PPT') + 
   ylab('Aboveground biomass increment')
-ggsave("figures/AGBI_PPT_monthly_site.jpg")
+ggsave("figures1950/AGBI_PPT_monthly_site.jpg")
 
 ## VPD by month
 ggplot(data = vpd_melt) +
@@ -565,7 +565,7 @@ ggplot(data = vpd_melt) +
   facet_wrap(~variable, scales = "free") +
   xlab('VPD') + 
   ylab('Aboveground biomass increment')
-ggsave("figures/AGBI_VPD_monthly.jpg")
+ggsave("figures1950/AGBI_VPD_monthly.jpg")
 
 ggplot(data = vpd_melt) +
   geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
@@ -573,8 +573,15 @@ ggplot(data = vpd_melt) +
   facet_wrap(~variable, scales = "free") +
   xlab('VPD') + 
   ylab('Aboveground biomass increment')
-ggsave("figures/AGBI_PPT_monthly_site.jpg")
+ggsave("figures1950/AGBI_PPT_monthly_site.jpg")
 
+ggplot(data = vpd_melt) +
+  geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
+  geom_smooth(aes(x = value, y = AGBI.mean, colour = site), method='lm', formula= y~x) +  
+  facet_wrap(~variable, scales = "free") +
+  xlab('VPD') + 
+  ylab('Aboveground biomass increment')
+ggsave("figures1950/AGBI_PPT_monthly_site.jpg")
 
 #not a great figure
 # ggplot(data = vpd_melt) +
@@ -592,7 +599,7 @@ ggplot(data = tmin_melt) +
   facet_wrap(~variable, scales = "free") +
   xlab('TMIN') + 
   ylab('Aboveground biomass increment')
-ggsave("figures/AGBI_Tmin_monthly.jpg")
+ggsave("figures1950/AGBI_Tmin_monthly.jpg")
 
 
 ggplot(data = tmin_melt) +
@@ -601,7 +608,7 @@ ggplot(data = tmin_melt) +
   facet_wrap(~variable, scales = "free") +
   xlab('TMIN') + 
   ylab('Aboveground biomass increment')
-ggsave("figures/AGBI_Tmin_monthly_site.jpg")
+ggsave("figures1950/AGBI_Tmin_monthly_site.jpg")
 
 
 #not a great figure
@@ -621,7 +628,7 @@ ggplot(data = tmax_melt) +
   facet_wrap(~variable, scales = "free") +
   xlab('TMAX') + 
   ylab('Aboveground biomass increment')
-ggsave("figures/AGBI_Tmax_monthly.jpg")
+ggsave("figures1950/AGBI_Tmax_monthly.jpg")
 
 
 # ggplot(data = tmax_melt) +
@@ -637,7 +644,7 @@ ggplot(data = tmax_melt) +
   facet_wrap(~variable, scales = "free") +
   xlab('TMAX') + 
   ylab('Aboveground biomass increment')
-ggsave("figures/AGBI_Tmax_monthly_site.jpg")
+ggsave("figures1950/AGBI_Tmax_monthly_site.jpg")
 
 
 #not great figure
@@ -655,6 +662,8 @@ ggplot(data = tmean_melt) +
   facet_wrap(~variable, scales = "free") +
   xlab('TMEAN') + 
   ylab('Aboveground biomass increment')
+ggsave("figures1950/AGBI_Tmean_monthly.jpg")
+
 
 ggplot(data = tmean_melt) +
   geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
@@ -662,7 +671,7 @@ ggplot(data = tmean_melt) +
   facet_wrap(~variable, scales = "free") +
   xlab('TMEAN') + 
   ylab('Aboveground biomass increment')
-ggsave("figures/AGBI_Tmean_monthly.jpg")
+ggsave("figures1950/AGBI_Tmean_monthly_site.jpg")
 
 ggplot(data = tmean_melt) +
   geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
@@ -670,7 +679,7 @@ ggplot(data = tmean_melt) +
   facet_wrap(~variable, scales = "free") +
   xlab('TMEAN') + 
   ylab('Aboveground biomass increment')
-ggsave("figures/AGBI_Tmean_monthly_site.jpg")
+ggsave("figures1950/AGBI_Tmean_monthly_site.jpg")
 
 #not a great figure
 # ggplot(data = tmean_melt) +
@@ -688,7 +697,7 @@ ggplot(data = annual_vars_melt) +
   facet_wrap(~variable, scales = "free") +
   xlab('temp or precip') + 
   ylab('Aboveground biomass increment')
-ggsave("figures/AGBI_annual_vars.jpg")
+ggsave("figures1950/AGBI_annual_vars.jpg")
 
 #same as figure below only one y=x line vs one for each site
 # ggplot(data = annual_vars_melt) +
@@ -704,7 +713,7 @@ ggplot(data = annual_vars_melt) +
   facet_wrap(~variable, scales = "free") +
   xlab('temp or precip') + 
   ylab('Aboveground biomass increment')
-ggsave("figures/AGBI_annual_vars_site.jpg")
+ggsave("figures1950/AGBI_annual_vars_site.jpg")
 
 
 #################################################################################
@@ -743,7 +752,7 @@ PPT_lm_slope$sig = ifelse(PPT_lm_slope$p.value < 0.05, TRUE, FALSE)
 #if p<0.05 then TRUE, else FALSE
 ggplot(data=PPT_lm_slope) +
   geom_point(aes(x=estimate, y=site, colour=sig))+
-  geom_vline(aes(xintercept = 0, linetype = "dashed", color = "blue"))
+  geom_vline(aes(xintercept = 0, linetype = "dashed"))
 
 #site and month
 PPT_lm = ppt_melt %>% 
@@ -804,13 +813,14 @@ vpd_lm_slope_month = subset(vpd_lm_month, term == 'value')
 vpd_lm_slope_month$sig = ifelse(vpd_lm_slope_month$p.value < 0.05, TRUE, FALSE)
 ggplot(data=vpd_lm_slope_month) +
   geom_point(aes(x=estimate, y=variable, colour=sig)) +
-  geom_vline(aes(xintercept = 0, linetype = "dashed", color = "blue"))
+  geom_vline(aes(xintercept = 0, linetype = "dashed"))
 
 #plotting only months and time where VPD is significant 
+#none significant 
 VPD_sig = subset(vpd_lm_slope, sig == "TRUE")
 ggplot(data=VPD_sig) +
   geom_point(aes(x=estimate, y=variable, colour=site), size = 3)+
-  geom_vline(aes(xintercept = 0, linetype = "dashed", color = "blue"))+
+  geom_vline(aes(xintercept = 0, linetype = "dashed"))+
   ggtitle("months where VPD is significant")
 
 #by site
@@ -822,7 +832,7 @@ tmin_lm_slope = subset(tmin_lm, term == 'value')
 tmin_lm_slope$sig = ifelse(tmin_lm_slope$p.value < 0.05, TRUE, FALSE)
 ggplot(data=tmin_lm_slope) +
   geom_point(aes(x=estimate, y=site, colour=sig))+
-  geom_vline(aes(xintercept = 0, linetype = "dashed", color = "blue"))
+  geom_vline(aes(xintercept = 0, linetype = "dashed"))
 
 #by month
 tmin_lm_month = tmin_melt %>% 
@@ -832,13 +842,13 @@ tmin_lm_slope_month = subset(tmin_lm_month, term == 'value')
 tmin_lm_slope_month$sig = ifelse(tmin_lm_slope_month$p.value < 0.05, TRUE, FALSE)
 ggplot(data=tmin_lm_slope_month) +
   geom_point(aes(x=estimate, y=variable, colour=sig)) +
-  geom_vline(aes(xintercept = 0, linetype = "dashed", color = "blue"))
+  geom_vline(aes(xintercept = 0, linetype = "dashed"))
 
 #plotting only months and time where VPD is significant 
 tmin_sig = subset(tmin_lm_slope, sig == "TRUE")
 ggplot(data=tmin_sig) +
   geom_point(aes(x=estimate, y=variable, colour=site), size = 3)+
-  geom_vline(aes(xintercept = 0, linetype = "dashed", color = "blue"))+
+  geom_vline(aes(xintercept = 0, linetype = "dashed"))+
   ggtitle("months where tmin is significant")
 
 #by site
@@ -849,7 +859,7 @@ tmax_lm_slope = subset(tmax_lm, term == 'value')
 tmax_lm_slope$sig = ifelse(tmax_lm_slope$p.value < 0.05, TRUE, FALSE)
 ggplot(data=tmax_lm_slope) +
   geom_point(aes(x=estimate, y=site, colour=sig)) +
-  geom_vline(aes(xintercept = 0, linetype = "dashed", color = "blue"))
+  geom_vline(aes(xintercept = 0, linetype = "dashed"))
 
 
 #by month
@@ -860,13 +870,13 @@ tmax_lm_slope_month = subset(tmax_lm_month, term == 'value')
 tmax_lm_slope_month$sig = ifelse(tmax_lm_slope_month$p.value < 0.05, TRUE, FALSE)
 ggplot(data=tmax_lm_slope_month) +
   geom_point(aes(x=estimate, y=variable, colour=sig)) +
-  geom_vline(aes(xintercept = 0, linetype = "dashed", color = "blue"))
+  geom_vline(aes(xintercept = 0, linetype = "dashed"))
 
 #plotting only months and time where VPD is significant 
 tmax_sig = subset(tmax_lm_slope, sig == "TRUE")
 ggplot(data=tmax_sig) +
   geom_point(aes(x=estimate, y=variable, colour=site), size = 3)+
-  geom_vline(aes(xintercept = 0, linetype = "dashed", color = "blue"))+
+  geom_vline(aes(xintercept = 0, linetype = "dashed"))+
   ggtitle("months where tmax is significant")
 
 
@@ -901,13 +911,13 @@ fractional_biomass = all_taxon_summed %>%
 ggplot(data = fractional_biomass) +
   geom_line(aes(x =year, y = taxon_fractions, color = taxon))+ 
   facet_wrap(~site)
-ggsave("figures/taxon_fractions_time.png")
+ggsave("figures1950/taxon_fractions_time.png")
 
 
 ggplot(data = fractional_biomass) +
   geom_area(aes(x =year, y = taxon_fractions, fill = taxon))+ 
   facet_wrap(~site)
-ggsave("figures/taxon_fractions_fill_time.png")  
+ggsave("figures1950/taxon_fractions_fill_time.png")  
 
 #################################################################################
 # Individual tree 
