@@ -40,6 +40,37 @@ library(stringr)
 # rooster_total_agbi <- readRDS('sites/ROOSTER/runs/v2.0_082020/output/AGBI_STAN_ROOSTER_v2.0_082020.RDS')
 # sylvania_total_agbi <- readRDS('sites/SYLVANIA/runs/v2.0_082020/output/AGBI_STAN_SYLVANIA_v2.0_082020.RDS')
 
+goose_ind_agb <- readRDS('sites/GOOSE/runs/v3.1_012021/output/AGB_STAN_GOOSE_v3.1_012021.RDS')
+
+foo = subset(goose_ind_agb, iter==1) %>%
+  group_by(year, iter) %>%
+  count(type)
+ggplot(data=foo) +
+  geom_line(aes(x=year, y=n))
+
+foo = subset(goose_ind_agb, iter==1) %>%
+  group_by(year, iter) %>%
+  count(taxon)
+ggplot(data=foo) +
+  geom_line(aes(x=year, y=n, colour=taxon))
+
+ggplot(data=goose_ind_agb) +
+  geom_line(aes(x=year, y=value,))
+
+rooster_ind_agb <- readRDS('sites/ROOSTER/runs/v3.1_082020/output/AGB_STAN_ROOSTER_v3.1_082020.RDS')
+
+foo = subset(rooster_ind_agb, iter==1) %>%
+  group_by(year, iter) %>%
+  count(type)
+ggplot(data=foo) +
+  geom_line(aes(x=year, y=n))
+
+foo = subset(rooster_ind_agb, iter==1) %>%
+  group_by(year, iter) %>%
+  count(taxon)
+ggplot(data=foo) +
+  geom_line(aes(x=year, y=n, colour=taxon))
+
 #above ground biomass
 goose_total_agb <- readRDS('sites/GOOSE/runs/v3.1_012021/output/AGB_TAXA_STAN_GOOSE_v3.1_012021.RDS')
 goose_total_agb_subset = subset(goose_total_agb, year>1950)
@@ -320,6 +351,45 @@ colnames(goose_plot_summary_wide) = c('year', 'plot1', 'plot2', 'plot3')
 
 cor_plot_goose = data.frame(cor(goose_plot_summary_wide[,c('plot1', 'plot2', 'plot3')], use = "complete.obs"))
 ggcorrplot(cor_plot_goose, method = "square", type = "lower")
+
+# #correlation between AGBI and all climate variables
+# cor_clim_vars <- all_taxon_summary_wide %>%
+#   # Filter to keep only the relevant rows for correlation
+#   filter(str_detect(variable, "^(ACRU|ACSA|AMAR)")) %>%
+#   # Group by site and variable
+#   group_by(site) %>%
+#   # Summarize by calculating correlation between AGBI.mean and value
+#   summarize(correlation = cor(c(ACRU|ACSA|AMAR), value, use = "complete.obs"), .groups = 'drop')
+# head(cor_clim_vars)
+# 
+# goose_taxon_summary = subset(all_taxon_summary_wide, site=='GOOSE')
+# cor(goose_taxon_summary[,3:ncol(goose_taxon_summary)], use = "na.or.complete")
+# 
+# 
+# correlation_by_site <- all_taxon_summary_wide %>%
+#   group_by(site) %>%
+#   summarise(across(all_of(3:ncol(all_taxon_summary_wide)), 
+#                    list(correlation = ~ cor(., use = "complete.obs")), 
+#                    .names = "cor_{col}"))
+
+
+correlation_matrices_by_site <- all_taxon_summary_wide %>%
+  group_by(site) %>%
+  summarise(cor_matrix = list(cor(select_if(cur_data(), is.numeric), use = "pairwise.complete.obs")))
+
+correlation_matrices_by_site[[2]][1]
+
+# returns a list
+# first list element is a vector of site names
+# > correlation_matrices_by_site[[1]]
+# [1] "GOOSE"    "NRP"      "ROOSTER"  "SYLVANIA"
+
+# second list element is a list of correlation matrices
+# > correlation_matrices_by_site[[2]]
+#to get correlation matrix for GOOSE, we do:
+# > correlation_matrices_by_site[[2]][[1]]
+
+ggcorrplot(correlation_matrices_by_site[[2]][[1]], method = "square", type = "lower")
 
 
 #########################################################################################
