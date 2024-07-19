@@ -25,6 +25,7 @@ library(gam)
 library(correlation)
 #library(RColorBrewer)
 library(stringr)
+library(corrplot)
 
 # #above ground biomass
 # goose_total_agb <- readRDS('sites/GOOSE/runs/v2.0_012021/output/AGB_STAN_GOOSE_v2.0_012021.RDS')
@@ -375,9 +376,37 @@ ggcorrplot(cor_plot_goose, method = "square", type = "lower")
 
 correlation_matrices_by_site <- all_taxon_summary_wide %>%
   group_by(site) %>%
-  summarise(cor_matrix = list(cor(select_if(cur_data(), is.numeric), use = "pairwise.complete.obs")))
+  summarise(cor_matrix = list(cor(select_if(cur_data(), is.numeric),
+                                  use = "pairwise.complete.obs")))
+
+#does this work?
+# correlation_matrices_by_site <- all_taxon_summary_wide %>%
+#   group_by(site) %>%
+#   summarise(cor_matrix = list(
+#     cor(select(cur_data() %>% drop_na(), where(is.numeric), 
+#                -c(year)), use = "pairwise.complete.obs")))
+
 
 correlation_matrices_by_site[[2]][1]
+
+goose_correlations <- correlation_matrices_by_site %>%
+  filter(site == "GOOSE") %>%
+  pull(cor_matrix)
+
+NRP_correlations <- correlation_matrices_by_site %>%
+  filter(site == "NRP") %>%
+  pull(cor_matrix)
+
+rooster_correlations <- correlation_matrices_by_site %>%
+  filter(site == "ROOSTER") %>%
+  pull(cor_matrix)
+
+sylvania_correlations <- correlation_matrices_by_site %>%
+  filter(site == "SYLVANIA") %>%
+  pull(cor_matrix)
+write.csv(sylvania_correlations, "sylvania_correlations.csv")
+
+
 
 # returns a list
 # first list element is a vector of site names
@@ -389,10 +418,18 @@ correlation_matrices_by_site[[2]][1]
 #to get correlation matrix for GOOSE, we do:
 # > correlation_matrices_by_site[[2]][[1]]
 
+#goose correlation plot
 ggcorrplot(correlation_matrices_by_site[[2]][[1]], method = "square", type = "lower")
+#NRP correlation plot
+ggcorrplot(correlation_matrices_by_site[[2]][[2]], method = "square", type = "lower")
+#Rooster correlation plot
+ggcorrplot(correlation_matrices_by_site[[2]][[3]], method = "square", type = "lower")
+#sylvania correlation plot
+ggcorrplot(correlation_matrices_by_site[[2]][[4]], method = "square", type = "lower")
 
 
-#########################################################################################
+
+ #########################################################################################
 #CLIMATE
 ################################################################################################
 
