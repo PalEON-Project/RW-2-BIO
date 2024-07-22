@@ -82,7 +82,8 @@ rooster_total_agb <- readRDS('sites/ROOSTER/runs/v3.1_082020/output/AGB_TAXA_STA
 rooster_total_agb_subset = subset(rooster_total_agb, year>1950)
 sylvania_total_agb <- readRDS('sites/SYLVANIA/runs/v3.1_082020/output/AGB_TAXA_STAN_SYLVANIA_v3.1_082020.RDS')
 sylvania_total_agb_subset = subset(sylvania_total_agb, year>1950)
-
+harvard_total_agb <- readRDS('sites/HARVARD/runs/v3.1_102020/output/AGB_TAXA_STAN_HARVARD_v3.1_102020.RDS')
+harvard_total_agb_subset = subset(harvard_total_agb, year>1950)
 
 #above ground biomass increment 
 goose_total_agbi <- readRDS('sites/GOOSE/runs/v3.1_012021/output/AGBI_TAXA_STAN_GOOSE_v3.1_012021.RDS')
@@ -94,6 +95,8 @@ rooster_total_agbi <- readRDS('sites/ROOSTER/runs/v3.1_082020/output/AGBI_TAXA_S
 rooster_total_agbi_subset = subset(rooster_total_agbi, year>1950)
 sylvania_total_agbi <- readRDS('sites/SYLVANIA/runs/v3.1_082020/output/AGBI_TAXA_STAN_SYLVANIA_v3.1_082020.RDS')
 sylvania_total_agbi_subset = subset(sylvania_total_agbi, year>1950)
+harvard_total_agbi <- readRDS('sites/HARVARD/runs/v3.1_102020/output/AGBI_TAXA_STAN_HARVARD_v3.1_102020.RDS')
+harvard_total_agbi_subset = subset(harvard_total_agbi, year>1950)
 
 # Combining abgi and abg into one dataframe 
 goose_total <- goose_total_agb_subset |>
@@ -130,17 +133,19 @@ sylvania_total <- sylvania_total_agb_subset |>
   # select(-c(type.x, type.y)) |>
   mutate(site = 'SYLVANIA')
 
-# harvard_total <- harvard_total_agb |>
-#   left_join(harvard_total_agbi, by = c('year', 'iter', 'taxon', 
-#                                        'model', 'plot')) |>
-#   rename(AGB = ab,
-#          AGBI = abi) |>
-#   # select(-c(type.x, type.y)) |>
-#   mutate(site = 'HARVARD')
+harvard_total <- harvard_total_agb_subset |>
+  left_join(harvard_total_agbi, by = c('year', 'iter', 'taxon',
+                                       'model', 'plot')) |>
+  rename(AGB = ab,
+         AGBI = abi) |>
+  # select(-c(type.x, type.y)) |>
+  mutate(site = 'HARVARD')
+
+harvard_total <- subset(harvard_total, model == 'Model RW')
 
 #combining data from all sites into one dataframe
-# all_data <- rbind(goose_total, nrp_total, rooster_total, sylvania_total, harvard_total)
-all_data <- rbind(goose_total, nrp_total, rooster_total, sylvania_total)
+all_data <- rbind(goose_total, nrp_total, rooster_total, sylvania_total, harvard_total)
+# all_data <- rbind(goose_total, nrp_total, rooster_total, sylvania_total)
 
 # goose_total_plot <- goose_total |>
 #   group_by(year, iter, plot) |>
@@ -258,7 +263,8 @@ ggplot(data=all_site_summary) +
   geom_line(aes(x=year, y=AGBI.mean, colour=site)) +
   theme_bw(14) +
   xlab('Year') +
-  ylab('AGBI (Mg/ha)')
+  ylab('AGBI (Mg/ha)') +
+  facet_grid(model~.)
 ggsave("figures1950/AGBI_over_time.jpg")
 
 #AGB ovetime
@@ -267,7 +273,8 @@ ggplot(data=all_site_summary) +
   geom_line(aes(x=year, y=AGB.mean, colour=site)) +
   theme_bw(14) +
   xlab('Year') +
-  ylab('AGB (Mg/ha)')
+  ylab('AGB (Mg/ha)') +
+  facet_grid(model~.)
 ggsave("figures1950/AGB_over_time.jpg")
 
 ggplot(data=all_taxon_summary) +
@@ -328,31 +335,31 @@ all_site_summary_wide = pivot_wider(data = all_site_summary[,(colnames(all_site_
 
 
 #correlation between sites of AGBI
-cor_site = data.frame(cor(all_site_summary_wide[, c('GOOSE', 'ROOSTER', 'SYLVANIA', 'NRP')], 
+cor_site = data.frame(cor(all_site_summary_wide[, c('GOOSE', 'ROOSTER', 'SYLVANIA', 'NRP', 'HARVARD')], 
                           use = "complete.obs"))
 ggcorrplot(cor_site, method = "circle", type = "lower", hc.order = FALSE)
 write.csv(cor_site, "correlation_AGBI_site.csv")  
 
 
-cor_plot_goose = data.frame(cor(goose_plot_wide[,c('1', '2', '3')], use = "complete.obs"))
-ggcorrplot(cor_plot_goose, method = "square", type = "lower")
+# cor_plot_goose = data.frame(cor(goose_plot_wide[,c('1', '2', '3')], use = "complete.obs"))
+# ggcorrplot(cor_plot_goose, method = "square", type = "lower")
+# 
+# 
+# cor(clim_agb$AGBI.mean, clim_agb$PPT_01, use = "complete.obs")
 
 
-cor(clim_agb$AGBI.mean, clim_agb$PPT_01, use = "complete.obs")
-
-
-# all_site_plot_summary
-goose_plot_summary = subset(all_site_plot_summary, site == 'GOOSE')
-goose_plot_summary_wide = pivot_wider(data = goose_plot_summary[,(colnames(goose_plot_summary) %in% 
-                                                                c('year', 'plot', 'AGBI.mean', 'site'))],
-                                    id_cols = c(year),
-                                    names_from = plot, 
-                                    values_from = AGBI.mean, 
-                                    values_fill = 0 )
-colnames(goose_plot_summary_wide) = c('year', 'plot1', 'plot2', 'plot3')
-
-cor_plot_goose = data.frame(cor(goose_plot_summary_wide[,c('plot1', 'plot2', 'plot3')], use = "complete.obs"))
-ggcorrplot(cor_plot_goose, method = "square", type = "lower")
+# # all_site_plot_summary
+# goose_plot_summary = subset(all_site_plot_summary, site == 'GOOSE')
+# goose_plot_summary_wide = pivot_wider(data = goose_plot_summary[,(colnames(goose_plot_summary) %in% 
+#                                                                 c('year', 'plot', 'AGBI.mean', 'site'))],
+#                                     id_cols = c(year),
+#                                     names_from = plot, 
+#                                     values_from = AGBI.mean, 
+#                                     values_fill = 0 )
+# colnames(goose_plot_summary_wide) = c('year', 'plot1', 'plot2', 'plot3')
+# 
+# cor_plot_goose = data.frame(cor(goose_plot_summary_wide[,c('plot1', 'plot2', 'plot3')], use = "complete.obs"))
+# ggcorrplot(cor_plot_goose, method = "square", type = "lower")
 
 # #correlation between AGBI and all climate variables
 # cor_clim_vars <- all_taxon_summary_wide %>%
@@ -375,17 +382,17 @@ ggcorrplot(cor_plot_goose, method = "square", type = "lower")
 #                    .names = "cor_{col}"))
 
 
-correlation_matrices_by_site <- all_taxon_summary_wide %>%
-  group_by(site) %>%
-  summarise(cor_matrix = list(cor(select_if(cur_data(), is.numeric),
-                                  use = "pairwise.complete.obs")))
-
-#does this work?
 # correlation_matrices_by_site <- all_taxon_summary_wide %>%
 #   group_by(site) %>%
-#   summarise(cor_matrix = list(
-#     cor(select(cur_data() %>% drop_na(), where(is.numeric), 
-#                -c(year)), use = "pairwise.complete.obs")))
+#   summarise(cor_matrix = list(cor(select_if(cur_data(), is.numeric),
+#                                   use = "pairwise.complete.obs")))
+
+#does this work?
+correlation_matrices_by_site <- all_taxon_summary_wide %>%
+  group_by(site) %>%
+  summarise(cor_matrix = list(
+    cor(select(cur_data() %>% drop_na(), where(is.numeric),
+               -c(year)), use = "pairwise.complete.obs")))
 
 
 correlation_matrices_by_site[[2]][1]
@@ -407,7 +414,9 @@ sylvania_correlations <- correlation_matrices_by_site %>%
   pull(cor_matrix)
 write.csv(sylvania_correlations, "sylvania_correlations.csv")
 
-
+harvard_correlations <- correlation_matrices_by_site %>%
+  filter(site == "HARVARD") %>%
+  pull(cor_matrix)
 
 # returns a list
 # first list element is a vector of site names
@@ -427,6 +436,8 @@ ggcorrplot(correlation_matrices_by_site[[2]][[2]], method = "square", type = "lo
 ggcorrplot(correlation_matrices_by_site[[2]][[3]], method = "square", type = "lower")
 #sylvania correlation plot
 ggcorrplot(correlation_matrices_by_site[[2]][[4]], method = "square", type = "lower")
+
+ggcorrplot(correlation_matrices_by_site[[2]][[5]], method = "square", type = "lower")
 
 
 
@@ -508,7 +519,7 @@ head(clim_total)
 summary(clim_melt)
 
 clim_taxon <- all_taxon_summary|>
-  left_join(clim_melt, by = c('year', 'model')) %>% 
+  left_join(clim_melt, by = c('year', 'site', 'model')) %>% 
   select(-site)
 head(clim_taxon)
 summary(clim_melt)
@@ -529,25 +540,25 @@ annual_vars = select(clim_agb, year, AGBI.mean, site,
 
 vpd_melt = melt(vpd, 
                 id.vars = c('model', 'year', 'AGBI.mean', 'site'))
-vpd_melt$site = factor(vpd_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA'))
+vpd_melt$site = factor(vpd_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD'))
 
 # vpd_melt$variable = sapply(as.vector(vpd_melt$variable), function(x) {strsplit(x, '\\_')[[1]][2]})
 
 tmin_melt = melt(tmin,
                  id.vars = c('model', 'year', 'AGBI.mean', 'site'))
-tmin_melt$site = factor(tmin_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA'))
+tmin_melt$site = factor(tmin_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD'))
 
 tmax_melt = melt(tmax, 
                  id.vars = c('model', 'year', 'AGBI.mean', 'site'))
-tmax_melt$site = factor(tmax_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA'))
+tmax_melt$site = factor(tmax_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD'))
 
 tmean_melt = melt(tmean, 
                   id.vars = c('model', 'year', 'AGBI.mean', 'site'))
 
-tmean_melt$site = factor(tmean_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA'))
+tmean_melt$site = factor(tmean_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD'))
 
 ppt_melt = melt(ppt, id.vars = c('model', 'year', 'AGBI.mean', 'site'))
-ppt_melt$site = factor(ppt_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA'))
+ppt_melt$site = factor(ppt_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD'))
 
 annual_vars_melt = melt(annual_vars, id.vars = c('model', 'year', 'AGBI.mean', 'site'))
 
@@ -557,6 +568,9 @@ annual_vars_melt = melt(annual_vars, id.vars = c('model', 'year', 'AGBI.mean', '
 #correlation between tree ring data and climate variables
 ######################################################################################################################
 clim_total = na.omit(clim_total)
+
+clim_total = clim_total[which(clim_total$site != 'HARVARD'),]
+clim_taxon = clim_taxon[which(clim_taxon$site != 'HARVARD'),]
 
 #correlation between AGBI and all climate variables
 cor_clim_vars <- clim_total %>%
@@ -574,11 +588,19 @@ cor_clim_vars_taxon <- clim_taxon %>%
   # Filter to keep only the relevant rows for correlation
   filter(str_detect(variable, "^(PPT|Tmean|Tmax2|Tmin2|Vpdmin2|Vpdmax2)")) %>%
   # Group by site and variable
-  group_by(taxon, variable) %>%
+  group_by(site, taxon, variable) %>%
   # Summarize by calculating correlation between AGBI.mean and value
   summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"), .groups = 'drop')
 write.csv(cor_clim_vars_taxon, file = "AGBI_clim_taxon_correlation.csv")
 
+
+
+ggplot(data=cor_clim_vars) +
+  geom_point(aes(x=correlation, y=variable, colour=site)) #+
+  # facet_grid(site~.)
+
+ggplot(data=cor_clim_vars_taxon) +
+  geom_point(aes(x=variable, y=correlation, colour=taxon, shape=site))
 
 # cor_clim_vars = clim_total %>% 
 #   # Filter to keep only the relevant rows for correlation
