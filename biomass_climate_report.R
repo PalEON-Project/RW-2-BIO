@@ -121,6 +121,7 @@ rooster_total <- rooster_total_agb_subset |>
   # select(-c(type.x, type.y)) |>
   mutate(site = 'ROOSTER')
 
+
 sylvania_total <- sylvania_total_agb_subset |>
   left_join(sylvania_total_agbi_subset, by = c('year', 'iter', 'taxon', 
                                         'model', 'plot')) |>
@@ -141,29 +142,29 @@ sylvania_total <- sylvania_total_agb_subset |>
 # all_data <- rbind(goose_total, nrp_total, rooster_total, sylvania_total, harvard_total)
 all_data <- rbind(goose_total, nrp_total, rooster_total, sylvania_total)
 
-goose_total_plot <- goose_total |>
-  group_by(year, iter, plot) |>
-  summarize(AGB.sum = sum(AGB),
-            AGBI.sum = sum(AGBI),
-            .groups = 'keep') 
-goose_total_plot = goose_total_plot %>%
-  group_by(year, plot) %>% 
-  summarize(AGB.mean = mean(AGB.sum, na.rm = T),
-            AGB.sd = sd(AGB.sum),
-            AGB.lo = quantile(AGB.sum, c(0.025), na.rm=TRUE),
-            AGB.hi = quantile(AGB.sum, c(0.975), na.rm=TRUE), 
-            AGBI.mean = mean(AGBI.sum, na.rm = T),
-            AGBI.sd = sd(AGBI.sum),
-            AGBI.lo = quantile(AGBI.sum, c(0.025), na.rm=TRUE),
-            AGBI.hi = quantile(AGBI.sum, c(0.975), na.rm=TRUE), 
-            .groups='keep')
-
-goose_plot_wide = pivot_wider(data = goose_total_plot[,(colnames(goose_total_plot) %in% 
-                                                          c('year','AGBI.mean', 'plot'))],
-                              id_cols = c(year),
-                              names_from = plot, 
-                              values_from = AGBI.mean, 
-                              values_fill = 0 )
+# goose_total_plot <- goose_total |>
+#   group_by(year, iter, plot) |>
+#   summarize(AGB.sum = sum(AGB),
+#             AGBI.sum = sum(AGBI),
+#             .groups = 'keep') 
+# goose_total_plot = goose_total_plot %>%
+#   group_by(year, plot) %>% 
+#   summarize(AGB.mean = mean(AGB.sum, na.rm = T),
+#             AGB.sd = sd(AGB.sum),
+#             AGB.lo = quantile(AGB.sum, c(0.025), na.rm=TRUE),
+#             AGB.hi = quantile(AGB.sum, c(0.975), na.rm=TRUE), 
+#             AGBI.mean = mean(AGBI.sum, na.rm = T),
+#             AGBI.sd = sd(AGBI.sum),
+#             AGBI.lo = quantile(AGBI.sum, c(0.025), na.rm=TRUE),
+#             AGBI.hi = quantile(AGBI.sum, c(0.975), na.rm=TRUE), 
+#             .groups='keep')
+# 
+# goose_plot_wide = pivot_wider(data = goose_total_plot[,(colnames(goose_total_plot) %in% 
+#                                                           c('year','AGBI.mean', 'plot'))],
+#                               id_cols = c(year),
+#                               names_from = plot, 
+#                               values_from = AGBI.mean, 
+#                               values_fill = 0 )
 
 # Create summaries by site
 # I am not sure that we are interested in average agb per tree
@@ -506,6 +507,13 @@ clim_total <- all_site_summary|>
 head(clim_total)
 summary(clim_melt)
 
+clim_taxon <- all_taxon_summary|>
+  left_join(clim_melt, by = c('year', 'model')) %>% 
+  select(-site)
+head(clim_taxon)
+summary(clim_melt)
+
+
 vpd = select(clim_agb, year, AGBI.mean, site,
              starts_with('Vpdmean'))
 tmin = select(clim_agb, year, AGBI.mean, site,
@@ -561,6 +569,15 @@ cor_clim_vars <- clim_total %>%
 head(cor_clim_vars)
 
 write.csv(cor_clim_vars, file = "AGBI_clim_correlation.csv")
+
+cor_clim_vars_taxon <- clim_taxon %>%
+  # Filter to keep only the relevant rows for correlation
+  filter(str_detect(variable, "^(PPT|Tmean|Tmax2|Tmin2|Vpdmin2|Vpdmax2)")) %>%
+  # Group by site and variable
+  group_by(taxon, variable) %>%
+  # Summarize by calculating correlation between AGBI.mean and value
+  summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"), .groups = 'drop')
+write.csv(cor_clim_vars_taxon, file = "AGBI_clim_taxon_correlation.csv")
 
 
 # cor_clim_vars = clim_total %>% 
