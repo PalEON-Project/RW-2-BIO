@@ -569,7 +569,7 @@ cor_clim_vars <- clim_total %>%
 head(cor_clim_vars)
 
 write.csv(cor_clim_vars, file = "AGBI_clim_correlation.csv")
-
+ 
 cor_clim_vars_taxon <- clim_taxon %>%
   # Filter to keep only the relevant rows for correlation
   filter(str_detect(variable, "^(PPT|Tmean|Tmax2|Tmin2|Vpdmin2|Vpdmax2)")) %>%
