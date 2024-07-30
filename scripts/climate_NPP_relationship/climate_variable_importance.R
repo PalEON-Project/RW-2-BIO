@@ -65,6 +65,10 @@ importance_all_sites_taxa |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_all_sites_taxa |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
 #### Random forests for each site individually across all individual trees ####
 
@@ -84,6 +88,10 @@ importance_goose |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_goose |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
 ## NRP
 nrp_agbi_monthly_growing <- agbi_monthly_growing |>
@@ -100,6 +108,10 @@ importance_nrp <- as.data.frame(importance_nrp)
 importance_nrp |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
+  dplyr::slice_head(n = 10)
+importance_nrp |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
   dplyr::slice_head(n = 10)
 
 ## ROOSTER
@@ -118,6 +130,10 @@ importance_rooster |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_rooster |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
 ## SYLVANIA
 sylvania_agbi_monthly_growing <- agbi_monthly_growing |>
@@ -134,6 +150,10 @@ importance_sylvania <- as.data.frame(importance_sylvania)
 importance_sylvania |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
+  dplyr::slice_head(n = 10)
+importance_sylvania |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
   dplyr::slice_head(n = 10)
 
 #### Random forest for each taxon individually across all individual sites and trees ####
@@ -157,6 +177,10 @@ importance_acru |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_acru |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
 ## ACSA (n = 1307 obs, 3 sites, 33 trees)
 
@@ -174,6 +198,10 @@ importance_acsa <- as.data.frame(importance_acsa)
 importance_acsa |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
+  dplyr::slice_head(n = 10)
+importance_acsa |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
   dplyr::slice_head(n = 10)
 
 ## QUAL (n = 465 obs, 1 site, 17 trees)
@@ -193,6 +221,10 @@ importance_qual |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_qual |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
 ## BEAL (n = 890 obs, 2 sites, 22 trees)
 
@@ -210,6 +242,10 @@ importance_beal <- as.data.frame(importance_beal)
 importance_beal |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
+  dplyr::slice_head(n = 10)
+importance_beal |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
   dplyr::slice_head(n = 10)
 
 ## PCRU (n = 1509 obs, 1 site, 39 trees)
@@ -229,6 +265,10 @@ importance_pcru |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_pcru |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
 ## PIST (n = 3669 obs, 3 sites, 91 trees)
 
@@ -246,6 +286,10 @@ importance_pist <- as.data.frame(importance_pist)
 importance_pist |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
+  dplyr::slice_head(n = 10)
+importance_pist |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
   dplyr::slice_head(n = 10)
 
 ## FAGR (n = 3326 obs, 3 sites, 88 trees)
@@ -265,6 +309,10 @@ importance_fagr |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_fagr |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
 ## AMAR (n = 41 obs, 1 site, 1 tree)
 
@@ -282,6 +330,10 @@ importance_amar <- as.data.frame(importance_amar)
 importance_amar |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
+  dplyr::slice_head(n = 10)
+importance_amar |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
   dplyr::slice_head(n = 10)
 
 ## QUMO (n = 1151 obs, 1 site, 30 trees)
@@ -301,6 +353,10 @@ importance_qumo |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_qumo |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
 ## FRAM (n = 1270 obs, 1 site, 31 trees)
 
@@ -318,6 +374,10 @@ importance_fram <- as.data.frame(importance_fram)
 importance_fram |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
+  dplyr::slice_head(n = 10)
+importance_fram |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
   dplyr::slice_head(n = 10)
 
 ## QURU (n = 6303 obs, 3 sites, 158 trees)
@@ -337,6 +397,10 @@ importance_quru |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_quru |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
 ## THOC (n = 441 obs, 1 site, 11 trees)
 
@@ -354,6 +418,10 @@ importance_thoc <- as.data.frame(importance_thoc)
 importance_thoc |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
+  dplyr::slice_head(n = 10)
+importance_thoc |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
   dplyr::slice_head(n = 10)
 
 ## OSVI (n = 82 obs, 1 site, 2 trees)
@@ -373,6 +441,10 @@ importance_osvi |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_osvi |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
 ## TSCA (n = 6526 obs, 2 sites, 164 trees)
 
@@ -390,6 +462,10 @@ importance_tsca <- as.data.frame(importance_tsca)
 importance_tsca |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
+  dplyr::slice_head(n = 10)
+importance_tsca |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
   dplyr::slice_head(n = 10)
 
 ## PRSE (n = 84 obs, 2 sites, 2 trees)
@@ -409,6 +485,10 @@ importance_prse |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_prse |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
 ## BEPA (n = 161 obs, 3 sites, 4 trees)
 
@@ -427,6 +507,10 @@ importance_bepa |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_bepa |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
 ## BELE (n = 666 obs, 2 sites, 17 trees)
 
@@ -444,6 +528,10 @@ importance_bele <- as.data.frame(importance_bele)
 importance_bele |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
+  dplyr::slice_head(n = 10)
+importance_bele |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
   dplyr::slice_head(n = 10)
 
 #### TMEAN: Random forest with all sites and taxa pooled ####
