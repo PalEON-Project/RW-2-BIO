@@ -6,47 +6,48 @@ rm(list = ls())
 load('out/taxon_detrended_AGBI.RData')
 
 # Average over taxa and plots
-save_comb <- save_comb |>
+save_comb <- taxon_save_comb |>
   dplyr::group_by(year, site) |>
   dplyr::summarize(residual_AGBI = mean(residual_AGBI))
 
 # Indexing for loops
-site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA')
+site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD')
 
 # Load climate data
 load('climate/prism_clim.RData')
 
 # Format
-prism_long <- dplyr::rename(prism_long, site = loc) |>
-  dplyr::mutate(year = as.numeric(year))
-
-# Pivot wider
-prism_annual <- prism_long |>
-  dplyr::group_by(year, site) |>
-  # Average over months
-  dplyr::summarize(mean_PPT = mean(PPT2),
-                   mean_Tmean = mean(Tmean2),
+prism_growing <- prism_long |> 
+  dplyr::mutate(year = as.numeric(year)) |>
+  dplyr::mutate(growing_year = dplyr::if_else(month %in% c('01', '02', '03', '04', 
+                                                           '05', '06', '07', '08'),
+                                              year, year + 1)) |>
+  dplyr::group_by(growing_year, loc) |>
+  dplyr::summarize(PPT = mean(PPT2),
+                   Tmean = mean(Tmean2),
                    sd_PPT = sd(PPT2),
                    sd_Tmean = sd(Tmean2),
-                   mean_Tmin = min(Tmin2),
-                   mean_Tmax = max(Tmax2),
-                   mean_Vpdmin = min(Vpdmin2),
-                   mean_Vpdmax = max(Vpdmax2))
+                   Tmin = min(Tmin2),
+                   Tmax = max(Tmax2),
+                   Vpdmin = min(Vpdmin2),
+                   Vpdmax = max(Vpdmax2)) |>
+  dplyr::rename(year = growing_year,
+                site = loc)
 
 # Storage
 coeff_save_site <- matrix(, nrow = length(site), ncol = 11)
 
-for(i in 1:4){
+for(i in 1:length(site)){
   site_name <- site[i]
   sub <- dplyr::filter(save_comb, site == site_name)
   joined <- sub |>
-    dplyr::left_join(y = prism_annual, by = c('site', 'year'))
+    dplyr::left_join(y = prism_growing, by = c('site', 'year'))
   
   # Fit linear model
-  mod <- lm(formula = residual_AGBI ~ mean_PPT + mean_Tmean +
+  mod <- lm(formula = residual_AGBI ~ PPT + Tmean +
               sd_PPT + sd_Tmean +
-              mean_Tmin + mean_Tmax +
-              mean_Vpdmin + mean_Vpdmax,
+              Tmin + Tmax +
+              Vpdmin + Vpdmax,
             data = joined)
   # Save site name, coefficients, and r2 in matrix
   coeff_save_site[i,1] <- site_name
@@ -114,138 +115,157 @@ ggplot2::ggplot() +
   ggplot2::geom_violin(data = coeff_save_taxon,
                        ggplot2::aes(x = Site, y = R2, color = 'Taxon'), fill = NA) +
   ggplot2::geom_point(data = coeff_save_plot,
-                      ggplot2::aes(x = Site, y = R2, shape = 'Plot'), color = 'black') +
+                      ggplot2::aes(x = Site, y = R2, color = 'Plot'), shape = 1) +
   ggplot2::geom_point(data = coeff_save_site,
-                      ggplot2::aes(x = Site, y = R2, shape = 'Site'), color = 'black') +
+                      ggplot2::aes(x = Site, y = R2, color = 'Site'), shape = 16) +
+  
   ggplot2::xlab('') + ggplot2::ylab(expression(R^2)) +
   ggplot2::theme_minimal() +
   ggplot2::scale_shape_manual(values = c(1, 16)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())
 
 # Violin of precipitation coefficients
+ci <- coeff_save_taxon |>
+  dplyr::summarize(lower = quantile(Precipitation, probs = 0.025, na.rm = TRUE),
+                   upper = quantile(Precipitation, probs = 0.975, na.rm = TRUE))
+
 ggplot2::ggplot() +
-  ggplot2::geom_violin(data = coeff_save,
-                       ggplot2::aes(x = Site, y = Precipitation, color = 'Individual'), fill = NA) +
-  ggplot2::geom_violin(data = coeff_save_taxon,
-                       ggplot2::aes(x = Site, y = Precipitation, color = 'Taxon'), fill = NA) +
-  ggplot2::geom_point(data = coeff_save_plot,
-                      ggplot2::aes(x = Site, y = Precipitation, shape = 'Plot'), color = 'black') +
-  ggplot2::geom_point(data = coeff_save_site,
-                      ggplot2::aes(x = Site, y = Precipitation, shape = 'Site'), color = 'black') +
+  ggplot2::geom_violin(data = dplyr::filter(coeff_save, Precipitation > ci$lower & Precipitation < ci$upper),
+                       ggplot2::aes(x = Site, y = Precipitation, color = 'Individual'), 
+                       fill = NA) +
+  ggplot2::geom_violin(data = dplyr::filter(coeff_save_taxon, Precipitation > ci$lower & Precipitation < ci$upper),
+                       ggplot2::aes(x = Site, y = Precipitation, color = 'Taxon'), 
+                       fill = NA) +
+  ggplot2::geom_point(data = dplyr::filter(coeff_save_plot, Precipitation > ci$lower & Precipitation < ci$upper),
+                      ggplot2::aes(x = Site, y = Precipitation, color = 'Plot'), shape = 1) +
+  ggplot2::geom_point(data = dplyr::filter(coeff_save_site, Precipitation > ci$lower & Precipitation < ci$upper),
+                      ggplot2::aes(x = Site, y = Precipitation, color = 'Site'), shape = 16) +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for precipitation') +
   ggplot2::theme_minimal() +
-  ggplot2::scale_shape_manual(values = c(1, 16)) +
-  ggplot2::ylim(c(-0.05, 0.05)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())
 
 # Violin of temperature coefficients
+ci <- coeff_save_taxon |>
+  dplyr::summarize(lower = quantile(Temperature, probs = 0.025, na.rm = TRUE),
+                   upper = quantile(Temperature, probs = 0.975, na.rm = TRUE))
+
 ggplot2::ggplot() +
-  ggplot2::geom_violin(data = coeff_save,
+  ggplot2::geom_violin(data = dplyr::filter(coeff_save, Temperature > ci$lower & Temperature < ci$upper),
                        ggplot2::aes(x = Site, y = Temperature, color = 'Individual'), fill = NA) +
-  ggplot2::geom_violin(data = coeff_save_taxon,
+  ggplot2::geom_violin(data = dplyr::filter(coeff_save_taxon, Temperature > ci$lower & Temperature < ci$upper),
                        ggplot2::aes(x = Site, y = Temperature, color = 'Taxon'), fill = NA) +
-  ggplot2::geom_point(data = coeff_save_plot,
-                      ggplot2::aes(x = Site, y = Temperature, shape = 'Plot'), color = 'black') +
-  ggplot2::geom_point(data = coeff_save_site,
-                      ggplot2::aes(x = Site, y = Temperature, shape = 'Site'), color = 'black') +
+  ggplot2::geom_point(data = dplyr::filter(coeff_save_plot, Temperature > ci$lower & Temperature < ci$upper),
+                      ggplot2::aes(x = Site, y = Temperature, color = 'Plot'), shape = 1) +
+  ggplot2::geom_point(data = dplyr::filter(coeff_save_site, Temperature > ci$lower & Temperature < ci$upper),
+                      ggplot2::aes(x = Site, y = Temperature, color = 'Site'), shape = 16) +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for temperature') +
   ggplot2::theme_minimal() +
-  ggplot2::scale_shape_manual(values = c(1, 16)) +
-  ggplot2::ylim(c(-0.15, 0.15)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())
 
 # Violin of precipitation seasonality coefficients
+ci <- coeff_save_taxon |>
+  dplyr::summarize(lower = quantile(SD_Precipitation, probs = 0.025, na.rm = TRUE),
+                   upper = quantile(SD_Precipitation, probs = 0.975, na.rm = TRUE))
+
 ggplot2::ggplot() +
-  ggplot2::geom_violin(data = coeff_save,
-                       ggplot2::aes(x = Site, y = SD_Precipitation, color = 'Individual'), fill = NA) +
-  ggplot2::geom_violin(data = coeff_save_taxon,
+  #ggplot2::geom_violin(data = dplyr::filter(coeff_save, SD_Precipitation > ci$lower & SD_Precipitation < ci$upper),
+  #                     ggplot2::aes(x = Site, y = SD_Precipitation, color = 'Individual'), fill = NA) +
+  ggplot2::geom_violin(data = dplyr::filter(coeff_save_taxon, SD_Precipitation > ci$lower & SD_Precipitation < ci$upper),
                        ggplot2::aes(x = Site, y = SD_Precipitation, color = 'Taxon'), fill = NA) +
-  ggplot2::geom_point(data = coeff_save_plot,
-                      ggplot2::aes(x = Site, y = SD_Precipitation, shape = 'Plot'), color = 'black') +
-  ggplot2::geom_point(data = coeff_save_site,
-                      ggplot2::aes(x = Site, y = SD_Precipitation, shape = 'Site'), color = 'black') +
+  ggplot2::geom_point(data = dplyr::filter(coeff_save_plot, SD_Precipitation > ci$lower & SD_Precipitation < ci$upper),
+                      ggplot2::aes(x = Site, y = SD_Precipitation, color = 'Plot'), shape = 1) +
+  ggplot2::geom_point(data = dplyr::filter(coeff_save_site, SD_Precipitation > ci$lower & SD_Precipitation < ci$upper),
+                      ggplot2::aes(x = Site, y = SD_Precipitation, color = 'Site'), shape = 16) +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for precipitation seasonality') +
   ggplot2::theme_minimal() +
-  ggplot2::scale_shape_manual(values = c(1, 16)) +
-  ggplot2::ylim(c(-0.01, 0.01)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())
 
 # Violin of temperature seasonality coefficients
+ci <- coeff_save_taxon |>
+  dplyr::summarize(lower = quantile(SD_Temperature, probs = 0.025, na.rm = TRUE),
+                   upper = quantile(SD_Temperature, probs = 0.975, na.rm = TRUE))
+
 ggplot2::ggplot() +
-  ggplot2::geom_violin(data = coeff_save,
+  ggplot2::geom_violin(data = dplyr::filter(coeff_save, SD_Temperature > ci$lower & SD_Temperature < ci$upper),
                        ggplot2::aes(x = Site, y = SD_Temperature, color = 'Individual'), fill = NA) +
-  ggplot2::geom_violin(data = coeff_save_taxon,
+  ggplot2::geom_violin(data = dplyr::filter(coeff_save_taxon, SD_Temperature > ci$lower & SD_Temperature < ci$upper),
                        ggplot2::aes(x = Site, y = SD_Temperature, color = 'Taxon'), fill = NA) +
-  ggplot2::geom_point(data = coeff_save_plot,
-                      ggplot2::aes(x = Site, y = SD_Temperature, shape = 'Plot'), color = 'black') +
-  ggplot2::geom_point(data = coeff_save_site,
-                      ggplot2::aes(x = Site, y = SD_Temperature, shape = 'Site'), color = 'black') +
+  ggplot2::geom_point(data = dplyr::filter(coeff_save_plot, SD_Temperature > ci$lower & SD_Temperature < ci$upper),
+                      ggplot2::aes(x = Site, y = SD_Temperature, color = 'Plot'), shape = 1) +
+  ggplot2::geom_point(data = dplyr::filter(coeff_save_site, SD_Temperature > ci$lower & SD_Temperature < ci$upper),
+                      ggplot2::aes(x = Site, y = SD_Temperature, color = 'Site'), shape = 16) +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for temperature seasonality') +
   ggplot2::theme_minimal() +
-  ggplot2::scale_shape_manual(values = c(1, 16)) +
-  ggplot2::ylim(c(-0.25, 0.25)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())
 
 # Violin of minimum temperature coefficients
+ci <- coeff_save_taxon |>
+  dplyr::summarize(lower = quantile(Minimum_temperature, probs = 0.025, na.rm = TRUE),
+                   upper = quantile(Minimum_temperature, probs = 0.975, na.rm = TRUE))
+
 ggplot2::ggplot() +
-  ggplot2::geom_violin(data = coeff_save,
-                       ggplot2::aes(x = Site, y = Minimum_temperature, color = 'Individual'), fill = NA) +
-  ggplot2::geom_violin(data = coeff_save_taxon,
+  #ggplot2::geom_violin(data = dplyr::filter(coeff_save, Minimum_temperature > ci$lower & Minimum_temperature < ci$upper),
+  #                     ggplot2::aes(x = Site, y = Minimum_temperature, color = 'Individual'), fill = NA) +
+  ggplot2::geom_violin(data = dplyr::filter(coeff_save_taxon, Minimum_temperature > ci$lower & Minimum_temperature < ci$upper),
                        ggplot2::aes(x = Site, y = Minimum_temperature, color = 'Taxon'), fill = NA) +
-  ggplot2::geom_point(data = coeff_save_plot,
-                      ggplot2::aes(x = Site, y = Minimum_temperature, shape = 'Plot'), color = 'black') +
-  ggplot2::geom_point(data = coeff_save_site,
-                      ggplot2::aes(x = Site, y = Minimum_temperature, shape = 'Site'), color = 'black') +
+  ggplot2::geom_point(data = dplyr::filter(coeff_save_plot, Minimum_temperature > ci$lower & Minimum_temperature < ci$upper),
+                      ggplot2::aes(x = Site, y = Minimum_temperature, color = 'Plot'), shape = 1) +
+  ggplot2::geom_point(data = dplyr::filter(coeff_save_site, Minimum_temperature > ci$lower & Minimum_temperature < ci$upper),
+                      ggplot2::aes(x = Site, y = Minimum_temperature, color = 'Site'), shape = 16) +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for minimum temperature') +
   ggplot2::theme_minimal() +
-  ggplot2::scale_shape_manual(values = c(1, 16)) +
-  ggplot2::ylim(c(-0.05, 0.05)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())
 
 # Violin of maximum temperature coefficients
+ci <- coeff_save_taxon |>
+  dplyr::summarize(lower = quantile(Maximum_temperature, probs = 0.025, na.rm = TRUE),
+                   upper = quantile(Maximum_temperature, probs = 0.975, na.rm = TRUE))
+
 ggplot2::ggplot() +
-  ggplot2::geom_violin(data = coeff_save,
-                       ggplot2::aes(x = Site, y = Maximum_temperature, color = 'Individual'), fill = NA) +
-  ggplot2::geom_violin(data = coeff_save_taxon,
+  #ggplot2::geom_violin(data = dplyr::filter(coeff_save, Maximum_temperature > ci$lower & Maximum_temperature < ci$upper),
+  #                     ggplot2::aes(x = Site, y = Maximum_temperature, color = 'Individual'), fill = NA) +
+  ggplot2::geom_violin(data = dplyr::filter(coeff_save_taxon, Maximum_temperature > ci$lower & Maximum_temperature < ci$upper),
                        ggplot2::aes(x = Site, y = Maximum_temperature, color = 'Taxon'), fill = NA) +
-  ggplot2::geom_point(data = coeff_save_plot,
-                      ggplot2::aes(x = Site, y = Maximum_temperature, shape = 'Plot'), color = 'black') +
-  ggplot2::geom_point(data = coeff_save_site,
-                      ggplot2::aes(x = Site, y = Maximum_temperature, shape = 'Site'), color = 'black') +
+  ggplot2::geom_point(data = dplyr::filter(coeff_save_plot, Maximum_temperature > ci$lower & Maximum_temperature < ci$upper),
+                      ggplot2::aes(x = Site, y = Maximum_temperature, color = 'Plot'), shape = 1) +
+  ggplot2::geom_point(data = dplyr::filter(coeff_save_site, Maximum_temperature > ci$lower & Maximum_temperature < ci$upper),
+                      ggplot2::aes(x = Site, y = Maximum_temperature, color = 'Site'), shape = 16) +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for maximum temperature') +
   ggplot2::theme_minimal() +
-  ggplot2::scale_shape_manual(values = c(1, 16)) +
-  ggplot2::ylim(c(-0.15, 0.15)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())
 
 # Violin of minimum VPD coefficients
+ci <- coeff_save_taxon |>
+  dplyr::summarize(lower = quantile(Minimum_VPD, probs = 0.025, na.rm = TRUE),
+                   upper = quantile(Minimum_VPD, probs = 0.975, na.rm = TRUE))
+
 ggplot2::ggplot() +
-  ggplot2::geom_violin(data = coeff_save,
-                       ggplot2::aes(x = Site, y = Minimum_VPD, color = 'Individual'), fill = NA) +
-  ggplot2::geom_violin(data = coeff_save_taxon,
+  #ggplot2::geom_violin(data = dplyr::filter(coeff_save, Minimum_VPD > ci$lower & Minimum_VPD < ci$upper),
+  #                     ggplot2::aes(x = Site, y = Minimum_VPD, color = 'Individual'), fill = NA) +
+  ggplot2::geom_violin(data = dplyr::filter(coeff_save_taxon, Minimum_VPD > ci$lower & Minimum_VPD < ci$upper),
                        ggplot2::aes(x = Site, y = Minimum_VPD, color = 'Taxon'), fill = NA) +
-  ggplot2::geom_point(data = coeff_save_plot,
-                      ggplot2::aes(x = Site, y = Minimum_VPD, shape = 'Plot'), color = 'black') +
-  ggplot2::geom_point(data = coeff_save_site,
-                      ggplot2::aes(x = Site, y = Minimum_VPD, shape = 'Site'), color = 'black') +
+  ggplot2::geom_point(data = dplyr::filter(coeff_save_plot, Minimum_VPD > ci$lower & Minimum_VPD < ci$upper),
+                      ggplot2::aes(x = Site, y = Minimum_VPD, color = 'Plot'), shape = 1) +
+  ggplot2::geom_point(data = dplyr::filter(coeff_save_site, Minimum_VPD > ci$lower & Minimum_VPD < ci$upper),
+                      ggplot2::aes(x = Site, y = Minimum_VPD, color = 'Site'), shape = 16) +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for minimum VPD') +
   ggplot2::theme_minimal() +
-  ggplot2::scale_shape_manual(values = c(1, 16)) +
-  ggplot2::ylim(c(-0.5, 0.5)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())
 
 # Violin of maximum VPD coefficients
+ci <- coeff_save_taxon |>
+  dplyr::summarize(lower = quantile(Maximum_VPD, probs = 0.025, na.rm = TRUE),
+                   upper = quantile(Maximum_VPD, probs = 0.975, na.rm = TRUE))
+
 ggplot2::ggplot() +
-  ggplot2::geom_violin(data = coeff_save,
+  ggplot2::geom_violin(data = dplyr::filter(coeff_save, Maximum_VPD > ci$lower & Maximum_VPD < ci$upper),
                        ggplot2::aes(x = Site, y = Maximum_VPD, color = 'Individual'), fill = NA) +
-  ggplot2::geom_violin(data = coeff_save_taxon,
+  ggplot2::geom_violin(data = dplyr::filter(coeff_save_taxon, Maximum_VPD > ci$lower & Maximum_VPD < ci$upper),
                        ggplot2::aes(x = Site, y = Maximum_VPD, color = 'Taxon'), fill = NA) +
-  ggplot2::geom_point(data = coeff_save_plot,
-                      ggplot2::aes(x = Site, y = Maximum_VPD, shape = 'Plot'), color = 'black') +
-  ggplot2::geom_point(data = coeff_save_site,
-                      ggplot2::aes(x = Site, y = Maximum_VPD, shape = 'Site'), color = 'black') +
+  ggplot2::geom_point(data = dplyr::filter(coeff_save_plot, Maximum_VPD > ci$lower & Maximum_VPD < ci$upper),
+                      ggplot2::aes(x = Site, y = Maximum_VPD, color = 'Plot'), shape = 1) +
+  ggplot2::geom_point(data = dplyr::filter(coeff_save_site, Maximum_VPD > ci$lower & Maximum_VPD < ci$upper),
+                      ggplot2::aes(x = Site, y = Maximum_VPD, color = 'Site'), shape = 16) +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for maximum VPD') +
   ggplot2::theme_minimal() +
-  ggplot2::scale_shape_manual(values = c(1, 16)) +
-  ggplot2::ylim(c(-0.05, 0.05)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())

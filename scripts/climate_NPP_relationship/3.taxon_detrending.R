@@ -7,6 +7,7 @@ goose_taxon_agbi <- readRDS('sites/GOOSE/runs/v3.1_012021/output/AGBI_TAXA_STAN_
 nrp_taxon_agbi <- readRDS('sites/NORTHROUND/runs/v3.1_082020/output/AGBI_TAXA_STAN_NORTHROUND_v3.1_082020.RDS')
 rooster_taxon_agbi <- readRDS('sites/ROOSTER/runs/v3.1_082020/output/AGBI_TAXA_STAN_ROOSTER_v3.1_082020.RDS')
 sylv_taxon_agbi <- readRDS('sites/SYLVANIA/runs/v3.1_082020/output/AGBI_TAXA_STAN_SYLVANIA_v3.1_082020.RDS')
+harv_taxon_agbi <- readRDS('sites/HARVARD/runs/v3.1_102020/output/AGBI_TAXA_STAN_HARVARD_v3.1_102020.RDS')
 
 # Subset for 1960 and beyond to reduce problem of fading record
 goose_taxon_agbi <- goose_taxon_agbi |>
@@ -21,10 +22,14 @@ rooster_taxon_agbi <- rooster_taxon_agbi |>
 sylv_taxon_agbi <- sylv_taxon_agbi |>
   dplyr::mutate(site = 'SYLVANIA') |>
   dplyr::filter(year > 1959)
+harv_taxon_agbi <- harv_taxon_agbi |>
+  dplyr::mutate(site = 'HARVARD') |>
+  dplyr::filter(year > 1959)
 
 # Combine sites
 taxon_agbi <- rbind(goose_taxon_agbi, nrp_taxon_agbi,
-                    rooster_taxon_agbi, sylv_taxon_agbi)
+                    rooster_taxon_agbi, sylv_taxon_agbi,
+                    harv_taxon_agbi)
 
 # Save mean over iterations in dataframe
 taxon_agbi <- taxon_agbi |>
@@ -38,10 +43,10 @@ box_test <- taxon_agbi |>
 # Proportion of taxa demonstrating significant temporal autocorrelation
 length(which(box_test$box_test$p.value < 0.05)) / nrow(box_test)
 
-site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA')
+site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD')
 
 # Loop over each site and taxon
-for(i in 1:4){
+for(i in 1:length(site)){
   print(paste0('---------------',i,'------------------'))
   taxon <- unique(taxon_agbi$taxon[which(taxon_agbi$site == site[i])])
   site_name <- site[i]

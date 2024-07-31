@@ -207,3 +207,48 @@ prism_growing |>
   ggplot2::ggtitle('Sylvania') +
   ggplot2::theme_minimal() +
   ggplot2::theme(plot.title = ggplot2::element_text(size = 16, hjust = 0.5, face = 'bold'))
+
+#### Harvard Forest ####
+
+prism_ts |>
+  dplyr::filter(loc == 'HARVARD') |>
+  tidyr::pivot_longer(c(PPT2, Tmean2:Vpdmax2),
+                      names_to = 'variable', values_to = 'val') |> 
+  ggplot2::ggplot() +
+  ggplot2::geom_line(ggplot2::aes(x = time, y = val)) +
+  ggplot2::facet_wrap(~variable, scales = 'free') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::ggtitle('Harvard Forest') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(plot.title = ggplot2::element_text(size = 16, hjust = 0.5, face = 'bold'))
+
+prism_ts |>
+  dplyr::filter(loc == 'HARVARD') |>
+  dplyr::group_by(month) |>
+  dplyr::summarize(PPT2 = mean(PPT2),
+                   Tmean2 = mean(Tmean2),
+                   Tmin2 = mean(Tmin2),
+                   Tmax2 = mean(Tmax2),
+                   Vpdmin2 = mean(Vpdmin2),
+                   Vpdmax2 = mean(Vpdmax2)) |>
+  tidyr::pivot_longer(PPT2:Vpdmax2,
+                      names_to = 'variable', values_to = 'val') |>
+  ggplot2::ggplot() +
+  ggplot2::geom_line(ggplot2::aes(x = as.numeric(month), y = val)) +
+  ggplot2::facet_wrap(~variable, scales = 'free') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::ggtitle('Harvard Forest') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(plot.title = ggplot2::element_text(size = 16, hjust = 0.5, face = 'bold'))
+
+prism_growing |>
+  dplyr::filter(site == 'HARVARD') |>
+  tidyr::pivot_longer(PPT_growing:Vpdmax_growing,
+                      names_to = 'variable', values_to = 'val') |>
+  ggplot2::ggplot() +
+  ggplot2::geom_line(ggplot2::aes(x = as.numeric(year), y = val)) +
+  ggplot2::facet_wrap(~variable, scales = 'free') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::ggtitle('Harvard Forest') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(plot.title = ggplot2::element_text(size = 16, hjust = 0.5, face = 'bold'))

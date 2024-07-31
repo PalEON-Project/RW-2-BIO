@@ -20,12 +20,16 @@ clim_rooster <- prism_long |>
 clim_sylv <- prism_long |>
   dplyr::filter(loc == 'SYLVANIA') |>
   dplyr::select(PPT2, Tmean2:Vpdmax2)
+clim_harv <- prism_long |>
+  dplyr::filter(loc == 'HARVARD') |>
+  dplyr::select(PPT2, Tmean2:Vpdmax2)
 
 # Correlations by site
 cor_goose <- cor(clim_goose)
 cor_nrp <- cor(clim_nrp)
 cor_rooster <- cor(clim_rooster)
 cor_sylv <- cor(clim_sylv)
+cor_harv <- cor(clim_harv)
 
 # Correlation matrices
 corrplot::corrplot(corr = cor_goose,
@@ -38,6 +42,9 @@ corrplot::corrplot(corr = cor_rooster,
                    method = 'circle',
                    type = 'upper', diag = FALSE)
 corrplot::corrplot(corr = cor_sylv,
+                   method = 'circle',
+                   type = 'upper', diag = FALSE)
+corrplot::corrplot(corr = cor_harv,
                    method = 'circle',
                    type = 'upper', diag = FALSE)
 
@@ -75,12 +82,20 @@ clim_sylv <- prism_long |>
                                      'Tmax2', 'Vpdmin2', 'Vpdmax2')) |>
   dplyr::select(-year, -loc) |>
   tidyr::drop_na()
+clim_harv <- prism_long |>
+  dplyr::filter(loc == 'HARVARD') |>
+  tidyr::pivot_wider(names_from = 'month',
+                     values_from = c('PPT2', 'Tmean2', 'Tmin2',
+                                     'Tmax2', 'Vpdmin2', 'Vpdmax2')) |>
+  dplyr::select(-year, -loc) |>
+  tidyr::drop_na()
 
 # Correlations by site
 cor_goose <- cor(clim_goose)
 cor_nrp <- cor(clim_nrp)
 cor_rooster <- cor(clim_rooster)
 cor_sylv <- cor(clim_sylv)
+cor_harv <- cor(clim_harv)
 
 # Correlation matrices
 corrplot::corrplot(corr = cor_goose,
@@ -93,6 +108,9 @@ corrplot::corrplot(corr = cor_rooster,
                    method = 'circle',
                    type = 'upper', diag = FALSE)
 corrplot::corrplot(corr = cor_sylv,
+                   method = 'circle',
+                   type = 'upper', diag = FALSE)
+corrplot::corrplot(corr = cor_harv,
                    method = 'circle',
                    type = 'upper', diag = FALSE)
 
@@ -138,12 +156,17 @@ clim_sylv <- prism_annual |>
   dplyr::ungroup() |>
   dplyr::filter(loc == 'SYLVANIA') |>
   dplyr::select(PPT:Vpdmax)
+clim_harv <- prism_annual |>
+  dplyr::ungroup() |>
+  dplyr::filter(loc == 'HARVARD') |>
+  dplyr::select(PPT:Vpdmax)
 
 # Correlations by site
 cor_goose <- cor(clim_goose)
 cor_nrp <- cor(clim_nrp)
 cor_rooster <- cor(clim_rooster)
 cor_sylv <- cor(clim_sylv)
+cor_harv <- cor(clim_harv)
 
 # Correlation matrices
 corrplot::corrplot(cor = cor_goose,
@@ -156,6 +179,9 @@ corrplot::corrplot(cor = cor_rooster,
                    method = 'circle',
                    type = 'upper', diag = FALSE)
 corrplot::corrplot(cor = cor_sylv,
+                   method = 'circle',
+                   type = 'upper', diag = FALSE)
+corrplot::corrplot(cor = cor_harv,
                    method = 'circle',
                    type = 'upper', diag = FALSE)
 
@@ -198,12 +224,17 @@ clim_sylv <- prism_growing |>
   dplyr::ungroup() |>
   dplyr::filter(loc == 'SYLVANIA') |>
   dplyr::select(PPT:Vpdmax)
+clim_harv <- prism_growing |>
+  dplyr::ungroup() |>
+  dplyr::filter(loc == 'HARVARD') |>
+  dplyr::select(PPT:Vpdmax)
 
 # Correlations by site
 cor_goose <- cor(clim_goose)
 cor_nrp <- cor(clim_nrp)
 cor_rooster <- cor(clim_rooster)
 cor_sylv <- cor(clim_sylv)
+cor_harv <- cor(clim_harv)
 
 # Correlation matrices
 corrplot::corrplot(corr = cor_goose,
@@ -216,6 +247,9 @@ corrplot::corrplot(corr = cor_rooster,
                    method = 'circle',
                    type = 'upper', diag = FALSE)
 corrplot::corrplot(corr = cor_sylv,
+                   method = 'circle',
+                   type = 'upper', diag = FALSE)
+corrplot::corrplot(corr = cor_harv,
                    method = 'circle',
                    type = 'upper', diag = FALSE)
 

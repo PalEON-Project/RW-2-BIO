@@ -13,15 +13,17 @@ coeff_save |>
   ggplot2::geom_jitter(ggplot2::aes(x = Site, y = R2, color = Taxon)) +
   ggplot2::geom_violin(ggplot2::aes(x = Site, y = R2), fill = NA) +
   ggplot2::theme_minimal() +
-  ggplot2::scale_color_manual(values = sp_col) +
+  #ggplot2::scale_color_manual(values = sp_col) +
   ggplot2::xlab('') + ggplot2::ylab(expression(R^2))
 
 coeff_save |>
   ggplot2::ggplot() +
   ggplot2::geom_violin(ggplot2::aes(x = Taxon, y = R2, fill = Taxon)) +
+  ggplot2::geom_hline(ggplot2::aes(yintercept = 0),
+                      linetype = 'dashed') +
   ggplot2::theme_minimal() +
   ggplot2::facet_wrap(~Site) +
-  ggplot2::scale_fill_manual(values = sp_col) +
+  #ggplot2::scale_fill_manual(values = sp_col) +
   ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90)) +
   ggplot2::xlab('') + ggplot2::ylab(expression(R^2))
 
@@ -30,8 +32,10 @@ coeff_save |>
   ggplot2::ggplot() +
   ggplot2::geom_jitter(ggplot2::aes(x = Site, y = Precipitation, color = Taxon)) +
   ggplot2::geom_violin(ggplot2::aes(x = Site, y = Precipitation), fill = NA) +
+  ggplot2::geom_hline(ggplot2::aes(yintercept = 0),
+                      linetype = 'dashed') +
   ggplot2::theme_minimal() +
-  ggplot2::scale_color_manual(values = sp_col) +
+  #ggplot2::scale_color_manual(values = sp_col) +
   ggplot2::ylim(c(-0.2, 0.3)) +
   ggplot2::xlab('') + ggplot2::ylab('Precipitation coefficient')
 

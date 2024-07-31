@@ -10,6 +10,7 @@ tree_dbh_goose <- readRDS('sites/GOOSE/runs/v3.1_012021/output/DBH_STAN_GOOSE_v3
 tree_dbh_nrp <- readRDS('sites/NORTHROUND/runs/v3.1_082020/output/DBH_STAN_NORTHROUND_v3.1_082020.RDS')
 tree_dbh_rooster <- readRDS('sites/ROOSTER/runs/v3.1_082020/output/DBH_STAN_ROOSTER_v3.1_082020.RDS')
 tree_dbh_sylv <- readRDS('sites/SYLVANIA/runs/v3.1_082020/output/DBH_STAN_SYLVANIA_v3.1_082020.RDS')
+tree_dbh_harv <- readRDS('sites/HARVARD/runs/v3.1_102020/output/DBH_STAN_HARVARD_v3.1_102020.RDS')
 
 # Subset for 1960 and after. This leaves us with about 50 years
 # and this should limit the fading record problem
@@ -25,12 +26,16 @@ tree_dbh_rooster <- tree_dbh_rooster |>
 tree_dbh_sylv <- tree_dbh_sylv |>
   dplyr::mutate(site = 'SYLVANIA') |>
   dplyr::filter(year > 1959)
+tree_dbh_harv <- tree_dbh_harv |>
+  dplyr::mutate(site = 'HARVARD') |>
+  dplyr::filter(year > 1959)
 
 # Bind together
 tree_dbh <- rbind(tree_dbh_goose, 
                   tree_dbh_nrp, 
                   tree_dbh_rooster, 
-                  tree_dbh_sylv)
+                  tree_dbh_sylv,
+                  tree_dbh_harv)
 
 # Calculate tree-level metrics
 tree_dbh <- tree_dbh |>

@@ -6,12 +6,13 @@ rm(list = ls())
 load('out/taxon_detrended_AGBI.RData')
 
 # Indexing for loops
-site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA')
+site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD')
 taxa <- c()
-taxa[1] <- length(unique(save_comb$taxon[which(save_comb$site == 'GOOSE')]))
-taxa[2] <- length(unique(save_comb$taxon[which(save_comb$site == 'NRP')]))
-taxa[3] <- length(unique(save_comb$taxon[which(save_comb$site == 'ROOSTER')]))
-taxa[4] <- length(unique(save_comb$taxon[which(save_comb$site == 'SYLVANIA')]))
+taxa[1] <- length(unique(taxon_save_comb$taxon[which(taxon_save_comb$site == 'GOOSE')]))
+taxa[2] <- length(unique(taxon_save_comb$taxon[which(taxon_save_comb$site == 'NRP')]))
+taxa[3] <- length(unique(taxon_save_comb$taxon[which(taxon_save_comb$site == 'ROOSTER')]))
+taxa[4] <- length(unique(taxon_save_comb$taxon[which(taxon_save_comb$site == 'SYLVANIA')]))
+taxa[5] <- length(unique(taxon_save_comb$taxon[which(taxon_save_comb$site == 'HARVARD')]))
 
 # Load climate data
 load('climate/prism_clim.RData')
@@ -40,9 +41,9 @@ coeff_save_taxon <- matrix(, nrow = sum(taxa), ncol = 12)
 row_ind <- 0
 # For each site, let's iteratively fit a simple linear model with
 # average temperature and precipitation as predictors of each tree's annual growth
-for(i in 1:4){
+for(i in 1:length(site)){
   # Taxon number index, unique to each site
-  taxon <- unique(save_comb$taxon[which(save_comb$site == site[i])])
+  taxon <- unique(taxon_save_comb$taxon[which(taxon_save_comb$site == site[i])])
   # Save site name
   site_name <- site[i]
   # Loop through each taxon at a given site
@@ -50,12 +51,12 @@ for(i in 1:4){
     # Increment counter
     row_ind <- row_ind + 1
     # Subset full data for one taxon
-    sub <- dplyr::filter(save_comb, site == site_name &
+    sub <- dplyr::filter(taxon_save_comb, site == site_name &
                            taxon == j)
     # Combine tree data with climate
     joined <- sub |>
       # Join with annual climate drivers
-      dplyr::left_join(y = prism_annual, by = c('site', 'year'))
+      dplyr::left_join(y = prism_growing, by = c('site', 'year'))
 
     # Fit linear model
     # annual increment of each taxon is a function of
@@ -65,10 +66,10 @@ for(i in 1:4){
     # minimum annual VPD, maximum annual VPD,
     # fraction of basal area for given taxon,
     # total plot basal area
-    mod <- lm(formula = residual_AGBI ~ mean_PPT + mean_Tmean + 
+    mod <- lm(formula = residual_AGBI ~ PPT + Tmean + 
                 sd_PPT + sd_Tmean +
-                mean_Tmin + mean_Tmax +
-                mean_Vpdmin + mean_Vpdmax,
+                Tmin + Tmax +
+                Vpdmin + Vpdmax,
               data = joined)   
     # Save site name, tree number, coefficients, and r2 in matrix
     coeff_save_taxon[row_ind,1] <- i
@@ -95,7 +96,8 @@ coeff_save_taxon <- coeff_save_taxon |>
   dplyr::mutate(Site = dplyr::if_else(Site == 1, 'GOOSE', Site),
                 Site = dplyr::if_else(Site == 2, 'NRP', Site),
                 Site = dplyr::if_else(Site == 3, 'ROOSTER', Site),
-                Site = dplyr::if_else(Site == 4, 'SYLVANIA', Site)) |>
+                Site = dplyr::if_else(Site == 4, 'SYLVANIA', Site),
+                Site = dplyr::if_else(Site == 5, 'HARVARD', Site)) |>
   # Format columns
   dplyr::mutate(Intercept = as.numeric(Intercept),
                 Precipitation = as.numeric(Precipitation),
@@ -119,7 +121,9 @@ coeff_save_taxon |>
 # Violin
 coeff_save_taxon |>
   ggplot2::ggplot(ggplot2::aes(x = Site, y = R2)) +
-  ggplot2::geom_violin() +
+  ggplot2::geom_violin(fill = NA) +
+  ggplot2::geom_hline(ggplot2::aes(yintercept = 0),
+                      linetype = 'dashed') +
   ggplot2::xlab('') + ggplot2::ylab(expression(R^2)) +
   ggplot2::theme_minimal()
 
@@ -152,96 +156,146 @@ coeff_save_combined |>
 
 coeff_save_combined |>
   dplyr::filter(var == 'R2') |>
-  ggplot2::ggplot(ggplot2::aes(x = Site, y = val, fill = type)) +
-  ggplot2::geom_violin() +
+  ggplot2::ggplot(ggplot2::aes(x = Site, y = val, color = type)) +
+  ggplot2::geom_violin(fill = NA) +
+  ggplot2::geom_hline(ggplot2::aes(yintercept = 0),
+                      linetype = 'dashed') +
   ggplot2::xlab('') + ggplot2::ylab(expression(R^2)) +
   ggplot2::theme_minimal() +
   ggplot2::theme(legend.title = ggplot2::element_blank())
 
 # Violin of precipitation coefficients
+ci <- coeff_save_combined |>
+  dplyr::filter(type == 'Taxon') |>
+  tidyr::pivot_wider(names_from = 'var', values_from = 'val') |>
+  dplyr::summarize(lower = quantile(Precipitation, probs = 0.025, na.rm = TRUE),
+                   upper = quantile(Precipitation, probs = 0.975, na.rm = TRUE))
+
 coeff_save_combined |>
   dplyr::filter(var == 'Precipitation') |>
+  dplyr::filter(val > ci$lower & val < ci$upper) |>
   ggplot2::ggplot(ggplot2::aes(x = Site, y = val, fill = type)) +
   ggplot2::geom_violin() +
   ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for precipitation') +
   ggplot2::theme_minimal() +
-  ggplot2::ylim(c(-0.05, 0.05)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())
 
 # Violin of temperature coefficient
+ci <- coeff_save_combined |>
+  dplyr::filter(type == 'Taxon') |>
+  tidyr::pivot_wider(names_from = 'var', values_from = 'val') |>
+  dplyr::summarize(lower = quantile(Temperature, probs = 0.025, na.rm = TRUE),
+                   upper = quantile(Temperature, probs = 0.975, na.rm = TRUE))
+
 coeff_save_combined |>
   dplyr::filter(var == 'Temperature') |>
+  dplyr::filter(val > ci$lower & val < ci$upper) |>
   ggplot2::ggplot(ggplot2::aes(x = Site, y = val, fill = type)) +
   ggplot2::geom_violin() +
   ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for temperature') +
   ggplot2::theme_minimal() +
-  ggplot2::ylim(c(-0.05, 0.05)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())
 
 # Violin of precipitation seasonality coefficient
+ci <- coeff_save_combined |>
+  dplyr::filter(type == 'Taxon') |>
+  tidyr::pivot_wider(names_from = 'var', values_from = 'val') |>
+  dplyr::summarize(lower = quantile(SD_Precipitation, probs = 0.025, na.rm = TRUE),
+                   upper = quantile(SD_Precipitation, probs = 0.975, na.rm = TRUE))
+
 coeff_save_combined |>
   dplyr::filter(var == 'SD_Precipitation') |>
+  dplyr::filter(val > ci$lower & val < ci$upper) |>
   ggplot2::ggplot(ggplot2::aes(x = Site, y = val, fill = type)) +
   ggplot2::geom_violin() +
   ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for precipitation seasonality') +
   ggplot2::theme_minimal() +
-  ggplot2::ylim(c(-0.005, 0.005)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())
 
 # Violin of temperature seasonality coefficient
+ci <- coeff_save_combined |>
+  dplyr::filter(type == 'Taxon') |>
+  tidyr::pivot_wider(names_from = 'var', values_from = 'val') |>
+  dplyr::summarize(lower = quantile(SD_Temperature, probs = 0.025, na.rm = TRUE),
+                   upper = quantile(SD_Temperature, probs = 0.975, na.rm = TRUE))
+
 coeff_save_combined |>
   dplyr::filter(var == 'SD_Temperature') |>
+  dplyr::filter(val > ci$lower & val < ci$upper) |>
   ggplot2::ggplot(ggplot2::aes(x = Site, y = val, fill = type)) +
   ggplot2::geom_violin() +
   ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for temperature seasonality') +
   ggplot2::theme_minimal() +
-  ggplot2::ylim(c(-0.1, 0.1)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())
 
 # Violin of minimum temperature coefficient
+ci <- coeff_save_combined |>
+  dplyr::filter(type == 'Taxon') |>
+  tidyr::pivot_wider(names_from = 'var', values_from = 'val') |>
+  dplyr::summarize(lower = quantile(Minimum_temperature, probs = 0.025, na.rm = TRUE),
+                   upper = quantile(Minimum_temperature, probs = 0.975, na.rm = TRUE))
+
 coeff_save_combined |>
   dplyr::filter(var == 'Minimum_temperature') |>
+  dplyr::filter(val > ci$lower & val < ci$upper) |>
   ggplot2::ggplot(ggplot2::aes(x = Site, y = val, fill = type)) +
   ggplot2::geom_violin() +
   ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for minimum temperature') +
   ggplot2::theme_minimal() +
-  ggplot2::ylim(c(-0.05, 0.05)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())
 
 # Violin of maximum temperature coefficient
+ci <- coeff_save_combined |>
+  dplyr::filter(type == 'Taxon') |>
+  tidyr::pivot_wider(names_from = 'var', values_from = 'val') |>
+  dplyr::summarize(lower = quantile(Minimum_temperature, probs = 0.025, na.rm = TRUE),
+                   upper = quantile(Minimum_temperature, probs = 0.975, na.rm = TRUE))
+
 coeff_save_combined |>
   dplyr::filter(var == 'Maximum_temperature') |>
+  dplyr::filter(val > ci$lower & val < ci$upper) |>
   ggplot2::ggplot(ggplot2::aes(x = Site, y = val, fill = type)) +
   ggplot2::geom_violin() +
   ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for maximum temperature') +
   ggplot2::theme_minimal() +
-  ggplot2::ylim(c(-0.05, 0.05)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())
 
 # Violin of minimum VPD coefficient
+ci <- coeff_save_combined |>
+  dplyr::filter(type == 'Taxon') |>
+  tidyr::pivot_wider(names_from = 'var', values_from = 'val') |>
+  dplyr::summarize(lower = quantile(Minimum_VPD, probs = 0.025, na.rm = TRUE),
+                   upper = quantile(Minimum_VPD, probs = 0.975, na.rm = TRUE))
+
 coeff_save_combined |>
   dplyr::filter(var == 'Minimum_VPD') |>
+  dplyr::filter(val > ci$lower & val < ci$upper) |>
   ggplot2::ggplot(ggplot2::aes(x = Site, y = val, fill = type)) +
   ggplot2::geom_violin() +
   ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for minimum VPD') +
   ggplot2::theme_minimal() +
-  ggplot2::ylim(c(-0.5, 0.5)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())
 
 # Violin of maximum VPD coefficient
+ci <- coeff_save_combined |>
+  dplyr::filter(type == 'Taxon') |>
+  tidyr::pivot_wider(names_from = 'var', values_from = 'val') |>
+  dplyr::summarize(lower = quantile(Maximum_VPD, probs = 0.025, na.rm = TRUE),
+                   upper = quantile(Maximum_VPD, probs = 0.975, na.rm = TRUE))
+
 coeff_save_combined |>
   dplyr::filter(var == 'Maximum_VPD') |>
+  dplyr::filter(val > ci$lower & val < ci$upper) |>
   ggplot2::ggplot(ggplot2::aes(x = Site, y = val, fill = type)) +
   ggplot2::geom_violin() +
   ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for maximum VPD') +
   ggplot2::theme_minimal() +
-  ggplot2::ylim(c(-0.05, 0.05)) +
   ggplot2::theme(legend.title = ggplot2::element_blank())

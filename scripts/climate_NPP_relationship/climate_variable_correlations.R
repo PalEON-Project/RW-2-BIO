@@ -131,11 +131,27 @@ cor_sylvania |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
 
+## HARVARD
+
+harvard_agbi_monthly_growing <- agbi_monthly_growing |>
+  dplyr::filter(site == 'HARVARD') |>
+  dplyr::select(-tree, -year, -plot, -taxon, -site, -mean)
+
+harvard_cor <- cor(x = harvard_agbi_monthly_growing$residual_AGBI,
+                   y = dplyr::select(harvard_agbi_monthly_growing, -residual_AGBI))
+
+cor_harvard <- as.data.frame(t(harvard_cor))
+cor_sylvania |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::rename(cor = V1) |>
+  dplyr::arrange(desc(abs(cor))) |>
+  dplyr::slice_head(n = 10)
+
 #### Correlations for each taxon individually across all individual sites and trees ####
 
 unique(agbi_monthly_growing$taxon)
 
-## ACRU (n = 3132 obs, 3 sites, 78 trees)
+## ACRU (n = 9526 obs, 4 sites, 296 trees)
 
 acru_agbi_monthly_growing <- agbi_monthly_growing |>
   dplyr::filter(taxon == 'ACRU') |>
@@ -151,7 +167,7 @@ cor_acru |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
 
-## ACSA (n = 1307 obs, 3 sites, 33 trees)
+## ACSA (n = 1295 obs, 3 sites, 32 trees)
 
 acsa_agbi_monthly_growing <- agbi_monthly_growing |>
   dplyr::filter(taxon == 'ACSA') |>
@@ -183,7 +199,7 @@ cor_qual |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
 
-## BEAL (n = 890 obs, 2 sites, 22 trees)
+## BEAL (n = 1786 obs, 3 sites, 57 trees)
 
 beal_agbi_monthly_growing <- agbi_monthly_growing |>
   dplyr::filter(taxon == 'BEAL') |>
@@ -199,7 +215,7 @@ cor_beal |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
 
-## PCRU (n = 1509 obs, 1 site, 39 trees)
+## PCRU (n = 1500 obs, 1 site, 39 trees)
 
 pcru_agbi_monthly_growing <- agbi_monthly_growing |>
   dplyr::filter(taxon == 'PCRU') |>
@@ -215,7 +231,7 @@ cor_pcru |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
 
-## PIST (n = 3669 obs, 3 sites, 91 trees)
+## PIST (n = 4262 obs, 4 sites, 120 trees)
 
 pist_agbi_monthly_growing <- agbi_monthly_growing |>
   dplyr::filter(taxon == 'PIST') |>
@@ -231,7 +247,7 @@ cor_pist |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
 
-## FAGR (n = 3326 obs, 3 sites, 88 trees)
+## FAGR (n = 3881 obs, 4 sites, 107 trees)
 
 fagr_agbi_monthly_growing <- agbi_monthly_growing |>
   dplyr::filter(taxon == 'FAGR') |>
@@ -295,7 +311,7 @@ cor_fram |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
 
-## QURU (n = 6303 obs, 3 sites, 158 trees)
+## QURU (n = 10467 obs, 4 sites, 215 trees)
 
 quru_agbi_monthly_growing <- agbi_monthly_growing |>
   dplyr::filter(taxon == 'QURU') |>
@@ -311,7 +327,7 @@ cor_quru |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
 
-## THOC (n = 441 obs, 1 site, 11 trees)
+## THOC (n = 440 obs, 1 site, 11 trees)
 
 thoc_agbi_monthly_growing <- agbi_monthly_growing |>
   dplyr::filter(taxon == 'THOC') |>
@@ -343,7 +359,7 @@ cor_osvi |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
 
-## TSCA (n = 6526 obs, 2 sites, 164 trees)
+## TSCA (n = 7219 obs, 3 sites, 177 trees)
 
 tsca_agbi_monthly_growing <- agbi_monthly_growing |>
   dplyr::filter(taxon == 'TSCA') |>
@@ -391,7 +407,7 @@ cor_bepa |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
 
-## BELE (n = 666 obs, 2 sites, 17 trees)
+## BELE (n = 1026 obs, 3 sites, 33 trees)
 
 bele_agbi_monthly_growing <- agbi_monthly_growing |>
   dplyr::filter(taxon == 'BELE') |>
@@ -402,6 +418,38 @@ bele_cor <- cor(x = bele_agbi_monthly_growing$residual_AGBI,
 
 cor_bele <- as.data.frame(t(bele_cor))
 cor_bele |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::rename(cor = V1) |>
+  dplyr::arrange(desc(abs(cor))) |>
+  dplyr::slice_head(n = 10)
+
+## QUVE (n = 239 obs, 1 site, 8 trees)
+
+quve_agbi_monthly_growing <- agbi_monthly_growing |>
+  dplyr::filter(taxon == 'QUVE') |>
+  dplyr::select(-tree, -year, -plot, -taxon, -site, -mean)
+
+quve_cor <- cor(x = quve_agbi_monthly_growing$residual_AGBI,
+                y = dplyr::select(quve_agbi_monthly_growing, -residual_AGBI))
+
+cor_quve <- as.data.frame(t(quve_cor))
+cor_quve |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::rename(cor = V1) |>
+  dplyr::arrange(desc(abs(cor))) |>
+  dplyr::slice_head(n = 10)
+
+## HAVI (n = 422 obs, 1 site, 37 trees)
+
+havi_agbi_monthly_growing <- agbi_monthly_growing |>
+  dplyr::filter(taxon == 'HAVI') |>
+  dplyr::select(-tree, -year, -plot, -taxon, -site, -mean)
+
+havi_cor <- cor(x = havi_agbi_monthly_growing$residual_AGBI,
+                y = dplyr::select(havi_agbi_monthly_growing, -residual_AGBI))
+
+cor_havi <- as.data.frame(t(havi_cor))
+cor_havi |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::rename(cor = V1) |>
   dplyr::arrange(desc(abs(cor))) |>
