@@ -9,7 +9,7 @@ rm(list = ls())
 load('out/tree_detrended_AGBI.RData')
 
 # Indexing for loops
-site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA')
+site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD')
 
 # Load climate data
 load('climate/prism_clim.RData')
@@ -38,7 +38,8 @@ load('data/competition_metrics.RData')
 ntrees <- c(length(unique(save_comb$tree[which(save_comb$site == 'GOOSE')])),
             length(unique(save_comb$tree[which(save_comb$site == 'NRP')])),
             length(unique(save_comb$tree[which(save_comb$site == 'ROOSTER')])),
-            length(unique(save_comb$tree[which(save_comb$site == 'SYLVANIA')])))
+            length(unique(save_comb$tree[which(save_comb$site == 'SYLVANIA')])),
+            length(unique(save_comb$tree[which(save_comb$site == 'HARVARD')])))
 
 # Storage
 coeff_save <- matrix(, nrow = sum(ntrees), ncol = 11)
@@ -47,7 +48,7 @@ row_ind <- 0
 
 # For each site, let's iteratively fit a simple linear model with
 # average temperature and precipitation as predictors of each tree's annual growth
-for(i in 1:4){
+for(i in 1:length(site)){
   # Tree number index, unique to each site
   tree <- unique(save_comb$tree[which(save_comb$site == site[i])])
   # Save site name
@@ -115,7 +116,8 @@ coeff_save <- coeff_save |>
   dplyr::mutate(Site = dplyr::if_else(Site == 1, 'GOOSE', Site),
                 Site = dplyr::if_else(Site == 2, 'NRP', Site),
                 Site = dplyr::if_else(Site == 3, 'ROOSTER', Site),
-                Site = dplyr::if_else(Site == 4, 'SYLVANIA', Site)) |>
+                Site = dplyr::if_else(Site == 4, 'SYLVANIA', Site),
+                Site = dplyr::if_else(Site == 5, 'HARVARD', Site)) |>
   # Format
   dplyr::mutate(Intercept = as.numeric(Intercept),
                 Precipitation = as.numeric(Precipitation),
@@ -136,20 +138,32 @@ coeff_save |>
 # Violin plot of R2
 coeff_save |>
   ggplot2::ggplot(ggplot2::aes(x = Site, y = R2)) +
-  ggplot2::geom_violin() +
+  ggplot2::geom_violin(fill = NA) +
   ggplot2::xlab('') + ggplot2::ylab(expression(R^2)) +
+  ggplot2::geom_hline(ggplot2::aes(yintercept = 0),
+                      linetype = 'dashed') +
   ggplot2::theme_minimal()
 
 # Violin of precipitation coefficient
+ci <- coeff_save |>
+  dplyr::summarize(lower = quantile(Precipitation, probs = 0.025, na.rm = TRUE),
+                   upper = quantile(Precipitation, probs = 0.975, na.rm = TRUE))
+
 coeff_save |>
+  dplyr::filter(Precipitation > ci$lower & Precipitation < ci$upper) |>
   ggplot2::ggplot(ggplot2::aes(x = Site, y = Precipitation)) +
-  ggplot2::geom_violin() +
+  ggplot2::geom_violin(fill = NA) +
   ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for precipitation') +
   ggplot2::theme_minimal()
 
 # Violin of temperature coefficient
+ci <- coeff_save |>
+  dplyr::summarize(lower = quantile(Temperature, probs = 0.025, na.rm = TRUE),
+                   upper = quantile(Temperature, probs = 0.975, na.rm = TRUE))
+
 coeff_save |>
+  dplyr::filter(Temperature > ci$lower & Temperature < ci$upper) |>
   ggplot2::ggplot(ggplot2::aes(x = Site, y = Temperature)) +
   ggplot2::geom_violin() +
   ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
@@ -165,7 +179,12 @@ coeff_save |>
 #  ggplot2::theme_minimal()
 
 # Violin for temperature seasonality coefficient
+ci <- coeff_save |>
+  dplyr::summarize(lower = quantile(SD_Temperature, probs = 0.025, na.rm = TRUE),
+                   upper = quantile(SD_Temperature, probs = 0.975, na.rm = TRUE))
+
 coeff_save |>
+  dplyr::filter(SD_Temperature > ci$lower & SD_Temperature < ci$upper) |>
   ggplot2::ggplot(ggplot2::aes(x = Site, y = SD_Temperature)) +
   ggplot2::geom_violin() +
   ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
@@ -197,7 +216,12 @@ coeff_save |>
 #  ggplot2::theme_minimal()
 
 # Violin of maximum VPD
+ci <- coeff_save |>
+  dplyr::summarize(lower = quantile(Maximum_VPD, probs = 0.025, na.rm = TRUE),
+                   upper = quantile(Maximum_VPD, probs = 0.975, na.rm = TRUE))
+
 coeff_save |>
+  dplyr::filter(Maximum_VPD > ci$lower & Maximum_VPD < ci$upper) |>
   ggplot2::ggplot(ggplot2::aes(x = Site, y = Maximum_VPD)) +
   ggplot2::geom_violin() +
   ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +
@@ -205,7 +229,12 @@ coeff_save |>
   ggplot2::theme_minimal()
 
 # Violin of BA
+ci <- coeff_save |>
+  dplyr::summarize(lower = quantile(BA, probs = 0.025, na.rm = TRUE),
+                   upper = quantile(BA, probs = 0.975, na.rm = TRUE))
+
 coeff_save |>
+  dplyr::filter(BA > ci$lower & BA < ci$upper) |>
   ggplot2::ggplot(ggplot2::aes(x = Site, y = BA)) +
   ggplot2::geom_violin() +
   ggplot2::geom_hline(ggplot2::aes(yintercept = 0), linetype = 'dashed') +

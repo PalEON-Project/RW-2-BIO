@@ -4,10 +4,11 @@
 rm(list = ls())
 
 # Load total increment
-goose_tree_agbi <- readRDS('sites/GOOSE/runs/v2.0_012021/output/AGBI_STAN_GOOSE_v2.0_012021.RDS')
-nrp_tree_agbi <- readRDS('sites/NORTHROUND/runs/v2.0_082020/output/AGBI_STAN_NORTHROUND_v2.0_082020.RDS')
-rooster_tree_agbi <- readRDS('sites/ROOSTER/runs/v2.0_082020/output/AGBI_STAN_ROOSTER_v2.0_082020.RDS')
-sylv_tree_agbi <- readRDS('sites/SYLVANIA/runs/v2.0_082020/output/AGBI_STAN_SYLVANIA_v2.0_082020.RDS')
+goose_tree_agbi <- readRDS('sites/GOOSE/runs/v3.1_012021/output/AGBI_STAN_GOOSE_v3.1_012021.RDS')
+nrp_tree_agbi <- readRDS('sites/NORTHROUND/runs/v3.1_082020/output/AGBI_STAN_NORTHROUND_v3.1_082020.RDS')
+rooster_tree_agbi <- readRDS('sites/ROOSTER/runs/v3.1_082020/output/AGBI_STAN_ROOSTER_v3.1_082020.RDS')
+sylv_tree_agbi <- readRDS('sites/SYLVANIA/runs/v3.1_082020/output/AGBI_STAN_SYLVANIA_v3.1_082020.RDS')
+harv_tree_agbi <- readRDS('sites/HARVARD/runs/v3.1_102020/output/AGBI_STAN_HARVARD_v3.1_102020.RDS')
 
 # Subset for 1960 and beyond to reduce problem of fading record
 goose_tree_agbi <- goose_tree_agbi |>
@@ -22,10 +23,14 @@ rooster_tree_agbi <- rooster_tree_agbi |>
 sylv_tree_agbi <- sylv_tree_agbi |>
   dplyr::mutate(site = 'SYLVANIA') |>
   dplyr::filter(year > 1959)
+harv_tree_agbi <- harv_tree_agbi |>
+  dplyr::mutate(site = 'HARVARD') |>
+  dplyr::filter(year > 1959)
 
 # Combine sites
 tree_agbi <- rbind(goose_tree_agbi, nrp_tree_agbi,
-                   rooster_tree_agbi, sylv_tree_agbi)
+                   rooster_tree_agbi, sylv_tree_agbi,
+                   harv_tree_agbi)
 
 # Save mean over iterations in dataframe
 tree_agbi <- tree_agbi |>
@@ -39,10 +44,10 @@ box_test <- tree_agbi |>
 # Proportion of trees demonstrating significant temporal autocorrelation
 length(which(box_test$box_test$p.value < 0.05)) / nrow(box_test)
 
-site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA')
+site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD')
 
 # Loop over each site and tree
-for(i in 1:4){
+for(i in 1:length(site)){
   print(paste0('---------------',i,'------------------'))
   tree <- unique(tree_agbi$tree[which(tree_agbi$site == site[i])])
   site_name <- site[i]

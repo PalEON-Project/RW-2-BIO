@@ -65,6 +65,10 @@ importance_all_sites_taxa |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_all_sites_taxa |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
 #### Random forests for each site individually across all individual trees ####
 
@@ -84,6 +88,10 @@ importance_goose |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_goose |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
 ## NRP
 nrp_agbi_monthly_growing <- agbi_monthly_growing |>
@@ -100,6 +108,10 @@ importance_nrp <- as.data.frame(importance_nrp)
 importance_nrp |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
+  dplyr::slice_head(n = 10)
+importance_nrp |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
   dplyr::slice_head(n = 10)
 
 ## ROOSTER
@@ -118,6 +130,10 @@ importance_rooster |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_rooster |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
 ## SYLVANIA
 sylvania_agbi_monthly_growing <- agbi_monthly_growing |>
@@ -135,12 +151,37 @@ importance_sylvania |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_sylvania |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
+
+## HARVARD
+harvard_agbi_monthly_growing <- agbi_monthly_growing |>
+  dplyr::filter(site == 'HARVARD') |>
+  dplyr::select(-tree, -year, -plot, -taxon, -site, -mean)
+
+harvard_rf <- randomForest::randomForest(formula = residual_AGBI ~ .,
+                                         data = harvard_agbi_monthly_growing,
+                                         ntree = 1000,
+                                         importance = TRUE)
+
+importance_harvard <- randomForest::importance(harvard_rf)
+importance_harvard <- as.data.frame(importance_harvard)
+importance_harvard |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(IncNodePurity)) |>
+  dplyr::slice_head(n = 10)
+importance_harvard |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
 #### Random forest for each taxon individually across all individual sites and trees ####
 
 unique(agbi_monthly_growing$taxon)
 
-## ACRU (n = 3132 obs, 3 sites, 78 trees)
+## ACRU (n = 9526 obs, 4 sites, 296 trees)
 
 acru_agbi_monthly_growing <- agbi_monthly_growing |>
   dplyr::filter(taxon == 'ACRU') |>
@@ -157,8 +198,12 @@ importance_acru |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_acru |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
-## ACSA (n = 1307 obs, 3 sites, 33 trees)
+## ACSA (n = 1295 obs, 3 sites, 32 trees)
 
 acsa_agbi_monthly_growing <- agbi_monthly_growing |>
   dplyr::filter(taxon == 'ACSA') |>
@@ -174,6 +219,10 @@ importance_acsa <- as.data.frame(importance_acsa)
 importance_acsa |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
+  dplyr::slice_head(n = 10)
+importance_acsa |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
   dplyr::slice_head(n = 10)
 
 ## QUAL (n = 465 obs, 1 site, 17 trees)
@@ -193,8 +242,12 @@ importance_qual |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_qual |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
-## BEAL (n = 890 obs, 2 sites, 22 trees)
+## BEAL (n = 1786 obs, 3 sites, 57 trees)
 
 beal_agbi_monthly_growing <- agbi_monthly_growing |>
   dplyr::filter(taxon == 'BEAL') |>
@@ -211,8 +264,12 @@ importance_beal |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_beal |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
-## PCRU (n = 1509 obs, 1 site, 39 trees)
+## PCRU (n = 1500 obs, 1 site, 39 trees)
 
 pcru_agbi_monthly_growing <- agbi_monthly_growing |>
   dplyr::filter(taxon == 'PCRU') |>
@@ -229,8 +286,12 @@ importance_pcru |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_pcru |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
-## PIST (n = 3669 obs, 3 sites, 91 trees)
+## PIST (n = 4262 obs, 4 sites, 120 trees)
 
 pist_agbi_monthly_growing <- agbi_monthly_growing |>
   dplyr::filter(taxon == 'PIST') |>
@@ -247,8 +308,12 @@ importance_pist |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_pist |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
-## FAGR (n = 3326 obs, 3 sites, 88 trees)
+## FAGR (n = 3881 obs, 4 sites, 107 trees)
 
 fagr_agbi_monthly_growing <- agbi_monthly_growing |>
   dplyr::filter(taxon == 'FAGR') |>
@@ -264,6 +329,10 @@ importance_fagr <- as.data.frame(importance_fagr)
 importance_fagr |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
+  dplyr::slice_head(n = 10)
+importance_fagr |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
   dplyr::slice_head(n = 10)
 
 ## AMAR (n = 41 obs, 1 site, 1 tree)
@@ -283,6 +352,10 @@ importance_amar |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_amar |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
 ## QUMO (n = 1151 obs, 1 site, 30 trees)
 
@@ -300,6 +373,10 @@ importance_qumo <- as.data.frame(importance_qumo)
 importance_qumo |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
+  dplyr::slice_head(n = 10)
+importance_qumo |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
   dplyr::slice_head(n = 10)
 
 ## FRAM (n = 1270 obs, 1 site, 31 trees)
@@ -319,8 +396,12 @@ importance_fram |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_fram |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
-## QURU (n = 6303 obs, 3 sites, 158 trees)
+## QURU (n = 10467 obs, 4 sites, 215 trees)
 
 quru_agbi_monthly_growing <- agbi_monthly_growing |>
   dplyr::filter(taxon == 'QURU') |>
@@ -337,8 +418,12 @@ importance_quru |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_quru |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
-## THOC (n = 441 obs, 1 site, 11 trees)
+## THOC (n = 440 obs, 1 site, 11 trees)
 
 thoc_agbi_monthly_growing <- agbi_monthly_growing |>
   dplyr::filter(taxon == 'THOC') |>
@@ -354,6 +439,10 @@ importance_thoc <- as.data.frame(importance_thoc)
 importance_thoc |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
+  dplyr::slice_head(n = 10)
+importance_thoc |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
   dplyr::slice_head(n = 10)
 
 ## OSVI (n = 82 obs, 1 site, 2 trees)
@@ -373,8 +462,12 @@ importance_osvi |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_osvi |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
-## TSCA (n = 6526 obs, 2 sites, 164 trees)
+## TSCA (n = 7219 obs, 3 sites, 177 trees)
 
 tsca_agbi_monthly_growing <- agbi_monthly_growing |>
   dplyr::filter(taxon == 'TSCA') |>
@@ -390,6 +483,10 @@ importance_tsca <- as.data.frame(importance_tsca)
 importance_tsca |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
+  dplyr::slice_head(n = 10)
+importance_tsca |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
   dplyr::slice_head(n = 10)
 
 ## PRSE (n = 84 obs, 2 sites, 2 trees)
@@ -409,6 +506,10 @@ importance_prse |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_prse |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
 ## BEPA (n = 161 obs, 3 sites, 4 trees)
 
@@ -427,8 +528,12 @@ importance_bepa |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_bepa |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
-## BELE (n = 666 obs, 2 sites, 17 trees)
+## BELE (n = 1026 obs, 3 sites, 33 trees)
 
 bele_agbi_monthly_growing <- agbi_monthly_growing |>
   dplyr::filter(taxon == 'BELE') |>
@@ -445,8 +550,58 @@ importance_bele |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
   dplyr::slice_head(n = 10)
+importance_bele |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
+
+## QUVE (n = 239 obs, 1 site, 8 trees)
+
+quve_agbi_monthly_growing <- agbi_monthly_growing |>
+  dplyr::filter(taxon == 'QUVE') |>
+  dplyr::select(-tree, -year, -plot, -taxon, -site, -mean)
+
+quve_rf <- randomForest::randomForest(formula = residual_AGBI ~ .,
+                                      data = quve_agbi_monthly_growing,
+                                      ntree = 1000,
+                                      importance = TRUE)
+
+importance_quve <- randomForest::importance(quve_rf)
+importance_quve <- as.data.frame(imporance_quve)
+importance_quve |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(IncNodePurity)) |>
+  dplyr::slice_head(n = 10)
+importance_quve |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
+
+## HAVI (n = 422 obs, 1 site, 37 trees)
+
+havi_agbi_monthly_growing <- agbi_monthly_growing |>
+  dplyr::filter(taxon == 'HAVI') |>
+  dplyr::select(-tree, -year, -plot, -taxon, -site, -mean)
+
+havi_rf <- randomForest::randomForest(formula = residual_AGBI ~ .,
+                                      data = havi_agbi_monthly_growing,
+                                      ntree = 1000,
+                                      importance = TRUE)
+
+importance_havi <- randomForest::importance(havi_rf)
+importance_havi <- as.data.frame(importance_havi)
+importance_havi |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(IncNodePurity)) |>
+  dplyr::slice_head(n = 10)
+importance_havi |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
 
 #### TMEAN: Random forest with all sites and taxa pooled ####
+
+## Not updated with HARVARD
 
 clim_vars <- c('residual_AGBI', 
                'PPT2_01', 'PPT2_02', 'PPT2_03', 'PPT2_04', 'PPT2_05', 'PPT2_06',
@@ -858,6 +1013,8 @@ importance_bele |>
 
 #### TMIN: Random forest with all sites and taxa pooled ####
 
+## Not updated with HARVARD
+
 clim_vars <- c('residual_AGBI', 
                'PPT2_01', 'PPT2_02', 'PPT2_03', 'PPT2_04', 'PPT2_05', 'PPT2_06',
                'PPT2_07', 'PPT2_08', 'PPT2_09', 'PPT2_10', 'PPT2_11', 'PPT2_12',
@@ -1268,6 +1425,8 @@ importance_bele |>
 
 #### TMAX: Random forest with all sites and taxa pooled ####
 
+## Not updated with HARVARD
+
 clim_vars <- c('residual_AGBI', 
                'PPT2_01', 'PPT2_02', 'PPT2_03', 'PPT2_04', 'PPT2_05', 'PPT2_06',
                'PPT2_07', 'PPT2_08', 'PPT2_09', 'PPT2_10', 'PPT2_11', 'PPT2_12',
@@ -1677,6 +1836,8 @@ importance_bele |>
   dplyr::slice_head(n = 10)
 
 #### VPDMAX: Random forest with all sites and taxa pooled ####
+
+## Not updated with HARVARD
 
 clim_vars <- c('residual_AGBI',
                'PPT2_01', 'PPT2_02', 'PPT2_03', 'PPT2_04', 'PPT2_05', 'PPT2_06',

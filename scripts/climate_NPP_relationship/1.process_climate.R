@@ -194,9 +194,11 @@ colnames(prism_coords) <- c('lat', 'long')
 site_coords <- matrix(c(43.068496,	-73.297425,
                         43.2309,	-74.5267,
                         42.84514,	-72.4473,
-                        46.241944,	-89.347778), byrow = T, ncol = 2)
+                        46.241944,	-89.347778,
+                        42.53, -72.18), 
+                      byrow = T, ncol = 2)
 site_coords <- cbind(site_coords,
-                     c('GOOSE', 'ROOSTER', 'NRP', 'SYLVANIA'))
+                     c('GOOSE', 'ROOSTER', 'NRP', 'SYLVANIA', 'HARVARD'))
 
 # Find distance between each prism-site pair
 dists <- fields::rdist(prism_coords, site_coords[,1:2])
@@ -569,46 +571,53 @@ ppt_long <- ppt_long |>
   dplyr::mutate(loc = dplyr::if_else(Longitude == unique(ppt_long$Longitude)[2], 'GOOSE', NA),
                 loc = dplyr::if_else(Longitude == unique(ppt_long$Longitude)[1], 'ROOSTER', loc),
                 loc = dplyr::if_else(Longitude == unique(ppt_long$Longitude)[3], 'NRP', loc),
-                loc = dplyr::if_else(Longitude == unique(ppt_long$Longitude)[4], 'SYLVANIA', loc)) |>
+                loc = dplyr::if_else(Longitude == unique(ppt_long$Longitude)[5], 'SYLVANIA', loc),
+                loc = dplyr::if_else(Longitude == unique(ppt_long$Longitude)[4], 'HARVARD', loc)) |>
   dplyr::select(-c(var, Longitude, Latitude))
 
 tmean_long <- tmean_long |>
   dplyr::mutate(loc = dplyr::if_else(Longitude == unique(tmean_long$Longitude)[2], 'GOOSE', NA),
                 loc = dplyr::if_else(Longitude == unique(tmean_long$Longitude)[1], 'ROOSTER', loc),
                 loc = dplyr::if_else(Longitude == unique(tmean_long$Longitude)[3], 'NRP', loc),
-                loc = dplyr::if_else(Longitude == unique(tmean_long$Longitude)[4], 'SYLVANIA', loc)) |>
+                loc = dplyr::if_else(Longitude == unique(tmean_long$Longitude)[5], 'SYLVANIA', loc),
+                loc = dplyr::if_else(Longitude == unique(tmean_long$Longitude)[4], 'HARVARD', loc)) |>
   dplyr::select(-c(var, Longitude, Latitude))
 
 tmin_long <- tmin_long |>
   dplyr::mutate(loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[1], 'ROOSTER', NA),
                 loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[2], 'GOOSE', loc),
                 loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[3], 'NRP', loc),
-                loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[4], 'SYLVANIA', loc),
-                loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[5], 'ROOSTER', loc),
-                loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[6], 'GOOSE', loc),
-                loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[7], 'NRP', loc),
-                loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[8], 'SYLVANIA', loc)) |>
+                loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[4], 'HARVARD', loc),
+                loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[5], 'SYLVANIA', loc),
+                loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[6], 'ROOSTER', loc),
+                loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[7], 'GOOSE', loc),
+                loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[8], 'NRP', loc),
+                loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[9], 'HARVARD', loc),
+                loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[10], 'SYLVANIA', loc)) |>
   dplyr::select(-c(var, Longitude, Latitude))
 
 tmax_long <- tmax_long |>
   dplyr::mutate(loc = dplyr::if_else(Longitude == unique(tmax_long$Longitude)[1], 'ROOSTER', NA),
                 loc = dplyr::if_else(Longitude == unique(tmax_long$Longitude)[2], 'GOOSE', loc),
                 loc = dplyr::if_else(Longitude == unique(tmax_long$Longitude)[3], 'NRP', loc),
-                loc = dplyr::if_else(Longitude == unique(tmax_long$Longitude)[4], 'SYLVANIA', loc)) |>
+                loc = dplyr::if_else(Longitude == unique(tmax_long$Longitude)[4], 'HARVARD', loc),
+                loc = dplyr::if_else(Longitude == unique(tmax_long$Longitude)[5], 'SYLVANIA', loc)) |>
   dplyr::select(-c(var, Longitude, Latitude))
 
 vpdmin_long <- vpdmin_long |>
   dplyr::mutate(loc = dplyr::if_else(Longitude == unique(vpdmin_long$Longitude)[1], 'ROOSTER', NA),
                 loc = dplyr::if_else(Longitude == unique(vpdmin_long$Longitude)[2], 'GOOSE', loc),
                 loc = dplyr::if_else(Longitude == unique(vpdmin_long$Longitude)[3], 'NRP', loc),
-                loc = dplyr::if_else(Longitude == unique(vpdmin_long$Longitude)[4], 'SYLVANIA', loc)) |>
+                loc = dplyr::if_else(Longitude == unique(vpdmin_long$Longitude)[4], 'HARVARD', loc),
+                loc = dplyr::if_else(Longitude == unique(vpdmin_long$Longitude)[5], 'SYLVANIA', loc)) |>
   dplyr::select(-c(var, Longitude, Latitude))
 
 vpdmax_long <- vpdmax_long |>
   dplyr::mutate(loc = dplyr::if_else(Longitude == unique(vpdmax_long$Longitude)[1], 'ROOSTER', NA),
                 loc = dplyr::if_else(Longitude == unique(vpdmax_long$Longitude)[2], 'GOOSE', loc),
                 loc = dplyr::if_else(Longitude == unique(vpdmax_long$Longitude)[3], 'NRP', loc),
-                loc = dplyr::if_else(Longitude == unique(vpdmax_long$Longitude)[4], 'SYLVANIA', loc)) |>
+                loc = dplyr::if_else(Longitude == unique(vpdmax_long$Longitude)[4], 'HARVARD', loc),
+                loc = dplyr::if_else(Longitude == unique(vpdmax_long$Longitude)[5], 'SYLVANIA', loc)) |>
   dplyr::select(-c(var, Longitude, Latitude))
 
 # Combine
