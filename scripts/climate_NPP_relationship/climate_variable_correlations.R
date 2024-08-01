@@ -141,7 +141,7 @@ harvard_cor <- cor(x = harvard_agbi_monthly_growing$residual_AGBI,
                    y = dplyr::select(harvard_agbi_monthly_growing, -residual_AGBI))
 
 cor_harvard <- as.data.frame(t(harvard_cor))
-cor_sylvania |>
+cor_harvard |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::rename(cor = V1) |>
   dplyr::arrange(desc(abs(cor))) |>

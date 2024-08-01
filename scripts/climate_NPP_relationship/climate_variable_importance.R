@@ -567,7 +567,7 @@ quve_rf <- randomForest::randomForest(formula = residual_AGBI ~ .,
                                       importance = TRUE)
 
 importance_quve <- randomForest::importance(quve_rf)
-importance_quve <- as.data.frame(imporance_quve)
+importance_quve <- as.data.frame(importance_quve)
 importance_quve |>
   tibble::rownames_to_column(var = 'variable') |>
   dplyr::arrange(desc(IncNodePurity)) |>
