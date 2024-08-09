@@ -11,10 +11,16 @@ save_comb <- taxon_save_comb |>
   dplyr::summarize(residual_AGBI = mean(residual_AGBI))
 
 # Indexing for loops
-site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD')
+site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD Model RW', 'HARVARD Model RW + Census')
 
 # Load climate data
 load('climate/prism_clim.RData')
+
+# Duplicate Harvard climate
+prism_harv <- dplyr::filter(prism_long, loc == 'HARVARD')
+prism_long <- dplyr::mutate(prism_long, loc = dplyr::if_else(loc == 'HARVARD', 'HARVARD Model RW', loc))
+prism_long <- rbind(prism_long, prism_harv)
+prism_long <- dplyr::mutate(prism_long, loc = dplyr::if_else(loc == 'HARVARD', 'HARVARD Model RW + Census', loc))
 
 # Format
 prism_growing <- prism_long |> 
@@ -269,3 +275,4 @@ ggplot2::ggplot() +
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for maximum VPD') +
   ggplot2::theme_minimal() +
   ggplot2::theme(legend.title = ggplot2::element_blank())
+

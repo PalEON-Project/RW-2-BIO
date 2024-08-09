@@ -6,16 +6,23 @@ rm(list = ls())
 load('out/taxon_detrended_AGBI.RData')
 
 # Indexing for loops
-site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD')
+site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD Model RW', 'HARVARD Model RW + Census')
 taxa <- c()
 taxa[1] <- length(unique(taxon_save_comb$taxon[which(taxon_save_comb$site == 'GOOSE')]))
 taxa[2] <- length(unique(taxon_save_comb$taxon[which(taxon_save_comb$site == 'NRP')]))
 taxa[3] <- length(unique(taxon_save_comb$taxon[which(taxon_save_comb$site == 'ROOSTER')]))
 taxa[4] <- length(unique(taxon_save_comb$taxon[which(taxon_save_comb$site == 'SYLVANIA')]))
-taxa[5] <- length(unique(taxon_save_comb$taxon[which(taxon_save_comb$site == 'HARVARD')]))
+taxa[5] <- length(unique(taxon_save_comb$taxon[which(taxon_save_comb$site == 'HARVARD Model RW')]))
+taxa[6] <- length(unique(taxon_save_comb$taxon[which(taxon_save_comb$site == 'HARVARD Model RW + Census')]))
 
 # Load climate data
 load('climate/prism_clim.RData')
+
+# Duplicate Harvard climate
+prism_harv <- dplyr::filter(prism_long, loc == 'HARVARD')
+prism_long <- dplyr::mutate(prism_long, loc = dplyr::if_else(loc == 'HARVARD', 'HARVARD Model RW', loc))
+prism_long <- rbind(prism_long, prism_harv)
+prism_long <- dplyr::mutate(prism_long, loc = dplyr::if_else(loc == 'HARVARD', 'HARVARD Model RW + Census', loc))
 
 # Format
 prism_growing <- prism_long |> 
@@ -97,7 +104,8 @@ coeff_save_taxon <- coeff_save_taxon |>
                 Site = dplyr::if_else(Site == 2, 'NRP', Site),
                 Site = dplyr::if_else(Site == 3, 'ROOSTER', Site),
                 Site = dplyr::if_else(Site == 4, 'SYLVANIA', Site),
-                Site = dplyr::if_else(Site == 5, 'HARVARD', Site)) |>
+                Site = dplyr::if_else(Site == 5, 'HARVARD Model RW', Site),
+                Site = dplyr::if_else(Site == 6, 'HARVARD Model RW + Census', Site)) |>
   # Format columns
   dplyr::mutate(Intercept = as.numeric(Intercept),
                 Precipitation = as.numeric(Precipitation),
