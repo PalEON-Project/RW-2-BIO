@@ -10,6 +10,12 @@ rm(save_comb_oos)
 # Load cliamte data
 load('climate/prism_clim.RData')
 
+# Duplicate Harvard climate
+prism_harv <- dplyr::filter(prism_long, loc == 'HARVARD')
+prism_long <- dplyr::mutate(prism_long, loc = dplyr::if_else(loc == 'HARVARD', 'HARVARD Model RW', loc))
+prism_long <- rbind(prism_long, prism_harv)
+prism_long <- dplyr::mutate(prism_long, loc = dplyr::if_else(loc == 'HARVARD', 'HARVARD Model RW + Census', loc))
+
 # Pivot wider
 prism_monthly <- prism_long |>
   dplyr::group_by(loc) |>
@@ -131,10 +137,26 @@ cor_sylvania |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
 
-## HARVARD
+## HARVARD Model RW
 
 harvard_agbi_monthly_growing <- agbi_monthly_growing |>
-  dplyr::filter(site == 'HARVARD') |>
+  dplyr::filter(site == 'HARVARD Model RW') |>
+  dplyr::select(-tree, -year, -plot, -taxon, -site, -mean)
+
+harvard_cor <- cor(x = harvard_agbi_monthly_growing$residual_AGBI,
+                   y = dplyr::select(harvard_agbi_monthly_growing, -residual_AGBI))
+
+cor_harvard <- as.data.frame(t(harvard_cor))
+cor_harvard |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::rename(cor = V1) |>
+  dplyr::arrange(desc(abs(cor))) |>
+  dplyr::slice_head(n = 10)
+
+## HARVARD Model RW + Census
+
+harvard_agbi_monthly_growing <- agbi_monthly_growing |>
+  dplyr::filter(site == 'HARVARD Model RW + Census') |>
   dplyr::select(-tree, -year, -plot, -taxon, -site, -mean)
 
 harvard_cor <- cor(x = harvard_agbi_monthly_growing$residual_AGBI,

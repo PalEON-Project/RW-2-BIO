@@ -10,6 +10,13 @@ rooster_tree_agbi <- readRDS('sites/ROOSTER/runs/v3.1_082020/output/AGBI_STAN_RO
 sylv_tree_agbi <- readRDS('sites/SYLVANIA/runs/v3.1_082020/output/AGBI_STAN_SYLVANIA_v3.1_082020.RDS')
 harv_tree_agbi <- readRDS('sites/HARVARD/runs/v3.1_102020/output/AGBI_STAN_HARVARD_v3.1_102020.RDS')
 
+# Split harvard rw and rw + census
+harv_tree_agbi_rw <- dplyr::filter(harv_tree_agbi, model == 'Model RW')
+harv_tree_agbi_cen <- dplyr::filter(harv_tree_agbi, model == 'Model RW + Census')
+
+# Remove total
+rm(harv_tree_agbi)
+
 # Subset for 1960 and beyond to reduce problem of fading record
 goose_tree_agbi <- goose_tree_agbi |>
   dplyr::mutate(site = 'GOOSE') |>
@@ -23,14 +30,17 @@ rooster_tree_agbi <- rooster_tree_agbi |>
 sylv_tree_agbi <- sylv_tree_agbi |>
   dplyr::mutate(site = 'SYLVANIA') |>
   dplyr::filter(year > 1959)
-harv_tree_agbi <- harv_tree_agbi |>
-  dplyr::mutate(site = 'HARVARD') |>
+harv_tree_agbi_rw <- harv_tree_agbi_rw |>
+  dplyr::mutate(site = 'HARVARD Model RW') |>
+  dplyr::filter(year > 1959)
+harv_tree_agbi_cen <- harv_tree_agbi_cen |>
+  dplyr::mutate(site = 'HARVARD Model RW + Census') |>
   dplyr::filter(year > 1959)
 
 # Combine sites
 tree_agbi <- rbind(goose_tree_agbi, nrp_tree_agbi,
                    rooster_tree_agbi, sylv_tree_agbi,
-                   harv_tree_agbi)
+                   harv_tree_agbi_rw, harv_tree_agbi_cen)
 
 # Save mean over iterations in dataframe
 tree_agbi <- tree_agbi |>
@@ -44,7 +54,7 @@ box_test <- tree_agbi |>
 # Proportion of trees demonstrating significant temporal autocorrelation
 length(which(box_test$box_test$p.value < 0.05)) / nrow(box_test)
 
-site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD')
+site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD Model RW', 'HARVARD Model RW + Census')
 
 # Loop over each site and tree
 for(i in 1:length(site)){

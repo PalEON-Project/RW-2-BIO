@@ -9,10 +9,16 @@ rm(list = ls())
 load('out/tree_detrended_AGBI.RData')
 
 # Indexing for loops
-site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD')
+site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD Model RW', 'HARVARD Model RW + Census')
 
 # Load climate data
 load('climate/prism_clim.RData')
+
+# Duplicate Harvard climate
+prism_harv <- dplyr::filter(prism_long, loc == 'HARVARD')
+prism_long <- dplyr::mutate(prism_long, loc = dplyr::if_else(loc == 'HARVARD', 'HARVARD Model RW', loc))
+prism_long <- rbind(prism_long, prism_harv)
+prism_long <- dplyr::mutate(prism_long, loc = dplyr::if_else(loc == 'HARVARD', 'HARVARD Model RW + Census', loc))
 
 # Format
 prism_growing <- prism_long |> 
@@ -39,7 +45,8 @@ ntrees <- c(length(unique(save_comb$tree[which(save_comb$site == 'GOOSE')])),
             length(unique(save_comb$tree[which(save_comb$site == 'NRP')])),
             length(unique(save_comb$tree[which(save_comb$site == 'ROOSTER')])),
             length(unique(save_comb$tree[which(save_comb$site == 'SYLVANIA')])),
-            length(unique(save_comb$tree[which(save_comb$site == 'HARVARD')])))
+            length(unique(save_comb$tree[which(save_comb$site == 'HARVARD Model RW')])),
+            length(unique(save_comb$tree[which(save_comb$site == 'HARVARD Model RW + Census')])))
 
 # Storage
 coeff_save <- matrix(, nrow = sum(ntrees), ncol = 11)
@@ -117,7 +124,8 @@ coeff_save <- coeff_save |>
                 Site = dplyr::if_else(Site == 2, 'NRP', Site),
                 Site = dplyr::if_else(Site == 3, 'ROOSTER', Site),
                 Site = dplyr::if_else(Site == 4, 'SYLVANIA', Site),
-                Site = dplyr::if_else(Site == 5, 'HARVARD', Site)) |>
+                Site = dplyr::if_else(Site == 5, 'HARVARD Model RW', Site),
+                Site = dplyr::if_else(Site == 6, 'HARVARD Model RW + Census', Site)) |>
   # Format
   dplyr::mutate(Intercept = as.numeric(Intercept),
                 Precipitation = as.numeric(Precipitation),
