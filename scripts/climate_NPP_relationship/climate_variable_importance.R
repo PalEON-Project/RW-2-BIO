@@ -10,6 +10,12 @@ rm(save_comb_oos)
 # Load climate data
 load('climate/prism_clim.RData')
 
+# Duplicate Harvard climate
+prism_harv <- dplyr::filter(prism_long, loc == 'HARVARD')
+prism_long <- dplyr::mutate(prism_long, loc = dplyr::if_else(loc == 'HARVARD', 'HARVARD Model RW', loc))
+prism_long <- rbind(prism_long, prism_harv)
+prism_long <- dplyr::mutate(prism_long, loc = dplyr::if_else(loc == 'HARVARD', 'HARVARD Model RW + Census', loc))
+
 # Pivot wider
 prism_monthly <- prism_long |>
   dplyr::group_by(loc) |>
@@ -156,9 +162,30 @@ importance_sylvania |>
   dplyr::arrange(desc(`%IncMSE`)) |>
   dplyr::slice_head(n = 10)
 
-## HARVARD
+## HARVARD Model RW
 harvard_agbi_monthly_growing <- agbi_monthly_growing |>
-  dplyr::filter(site == 'HARVARD') |>
+  dplyr::filter(site == 'HARVARD Model RW') |>
+  dplyr::select(-tree, -year, -plot, -taxon, -site, -mean)
+
+harvard_rf <- randomForest::randomForest(formula = residual_AGBI ~ .,
+                                         data = harvard_agbi_monthly_growing,
+                                         ntree = 1000,
+                                         importance = TRUE)
+
+importance_harvard <- randomForest::importance(harvard_rf)
+importance_harvard <- as.data.frame(importance_harvard)
+importance_harvard |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(IncNodePurity)) |>
+  dplyr::slice_head(n = 10)
+importance_harvard |>
+  tibble::rownames_to_column(var = 'variable') |>
+  dplyr::arrange(desc(`%IncMSE`)) |>
+  dplyr::slice_head(n = 10)
+
+## HARVARD Model RW + Census
+harvard_agbi_monthly_growing <- agbi_monthly_growing |>
+  dplyr::filter(site == 'HARVARD Model RW + Census') |>
   dplyr::select(-tree, -year, -plot, -taxon, -site, -mean)
 
 harvard_rf <- randomForest::randomForest(formula = residual_AGBI ~ .,
