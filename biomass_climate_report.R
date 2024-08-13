@@ -527,6 +527,7 @@ summary(clim_melt)
 
 vpd = select(clim_agb, year, AGBI.mean, site,
              starts_with('Vpdmean'))
+colnames(vpd)[which(names(vpd) == "AGBI.mean")] <- "AGBI.mean.site"
 tmin = select(clim_agb, year, AGBI.mean, site,
               starts_with('Tmin'))
 tmax = select(clim_agb, year, AGBI.mean, site,
@@ -548,9 +549,9 @@ annual_vars = select(clim_agb, year, AGBI.mean, site,
                      yearly_meanT, PPT_total_tree, T_min_mean, T_max_mean)
 
 vpd_melt = melt(vpd, 
-                id.vars = c('model', 'year', 'AGBI.mean', 'site'))
+                id.vars = c('model', 'year', 'AGBI.mean.site', 'site'))
 vpd_melt$site = factor(vpd_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD'))
-vpd_melt_taxon = melt(vpd_taxon, id.vars = c('model', 'year', 'AGBI.mean','AGBI.mean.total', 'site','taxon', 'AGB.mean',
+vpd_melt_taxon = melt(vpd_taxon, id.vars = c('model', 'year', 'AGBI.mean', 'AGBI.mean.site', 'site','taxon', 'AGB.mean',
                                              'AGB.sd','AGB.lo','AGB.hi','AGBI.sd',
                                              'AGBI.lo','AGBI.hi'))
 
@@ -598,6 +599,48 @@ cor_clim_vars <- clim_total %>%
 head(cor_clim_vars)
 
 write.csv(cor_clim_vars, file = "AGBI_clim_correlation.csv")
+
+# Plot faceted scatter plots with correlation values
+ggplot(cor_clim_vars, aes(x = variable, y = correlation, fill = site)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~ site, ncol = 1) +
+  theme_minimal() +
+  ggtitle("Correlation between AGBI.mean and Climate Variables by Site") +
+  xlab("Climate Variable") +
+  ylab("Correlation") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+#########plotting the correlation for each climate variable vs. AGBI.mean
+# Get the unique climate variables
+climate_variables <- unique(cor_clim_vars$variable)
+
+# Open a PDF device
+pdf("AGBI_clim_correlation_by_variable.pdf", width = 10, height = 8)
+
+# Loop through each climate variable
+for (var in climate_variables) {
+  
+  # Filter the data for the current climate variable
+  cor_clim_var <- cor_clim_vars %>%
+    filter(variable == var)
+  
+  # Generate the plot for the current climate variable
+  p <- ggplot(cor_clim_var, aes(x = site, y = correlation, fill = site)) +
+    geom_bar(stat = "identity", position = "dodge") +
+    theme_minimal() +
+    ggtitle(paste("Correlation between AGBI.mean and", var)) +
+    xlab("Site") +
+    ylab("Correlation") +
+    ylim(-1, 1) +  # Ensures the y-axis is consistent across plots
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  # Print the plot to the PDF
+  print(p)
+}
+# Close the PDF device
+dev.off()
+
  
 cor_clim_vars_taxon <- clim_taxon %>%
   # Filter to keep only the relevant rows for correlation
@@ -607,6 +650,45 @@ cor_clim_vars_taxon <- clim_taxon %>%
   # Summarize by calculating correlation between AGBI.mean and value
   summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"), .groups = 'drop')
 write.csv(cor_clim_vars_taxon, file = "AGBI_clim_taxon_correlation.csv")
+
+# Plot faceted scatter plots with correlation values
+ggplot(cor_clim_vars_taxon, aes(x = variable, y = correlation, fill = taxon)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~ site, ncol = 1) +
+  theme_minimal() +
+  ggtitle("Correlation between AGBI.mean and Climate Variables by taxon") +
+  xlab("Climate Variable") +
+  ylab("Correlation") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+climate_variables <- unique(cor_clim_vars_taxon$variable)
+# Open a PDF device
+pdf("AGBI_clim_taxon_correlation_by_variable.pdf", width = 10, height = 8)
+
+# Loop through each climate variable
+for (var in climate_variables) {
+  
+  # Filter the data for the current climate variable
+  cor_clim_var_taxon <- cor_clim_vars_taxon %>%
+    filter(variable == var)
+  
+  # Generate the plot for the current climate variable
+  p <- ggplot(cor_clim_var_taxon, aes(x = site, y = correlation, fill = taxon)) +
+    geom_bar(stat = "identity", position = "dodge") +
+    theme_minimal() +
+    ggtitle(paste("Correlation between AGBI.mean and", var, "by Taxon")) +
+    xlab("Taxon") +
+    ylab("Correlation") +
+    ylim(-1, 1) +  # Ensures the y-axis is consistent across plots
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  # Print the plot to the PDF
+  print(p)
+}
+# Close the PDF device
+dev.off()
+
 
 # cor_clim_vars_taxon <- clim_taxon %>%
 #   # Filter to keep only the relevant rows for correlation
@@ -641,10 +723,8 @@ ggplot(data= subset(cor_clim_vars_taxon, variable == 'PPT_total_tree')) +
 ###################plotting AGBI.mean vs ppt
 var_names = unique(ppt_melt_taxon$variable)
 N_vars = length(var_names)
-
 #open a pdf device 
 pdf("ppt_output_plots.pdf")
-
 # Loop through each variable
 for (i in 1:N_vars) {
   
@@ -664,21 +744,19 @@ for (i in 1:N_vars) {
 # Close the PDF device
 dev.off()
 
-
-var_names = unique(vpd_melt$variable)
+################### AGBI.mean vs. vpd 
+var_names = unique(vpd_melt_taxon$variable)
 N_vars = length(var_names)
-
 #open a pdf device 
 pdf("vpd_output_plots.pdf")
-
 # Loop through each variable
 for (i in 1:N_vars) {
   
   # Filter the data for the current variable
-  vpd_melt_variable <- vpd_melt_taxon[which(ppt_melt_taxon$variable == var_names[i]),]
+  vpd_melt_taxon_variable <- vpd_melt_taxon[which(vpd_melt_taxon$variable == var_names[i]),]
   
   # Generate the plot
-  p <- ggplot(data = ppt_melt_taxon_variable) +
+  p <- ggplot(data = vpd_melt_taxon_variable) +
     geom_point(aes(x = value, y = AGBI.mean, color = site)) +
     geom_smooth(aes(x = value, y = AGBI.mean, color = site), method = 'lm', formula = y ~ x) +
     facet_wrap(~taxon, scales = 'free')+
@@ -689,10 +767,6 @@ for (i in 1:N_vars) {
 }
 # Close the PDF device
 dev.off()
-
-
-
-
 
 
 
