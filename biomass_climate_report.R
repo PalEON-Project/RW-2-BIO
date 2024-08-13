@@ -597,11 +597,25 @@ cor_clim_vars <- clim_total %>%
   # Summarize by calculating correlation between AGBI.mean and value
   summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"), .groups = 'drop')
 head(cor_clim_vars)
-
 write.csv(cor_clim_vars, file = "AGBI_clim_correlation.csv")
 
+
+
+cor_clim_vars_cor <- clim_total %>%
+  # Filter to keep only the relevant rows for correlation
+  filter(str_detect(variable, "^(PPT|Tmean|Tmax2|Tmin2|Vpdmin2|Vpdmax2)")) %>%
+  # Group by site and variable
+  group_by(site, variable) %>%
+  # Summarize by calculating correlation between AGBI.mean and value
+  summarize(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
+            p_value = cor.test(AGBI.mean, value, use = "complete.obs")$p.value, .groups = 'drop')
+
+cor_clim_p_site_subset = subset(cor_clim_vars_cor, p_value < 0.05)
+
+
+
 # Plot faceted scatter plots with correlation values
-ggplot(cor_clim_vars, aes(x = variable, y = correlation, fill = site)) +
+ggplot(cor_clim_p_site_subset, aes(x = variable, y = correlation, fill = site)) +
   geom_bar(stat = "identity", position = "dodge") +
   facet_wrap(~ site, ncol = 1) +
   theme_minimal() +
@@ -650,6 +664,18 @@ cor_clim_vars_taxon <- clim_taxon %>%
   # Summarize by calculating correlation between AGBI.mean and value
   summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"), .groups = 'drop')
 write.csv(cor_clim_vars_taxon, file = "AGBI_clim_taxon_correlation.csv")
+
+#pvalue
+cor_clim_vars_taxon_t <- clim_taxon %>%
+  # Filter to keep only the relevant rows for correlation
+  filter(str_detect(variable, "^(PPT|Tmean|Tmax2|Tmin2|Vpdmin2|Vpdmax2)")) %>%
+  # Group by site and variable
+  group_by(site, taxon, variable) %>%
+  # Summarize by calculating correlation between AGBI.mean and value
+  summarize(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
+            p_value = cor.test(AGBI.mean, value, use = "complete.obs")$p.value, .groups = 'drop')
+
+cor_clim_p_subset = subset(cor_clim_vars_taxon_t, p_value < 0.05)
 
 # Plot faceted scatter plots with correlation values
 ggplot(cor_clim_vars_taxon, aes(x = variable, y = correlation, fill = taxon)) +
