@@ -700,7 +700,7 @@ for (var in climate_variables) {
     filter(variable == var)
   
   # Generate the plot for the current climate variable
-  p <- ggplot(cor_clim_var_taxon, aes(x = site, y = correlation, fill = taxon)) +
+  p <- ggplot(cor_clim_var_taxon, aes(x = taxon, y = correlation, fill = site)) +
     geom_bar(stat = "identity", position = "dodge") +
     theme_minimal() +
     ggtitle(paste("Correlation between AGBI.mean and", var, "by Taxon")) +
