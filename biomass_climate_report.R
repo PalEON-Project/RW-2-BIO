@@ -55,8 +55,8 @@ foo = subset(goose_ind_agb, iter==1) %>%
 ggplot(data=foo) +
   geom_line(aes(x=year, y=n, colour=taxon))
 
-ggplot(data=goose_ind_agb) +
-  geom_line(aes(x=year, y=value,))
+# ggplot(data=goose_ind_agb) +
+#   geom_line(aes(x=year, y=value,))
 
 rooster_ind_agb <- readRDS('sites/ROOSTER/runs/v3.1_082020/output/AGB_STAN_ROOSTER_v3.1_082020.RDS')
 
@@ -286,6 +286,14 @@ ggplot(data=all_taxon_summary) +
   facet_wrap(~site)
 ggsave("figures1950/AGBI_over_time_taxons.jpg")
 
+ggplot(data=all_taxon_summary) +
+  geom_ribbon(aes(x=year, ymin=AGBI.lo, ymax=AGBI.hi, colour=taxon, fill=taxon)) +
+  geom_line(aes(x=year, y=AGBI.mean, colour=taxon)) +
+  theme_bw(14) +
+  xlab('Year') +
+  ylab('AGBI (Mg/ha)') +
+  facet_wrap(~site, scales = 'free_y')
+ggsave("figures1950/AGBI_over_time_taxons_freey.jpg")
 
 #######################3
 
@@ -429,15 +437,25 @@ correlation_matrices_by_site[[1]]
 # > correlation_matrices_by_site[[2]][[1]]
 
 #goose correlation plot
-ggcorrplot(correlation_matrices_by_site[[2]][[1]], method = "square", type = "lower")
+ggcorrplot(correlation_matrices_by_site[[2]][[1]], 
+           method = "square", 
+           type = "lower", 
+           show.diag = TRUE)
+
 #harvard correlation plot
-ggcorrplot(correlation_matrices_by_site[[2]][[2]], method = "square", type = "lower")
+ggcorrplot(correlation_matrices_by_site[[2]][[2]], 
+           method = "square", 
+           type = "lower", 
+           show.diag = TRUE)
 #NRP correlation plot
-ggcorrplot(correlation_matrices_by_site[[2]][[3]], method = "square", type = "lower")
+ggcorrplot(correlation_matrices_by_site[[2]][[3]], method = "square", type = "lower", 
+           show.diag = TRUE)
 #rooster correlation plot
-ggcorrplot(correlation_matrices_by_site[[2]][[4]], method = "square", type = "lower")
+ggcorrplot(correlation_matrices_by_site[[2]][[4]], method = "square", type = "lower", 
+           show.diag = TRUE)
 #sylvania
-ggcorrplot(correlation_matrices_by_site[[2]][[5]], method = "square", type = "lower")
+ggcorrplot(correlation_matrices_by_site[[2]][[5]], method = "square", type = "lower", 
+           show.diag = TRUE)
 
 
 
@@ -534,7 +552,7 @@ tmax = select(clim_agb, year, AGBI.mean, site,
               starts_with('Tmax'))
 tmean = select(clim_agb, year, AGBI.mean, site,
                starts_with('Tmean'))
-ppt = select(clim_agb, year, AGBI.mean, site, taxon,
+ppt = select(clim_agb, year, AGBI.mean, site,
              starts_with('PPT'))
 colnames(ppt)[which(names(ppt) == "AGBI.mean")] <- "AGBI.mean.total"
 
@@ -585,8 +603,8 @@ annual_vars_melt = melt(annual_vars, id.vars = c('model', 'year', 'AGBI.mean', '
 ######################################################################################################################
 clim_total = na.omit(clim_total)
 
-clim_total = clim_total[which(clim_total$site != 'HARVARD'),]
-clim_taxon = clim_taxon[which(clim_taxon$site != 'HARVARD'),]
+# clim_total = clim_total[which(clim_total$site != 'HARVARD'),]
+# clim_taxon = clim_taxon[which(clim_taxon$site != 'HARVARD'),]
 
 #correlation between AGBI and all climate variables
 cor_clim_vars <- clim_total %>%
@@ -609,6 +627,17 @@ cor_clim_vars_cor <- clim_total %>%
   # Summarize by calculating correlation between AGBI.mean and value
   summarize(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
             p_value = cor.test(AGBI.mean, value, use = "complete.obs")$p.value, .groups = 'drop')
+
+# Plot faceted scatter plots with correlation values
+ggplot(cor_clim_vars_cor, aes(x = variable, y = correlation, fill = site)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~ site, ncol = 1) +
+  theme_minimal(18) +
+  ggtitle("Correlation between AGBI.mean and Climate Variables by Site") +
+  xlab("Climate Variable") +
+  ylab("Correlation") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ggsave('figures1950/cor_bar_AGBI_climate_by_site.pdf', width=14, height=12)
 
 cor_clim_p_site_subset = subset(cor_clim_vars_cor, p_value < 0.05)
 
