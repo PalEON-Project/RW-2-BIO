@@ -589,7 +589,7 @@ clim_total = clim_total[which(clim_total$site != 'HARVARD'),]
 clim_taxon = clim_taxon[which(clim_taxon$site != 'HARVARD'),]
 
 #correlation between AGBI and all climate variables
-cor_clim_vars <- clim_total %>%
+cor_clim_AGBI <- clim_total %>%
   # Filter to keep only the relevant rows for correlation
   filter(str_detect(variable, "^(PPT|Tmean|Tmax2|Tmin2|Vpdmin2|Vpdmax2)")) %>%
   # Group by site and variable
@@ -613,7 +613,7 @@ cor_clim_vars_cor <- clim_total %>%
 cor_clim_p_site_subset = subset(cor_clim_vars_cor, p_value < 0.05)
 
 
-
+#plotting correlation o
 # Plot faceted scatter plots with correlation values
 ggplot(cor_clim_p_site_subset, aes(x = variable, y = correlation, fill = site)) +
   geom_bar(stat = "identity", position = "dodge") +
@@ -655,7 +655,8 @@ for (var in climate_variables) {
 # Close the PDF device
 dev.off()
 
- 
+#calculating correlation between AGBI.mean and climate variables for each 
+#climate variable at each site
 cor_clim_vars_taxon <- clim_taxon %>%
   # Filter to keep only the relevant rows for correlation
   filter(str_detect(variable, "^(PPT|Tmean|Tmax2|Tmin2|Vpdmin2|Vpdmax2)")) %>%
@@ -665,7 +666,7 @@ cor_clim_vars_taxon <- clim_taxon %>%
   summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"), .groups = 'drop')
 write.csv(cor_clim_vars_taxon, file = "AGBI_clim_taxon_correlation.csv")
 
-#pvalue
+#generating the pvalues of the correlation between AGBI.mean and climate variables 
 cor_clim_vars_taxon_t <- clim_taxon %>%
   # Filter to keep only the relevant rows for correlation
   filter(str_detect(variable, "^(PPT|Tmean|Tmax2|Tmin2|Vpdmin2|Vpdmax2)")) %>%
@@ -677,6 +678,12 @@ cor_clim_vars_taxon_t <- clim_taxon %>%
 
 cor_clim_p_subset = subset(cor_clim_vars_taxon_t, p_value < 0.05)
 
+
+ggplot()+
+  geom_point(data = cor_clim_p_subset, aes(x =correlation, y = p_value, color =site ))
+
+#very large figure of Correlation between AGBI.mean and Climate Variables by taxon
+#facet wrapped by site, colored by taxon
 # Plot faceted scatter plots with correlation values
 ggplot(cor_clim_vars_taxon, aes(x = variable, y = correlation, fill = taxon)) +
   geom_bar(stat = "identity", position = "dodge") +
@@ -687,12 +694,14 @@ ggplot(cor_clim_vars_taxon, aes(x = variable, y = correlation, fill = taxon)) +
   ylab("Correlation") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-
+#for the loop
 climate_variables <- unique(cor_clim_vars_taxon$variable)
 # Open a PDF device
 pdf("AGBI_clim_taxon_correlation_by_variable.pdf", width = 10, height = 8)
 
-# Loop through each climate variable
+# loop generates a plot showing correlation of AGBI.mean v. climate variables
+#for each taxon at each site 
+#each pages is for a climate varible, colored by site 
 for (var in climate_variables) {
   
   # Filter the data for the current climate variable
@@ -716,16 +725,9 @@ for (var in climate_variables) {
 dev.off()
 
 
-# cor_clim_vars_taxon <- clim_taxon %>%
-#   # Filter to keep only the relevant rows for correlation
-#   filter(str_detect(variable, "^(PPT|Tmean|Tmax2|Tmin2|Vpdmin2|Vpdmax2)")) %>%
-#   # Group by site and variable
-#   group_by(taxon, variable) %>%
-#   # Summarize by calculating correlation between AGBI.mean and value
-#   summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"), .groups = 'drop')
-# write.csv(cor_clim_vars_taxon, file = "AGBI_clim_taxon_correlation.csv")
 
-
+#very messy figure showing, correlation of each climate variable v. AGBI.mean 
+#at each site
 ggplot(data=cor_clim_vars) +
   geom_point(aes(x=correlation, y=variable, colour=site)) #+
   # facet_grid(site~.)
@@ -733,13 +735,6 @@ ggplot(data=cor_clim_vars) +
 ggplot(data= subset(cor_clim_vars_taxon, variable == 'PPT_total_tree')) +
   geom_point(aes(x=taxon, y=correlation, color=site))
 
-# cor_clim_vars = clim_total %>% 
-#   # Filter to keep only the relevant rows for correlation
-#   filter(variable %in%  starts_with(c("PPT", "Tmean", "Tmax2", 'Tmin2', "Vpdmin2", "Vpdmax2" ))) %>%
-#   # Group by site
-#   group_by(site, variable) %>%
-#   # Summarize by calculating correlation between AGBI.mean and value (assuming 'value' holds the PPT_total_tree data)
-#   summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"))
 
 
 ##################################################################################################
