@@ -2,8 +2,15 @@
 
 rm(list = ls())
 
-# Load detrended AGBI
+# Load  AGBI
+# Uncomment trended or detrended
+#load('out/taxon_trended_AGBI.RData')
 load('out/taxon_detrended_AGBI.RData')
+
+# Rename trended dataframe
+if(exists('taxon_agbi')) taxon_save_comb <- taxon_agbi
+# Rename response column
+if(exists('taxon_agbi')) taxon_save_comb <- dplyr::rename(taxon_save_comb, residual_AGBI = mean)
 
 # Indexing for loops
 site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD Model RW', 'HARVARD Model RW + Census')
@@ -136,11 +143,19 @@ coeff_save_taxon |>
   ggplot2::theme_minimal()
 
 # Save 
-save(coeff_save_taxon, file = 'out/taxon_lm_coeff_save.RData')
+if(exists('taxon_agbi')){
+  save(coeff_save_taxon, file = 'out/taxon_lm_coeff_save_trended.RData')
+}else{
+  save(coeff_save_taxon, file = 'out/taxon_lm_coeff_save.RData')
+}
 
 ## Comparison with individual models
 # Load individual model output
-load('out/ind_lm_coeff_save.RData')
+if(exists('taxon_agbi')){
+  load('out/ind_lm_coeff_save_trended.RData')
+}else{
+  load('out/ind_lm_coeff_save.RData')
+}
 
 # Format to combine dataframes
 coeff_save <- coeff_save |>

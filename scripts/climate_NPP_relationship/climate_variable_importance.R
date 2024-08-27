@@ -3,9 +3,14 @@
 rm(list = ls())
 
 # Load tree data
-load('out/tree_detrended_AGBI.RData')
+# Comment trended or detrended
+load('out/tree_trended_AGBI.RData')
+#load('out/tree_detrended_AGBI.RData')
 
-rm(save_comb_oos)
+# Rename trended dataframe
+if(exists('tree_agbi')) save_comb <- tree_agbi
+# Rename response variable
+if(exists('tree_agbi')) save_comb <- dplyr::mutate(save_comb, residual_AGBI = mean)
 
 # Load climate data
 load('climate/prism_clim.RData')
