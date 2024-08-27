@@ -55,8 +55,8 @@ foo = subset(goose_ind_agb, iter==1) %>%
 ggplot(data=foo) +
   geom_line(aes(x=year, y=n, colour=taxon))
 
-ggplot(data=goose_ind_agb) +
-  geom_line(aes(x=year, y=value,))
+# ggplot(data=goose_ind_agb) +
+#   geom_line(aes(x=year, y=value,))
 
 rooster_ind_agb <- readRDS('sites/ROOSTER/runs/v3.1_082020/output/AGB_STAN_ROOSTER_v3.1_082020.RDS')
 
@@ -286,6 +286,14 @@ ggplot(data=all_taxon_summary) +
   facet_wrap(~site)
 ggsave("figures1950/AGBI_over_time_taxons.jpg")
 
+ggplot(data=all_taxon_summary) +
+  geom_ribbon(aes(x=year, ymin=AGBI.lo, ymax=AGBI.hi, colour=taxon, fill=taxon)) +
+  geom_line(aes(x=year, y=AGBI.mean, colour=taxon)) +
+  theme_bw(14) +
+  xlab('Year') +
+  ylab('AGBI (Mg/ha)') +
+  facet_wrap(~site, scales = 'free_y')
+ggsave("figures1950/AGBI_over_time_taxons_freey.jpg")
 
 #######################3
 
@@ -420,8 +428,8 @@ harvard_correlations <- correlation_matrices_by_site %>%
 
 # returns a list
 # first list element is a vector of site names
-# > correlation_matrices_by_site[[1]]
-# [1] "GOOSE"    "NRP"      "ROOSTER"  "SYLVANIA"
+correlation_matrices_by_site[[1]]
+# [1] "GOOSE"  "HARVARD"  "NRP"      "ROOSTER"  "SYLVANIA"
 
 # second list element is a list of correlation matrices
 # > correlation_matrices_by_site[[2]]
@@ -429,15 +437,25 @@ harvard_correlations <- correlation_matrices_by_site %>%
 # > correlation_matrices_by_site[[2]][[1]]
 
 #goose correlation plot
-ggcorrplot(correlation_matrices_by_site[[2]][[1]], method = "square", type = "lower")
-#NRP correlation plot
-ggcorrplot(correlation_matrices_by_site[[2]][[2]], method = "square", type = "lower")
-#Rooster correlation plot
-ggcorrplot(correlation_matrices_by_site[[2]][[3]], method = "square", type = "lower")
-#sylvania correlation plot
-ggcorrplot(correlation_matrices_by_site[[2]][[4]], method = "square", type = "lower")
+ggcorrplot(correlation_matrices_by_site[[2]][[1]], 
+           method = "square", 
+           type = "lower", 
+           show.diag = TRUE)
 
-ggcorrplot(correlation_matrices_by_site[[2]][[5]], method = "square", type = "lower")
+#harvard correlation plot
+ggcorrplot(correlation_matrices_by_site[[2]][[2]], 
+           method = "square", 
+           type = "lower", 
+           show.diag = TRUE)
+#NRP correlation plot
+ggcorrplot(correlation_matrices_by_site[[2]][[3]], method = "square", type = "lower", 
+           show.diag = TRUE)
+#rooster correlation plot
+ggcorrplot(correlation_matrices_by_site[[2]][[4]], method = "square", type = "lower", 
+           show.diag = TRUE)
+#sylvania
+ggcorrplot(correlation_matrices_by_site[[2]][[5]], method = "square", type = "lower", 
+           show.diag = TRUE)
 
 
 
@@ -527,6 +545,7 @@ summary(clim_melt)
 
 vpd = select(clim_agb, year, AGBI.mean, site,
              starts_with('Vpdmean'))
+colnames(vpd)[which(names(vpd) == "AGBI.mean")] <- "AGBI.mean.site"
 tmin = select(clim_agb, year, AGBI.mean, site,
               starts_with('Tmin'))
 tmax = select(clim_agb, year, AGBI.mean, site,
@@ -535,12 +554,24 @@ tmean = select(clim_agb, year, AGBI.mean, site,
                starts_with('Tmean'))
 ppt = select(clim_agb, year, AGBI.mean, site,
              starts_with('PPT'))
+colnames(ppt)[which(names(ppt) == "AGBI.mean")] <- "AGBI.mean.total"
+
+
+ppt_taxon = all_taxon_summary %>% 
+  left_join(ppt, by = c('year', 'site', 'model'))
+vpd_taxon = all_taxon_summary %>% 
+  left_join(vpd, by = c('year', 'site', 'model'))
+            
+      
 annual_vars = select(clim_agb, year, AGBI.mean, site,
                      yearly_meanT, PPT_total_tree, T_min_mean, T_max_mean)
 
 vpd_melt = melt(vpd, 
-                id.vars = c('model', 'year', 'AGBI.mean', 'site'))
+                id.vars = c('model', 'year', 'AGBI.mean.site', 'site'))
 vpd_melt$site = factor(vpd_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD'))
+vpd_melt_taxon = melt(vpd_taxon, id.vars = c('model', 'year', 'AGBI.mean', 'AGBI.mean.site', 'site','taxon', 'AGB.mean',
+                                             'AGB.sd','AGB.lo','AGB.hi','AGBI.sd',
+                                             'AGBI.lo','AGBI.hi'))
 
 # vpd_melt$variable = sapply(as.vector(vpd_melt$variable), function(x) {strsplit(x, '\\_')[[1]][2]})
 
@@ -557,7 +588,10 @@ tmean_melt = melt(tmean,
 
 tmean_melt$site = factor(tmean_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD'))
 
-ppt_melt = melt(ppt, id.vars = c('model', 'year', 'AGBI.mean', 'site'))
+ppt_melt = melt(ppt, id.vars = c('model', 'year', 'AGBI.mean.x', 'site'))
+ppt_melt_taxon = melt(ppt_taxon, id.vars = c('model', 'year', 'AGBI.mean','AGBI.mean.total', 'site','taxon', 'AGB.mean',
+                                       'AGB.sd','AGB.lo','AGB.hi','AGBI.sd',
+                                       'AGBI.lo','AGBI.hi'))
 ppt_melt$site = factor(ppt_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD'))
 
 annual_vars_melt = melt(annual_vars, id.vars = c('model', 'year', 'AGBI.mean', 'site'))
@@ -569,8 +603,8 @@ annual_vars_melt = melt(annual_vars, id.vars = c('model', 'year', 'AGBI.mean', '
 ######################################################################################################################
 clim_total = na.omit(clim_total)
 
-clim_total = clim_total[which(clim_total$site != 'HARVARD'),]
-clim_taxon = clim_taxon[which(clim_taxon$site != 'HARVARD'),]
+# clim_total = clim_total[which(clim_total$site != 'HARVARD'),]
+# clim_taxon = clim_taxon[which(clim_taxon$site != 'HARVARD'),]
 
 #correlation between AGBI and all climate variables
 cor_clim_vars <- clim_total %>%
@@ -581,8 +615,75 @@ cor_clim_vars <- clim_total %>%
   # Summarize by calculating correlation between AGBI.mean and value
   summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"), .groups = 'drop')
 head(cor_clim_vars)
-
 write.csv(cor_clim_vars, file = "AGBI_clim_correlation.csv")
+
+
+
+cor_clim_vars_cor <- clim_total %>%
+  # Filter to keep only the relevant rows for correlation
+  filter(str_detect(variable, "^(PPT|Tmean|Tmax2|Tmin2|Vpdmin2|Vpdmax2)")) %>%
+  # Group by site and variable
+  group_by(site, variable) %>%
+  # Summarize by calculating correlation between AGBI.mean and value
+  summarize(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
+            p_value = cor.test(AGBI.mean, value, use = "complete.obs")$p.value, .groups = 'drop')
+
+# Plot faceted scatter plots with correlation values
+ggplot(cor_clim_vars_cor, aes(x = variable, y = correlation, fill = site)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~ site, ncol = 1) +
+  theme_minimal(18) +
+  ggtitle("Correlation between AGBI.mean and Climate Variables by Site") +
+  xlab("Climate Variable") +
+  ylab("Correlation") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ggsave('figures1950/cor_bar_AGBI_climate_by_site.pdf', width=14, height=12)
+
+cor_clim_p_site_subset = subset(cor_clim_vars_cor, p_value < 0.05)
+
+
+
+# Plot faceted scatter plots with correlation values
+ggplot(cor_clim_p_site_subset, aes(x = variable, y = correlation, fill = site)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~ site, ncol = 1) +
+  theme_minimal() +
+  ggtitle("Correlation between AGBI.mean and Climate Variables by Site") +
+  xlab("Climate Variable") +
+  ylab("Correlation") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+#########plotting the correlation for each climate variable vs. AGBI.mean
+# Get the unique climate variables
+climate_variables <- unique(cor_clim_vars$variable)
+
+# Open a PDF device
+pdf("AGBI_clim_correlation_by_variable.pdf", width = 10, height = 8)
+
+# Loop through each climate variable
+for (var in climate_variables) {
+  
+  # Filter the data for the current climate variable
+  cor_clim_var <- cor_clim_vars %>%
+    filter(variable == var)
+  
+  # Generate the plot for the current climate variable
+  p <- ggplot(cor_clim_var, aes(x = site, y = correlation, fill = site)) +
+    geom_bar(stat = "identity", position = "dodge") +
+    theme_minimal() +
+    ggtitle(paste("Correlation between AGBI.mean and", var)) +
+    xlab("Site") +
+    ylab("Correlation") +
+    ylim(-1, 1) +  # Ensures the y-axis is consistent across plots
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  # Print the plot to the PDF
+  print(p)
+}
+# Close the PDF device
+dev.off()
+
  
 cor_clim_vars_taxon <- clim_taxon %>%
   # Filter to keep only the relevant rows for correlation
@@ -593,14 +694,73 @@ cor_clim_vars_taxon <- clim_taxon %>%
   summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"), .groups = 'drop')
 write.csv(cor_clim_vars_taxon, file = "AGBI_clim_taxon_correlation.csv")
 
+#pvalue
+cor_clim_vars_taxon_t <- clim_taxon %>%
+  # Filter to keep only the relevant rows for correlation
+  filter(str_detect(variable, "^(PPT|Tmean|Tmax2|Tmin2|Vpdmin2|Vpdmax2)")) %>%
+  # Group by site and variable
+  group_by(site, taxon, variable) %>%
+  # Summarize by calculating correlation between AGBI.mean and value
+  summarize(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
+            p_value = cor.test(AGBI.mean, value, use = "complete.obs")$p.value, .groups = 'drop')
+
+cor_clim_p_subset = subset(cor_clim_vars_taxon_t, p_value < 0.05)
+
+# Plot faceted scatter plots with correlation values
+ggplot(cor_clim_vars_taxon, aes(x = variable, y = correlation, fill = taxon)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~ site, ncol = 1) +
+  theme_minimal() +
+  ggtitle("Correlation between AGBI.mean and Climate Variables by taxon") +
+  xlab("Climate Variable") +
+  ylab("Correlation") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+climate_variables <- unique(cor_clim_vars_taxon$variable)
+# Open a PDF device
+pdf("AGBI_clim_taxon_correlation_by_variable.pdf", width = 10, height = 8)
+
+# Loop through each climate variable
+for (var in climate_variables) {
+  
+  # Filter the data for the current climate variable
+  cor_clim_var_taxon <- cor_clim_vars_taxon %>%
+    filter(variable == var)
+  
+  # Generate the plot for the current climate variable
+  p <- ggplot(cor_clim_var_taxon, aes(x = taxon, y = correlation, fill = site)) +
+    geom_bar(stat = "identity", position = "dodge") +
+    theme_minimal() +
+    ggtitle(paste("Correlation between AGBI.mean and", var, "by Taxon")) +
+    xlab("Taxon") +
+    ylab("Correlation") +
+    ylim(-1, 1) +  # Ensures the y-axis is consistent across plots
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  # Print the plot to the PDF
+  print(p)
+}
+# Close the PDF device
+dev.off()
+
+
+# cor_clim_vars_taxon <- clim_taxon %>%
+#   # Filter to keep only the relevant rows for correlation
+#   filter(str_detect(variable, "^(PPT|Tmean|Tmax2|Tmin2|Vpdmin2|Vpdmax2)")) %>%
+#   # Group by site and variable
+#   group_by(taxon, variable) %>%
+#   # Summarize by calculating correlation between AGBI.mean and value
+#   summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"), .groups = 'drop')
+# write.csv(cor_clim_vars_taxon, file = "AGBI_clim_taxon_correlation.csv")
 
 
 ggplot(data=cor_clim_vars) +
   geom_point(aes(x=correlation, y=variable, colour=site)) #+
   # facet_grid(site~.)
 
-ggplot(data=cor_clim_vars_taxon) +
-  geom_point(aes(x=variable, y=correlation, colour=taxon, shape=site))
+ggplot(data= subset(cor_clim_vars_taxon, variable == 'PPT_total_tree')) +
+  geom_point(aes(x=taxon, y=correlation, color=site))
 
 # cor_clim_vars = clim_total %>% 
 #   # Filter to keep only the relevant rows for correlation
@@ -614,6 +774,57 @@ ggplot(data=cor_clim_vars_taxon) +
 ##################################################################################################
 #plotting climate variables over time 
 ###################################################################################################
+
+###################plotting AGBI.mean vs ppt
+var_names = unique(ppt_melt_taxon$variable)
+N_vars = length(var_names)
+#open a pdf device 
+pdf("ppt_output_plots.pdf")
+# Loop through each variable
+for (i in 1:N_vars) {
+  
+  # Filter the data for the current variable
+  ppt_melt_taxon_variable <- ppt_melt_taxon[which(ppt_melt_taxon$variable == var_names[i]),]
+  
+  # Generate the plot
+  p <- ggplot(data = ppt_melt_taxon_variable) +
+    geom_point(aes(x = value, y = AGBI.mean, color = site)) +
+    geom_smooth(aes(x = value, y = AGBI.mean, color = site), method = 'lm', formula = y ~ x) +
+    facet_wrap(~taxon, scales = 'free')+
+    ggtitle(paste("Variable:", var_names[i]))
+  
+  # Print the plot to the PDF
+  print(p)
+}
+# Close the PDF device
+dev.off()
+
+################### AGBI.mean vs. vpd 
+var_names = unique(vpd_melt_taxon$variable)
+N_vars = length(var_names)
+#open a pdf device 
+pdf("vpd_output_plots.pdf")
+# Loop through each variable
+for (i in 1:N_vars) {
+  
+  # Filter the data for the current variable
+  vpd_melt_taxon_variable <- vpd_melt_taxon[which(vpd_melt_taxon$variable == var_names[i]),]
+  
+  # Generate the plot
+  p <- ggplot(data = vpd_melt_taxon_variable) +
+    geom_point(aes(x = value, y = AGBI.mean, color = site)) +
+    geom_smooth(aes(x = value, y = AGBI.mean, color = site), method = 'lm', formula = y ~ x) +
+    facet_wrap(~taxon, scales = 'free')+
+    ggtitle(paste("Variable:", var_names[i]))
+  
+  # Print the plot to the PDF
+  print(p)
+}
+# Close the PDF device
+dev.off()
+
+
+
 ggplot(data = ppt_melt)+
   geom_line(aes(x = year, y = value, color = site))+
   facet_wrap(~variable, scales = "free_y")
