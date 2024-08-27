@@ -2,8 +2,15 @@
 
 rm(list = ls())
 
-# Load detrended AGBI
-load('out/taxon_detrended_AGBI.RData')
+# Load AGBI
+# Uncomment trended or detrended
+load('out/taxon_trended_AGBI.RData')
+#load('out/taxon_detrended_AGBI.RData')
+
+# Rename dataframe if trended
+if(exists('taxon_agbi')) taxon_save_comb <- taxon_agbi
+# Rename response column if trended
+if(exists('taxon_agbi')) taxon_save_comb <- dplyr::rename(taxon_save_comb, residual_AGBI = mean)
 
 # Average over taxa
 save_comb <- taxon_save_comb |>
@@ -134,12 +141,22 @@ coeff_save_plot |>
   ggplot2::theme_minimal()
 
 # Save
-save(coeff_save_plot, file = 'out/plot_lm_coeff_save.RData')
+if(exists('taxon_agbi')){
+  save(coeff_save_plot, file = 'out/plot_lm_coeff_save_trended.RData')
+}else{
+  save(coeff_save_plot, file = 'out/plot_lm_coeff_save.RData')
+  
+}
 
 ## Comparison with other levels of organization
 # Load individual model output
-load('out/ind_lm_coeff_save.RData')
-load('out/taxon_lm_coeff_save.RData')
+if(exists('taxon_agbi')){
+  load('out/ind_lm_coeff_save_trended.RData')
+  load('out/taxon_lm_coeff_save_trended.RData')
+}else{
+  load('out/ind_lm_coeff_save.RData')
+  load('out/taxon_lm_coeff_save.RData')
+}
 
 # Format to combine dataframes
 coeff_save <- coeff_save |>

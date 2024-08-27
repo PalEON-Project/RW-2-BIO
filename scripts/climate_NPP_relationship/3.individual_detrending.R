@@ -120,10 +120,14 @@ oos_years <- sample(unique_years, size = n_oos,
 insample_years <- unique_years[!(unique_years %in% oos_years)]
 
 # OOS
+tree_agbi_oos <- dplyr::filter(tree_agbi, year %in% oos_years)
 save_comb_oos <- dplyr::filter(save_comb, year %in% oos_years)
 # in sample
+tree_agbi <- dplyr::filter(tree_agbi, year %in% insample_years)
 save_comb <- dplyr::filter(save_comb, year %in% insample_years)
 
 # Save
+save(tree_agbi, tree_agbi_oos,
+     file = 'out/tree_trended_AGBI.RData')
 save(save_comb, save_comb_oos,
      file = 'out/tree_detrended_AGBI.RData')
