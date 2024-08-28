@@ -5,8 +5,15 @@
 
 rm(list = ls())
 
-# Load detrended AGBI
-load('out/tree_detrended_AGBI.RData')
+# Load AGBI
+# Uncomment trended or detrended
+load('out/tree_trended_AGBI.RData')
+#load('out/tree_detrended_AGBI.RData')
+
+# Rename dataframe if using trended
+if(exists('tree_agbi')) save_comb <- tree_agbi
+# Rename response column if using trended
+if(exists('tree_agbi')) save_comb <- dplyr::rename(save_comb, residual_AGBI = mean)
 
 # Indexing for loops
 site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD Model RW', 'HARVARD Model RW + Census')
@@ -249,4 +256,8 @@ coeff_save |>
   ggplot2::xlab('') + ggplot2::ylab('Coefficient for tree basal area') +
   ggplot2::theme_minimal()
 
-save(coeff_save, file = 'out/ind_lm_coeff_save.RData')
+if(exists('tree_agbi')){
+  save(coeff_save, file = 'out/ind_lm_coeff_save_trended.RData')
+}else{
+  save(coeff_save, file = 'out/ind_lm_coeff_save.RData')
+}

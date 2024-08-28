@@ -121,10 +121,14 @@ oos_years <- sample(unique_years, size = n_oos,
 insample_years <- unique_years[!(unique_years %in% oos_years)]
 
 # OOS
+taxon_agbi_oos <- dplyr::filter(taxon_agbi, year %in% oos_years)
 taxon_save_comb_oos <- dplyr::filter(taxon_save_comb, year %in% oos_years)
+
 # in sample
+taxon_agbi <- dplyr::filter(taxon_agbi, year %in% insample_years)
 taxon_save_comb <- dplyr::filter(taxon_save_comb, year %in% insample_years)
 
-
+save(taxon_agbi, taxon_agbi_oos,
+     file = 'out/taxon_trended_AGBI.RData')
 save(taxon_save_comb, taxon_save_comb_oos,
      file = 'out/taxon_detrended_AGBI.RData')
