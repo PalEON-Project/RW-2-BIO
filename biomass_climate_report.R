@@ -554,7 +554,7 @@ tmean = select(clim_agb, year, AGBI.mean, site,
                starts_with('Tmean'))
 ppt = select(clim_agb, year, AGBI.mean, site,
              starts_with('PPT'))
-colnames(ppt)[which(names(ppt) == "AGBI.mean")] <- "AGBI.mean.total"
+colnames(ppt)[which(names(ppt) == "AGBI.mean")] <- "AGBI.mean.site"
 
 
 ppt_taxon = all_taxon_summary %>% 
@@ -595,6 +595,135 @@ ppt_melt_taxon = melt(ppt_taxon, id.vars = c('model', 'year', 'AGBI.mean','AGBI.
 ppt_melt$site = factor(ppt_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD'))
 
 annual_vars_melt = melt(annual_vars, id.vars = c('model', 'year', 'AGBI.mean', 'site'))
+
+
+
+#plotting AGBI.mean of each taxon for each PPT by site....
+#how do we do this...
+ggplot(data = ppt_taxon )+
+  geom_line(aes(x = AGBI.mean, y =  ))
+
+#wrap by variable?????
+
+
+
+
+
+
+
+
+
+#organizes sites on one page but generates a page for every taxon for EVERY variable
+unique_combinations <- ppt_melt_taxon %>%
+  distinct(variable, taxon)
+
+# Open a PDF device
+pdf("AGBI_vs_Value_by_Variable_Taxon_Site.pdf", width = 10, height = 8)
+
+# Loop through each combination of variable and taxon
+for (i in 1:nrow(unique_combinations)) {
+  
+  # Get the current combination
+  current_combination <- unique_combinations[i, ]
+  
+  # Filter the data for the current combination (no site filtering here)
+  df_filtered <- ppt_melt_taxon %>%
+    filter(variable == current_combination$variable, 
+           taxon == current_combination$taxon)
+  
+  # Generate the plot with all sites on the same page
+  p <- ggplot(df_filtered, aes(x = value, y = AGBI.mean, color = site)) +
+    geom_point() +
+    geom_smooth(method = 'lm', formula = y ~ x) +
+    facet_wrap(~site) +  # Separate plots by site on the same page
+    ggtitle(paste("AGBI.mean vs", current_combination$variable, "for", current_combination$taxon)) +
+    xlab(paste(current_combination$variable, "Value")) +
+    ylab("AGBI.mean") +
+    theme_minimal()
+  
+  # Print the plot to the PDF
+  print(p)
+}
+
+# Close the PDF device
+dev.off()
+
+
+
+
+#keeping taxa on one page....?
+unique_combinations <- ppt_melt_taxon %>%
+  distinct(variable, site)
+
+# Open a PDF device
+pdf("AGBI_vs_PPT_Site_Taxon.pdf", width = 10, height = 8)
+
+# Loop through each combination of variable and site
+for (i in 1:nrow(unique_combinations)) {
+  
+  # Get the current combination
+  current_combination <- unique_combinations[i, ]
+  
+  # Filter the data for the current combination (variable and site)
+  df_filtered <- ppt_melt_taxon %>%
+    filter(variable == current_combination$variable, 
+           site == current_combination$site)
+  
+  # Generate the plot with all taxa on the same page for the current site
+  p <- ggplot(df_filtered, aes(x = value, y = AGBI.mean, color = taxon)) +
+    geom_point() +
+    geom_smooth(method = 'lm', formula = y ~ x) +
+    facet_wrap(~taxon, scales = 'free_y') +  # Separate plots by taxon on the same page
+    ggtitle(paste("AGBI.mean vs", current_combination$variable, "at", current_combination$site)) +
+    xlab(paste(current_combination$variable, "Value")) +
+    ylab("AGBI.mean") +
+    theme_minimal()
+  
+  # Print the plot to the PDF
+  print(p)
+}
+
+# Close the PDF device
+dev.off()
+
+
+
+
+
+#######all variables on one page.....
+unique_combinations <- ppt_melt_taxon %>%
+  distinct(site, taxon)
+
+# Open a PDF device
+pdf("AGBI_vs_PPT_by_page_Site_Taxon_Variable.pdf", width = 14, height = 10)
+
+# Loop through each combination of site and taxon
+for (i in 1:nrow(unique_combinations)) {
+  
+  # Get the current combination
+  current_combination <- unique_combinations[i, ]
+  
+  # Filter the data for the current combination (site and taxon)
+  df_filtered <- ppt_melt_taxon %>%
+    filter(site == current_combination$site, 
+           taxon == current_combination$taxon)
+  
+  # Generate the plot with all variables on the same page for the current site and taxon
+  p <- ggplot(df_filtered, aes(x = value, y = AGBI.mean, color = variable)) +
+    geom_point() +
+    geom_smooth(method = 'lm', formula = y ~ x) +
+    facet_wrap(~variable, scales = 'free_x') +  # Separate plots by variable on the same page
+    ggtitle(paste("AGBI.mean vs Climate Precipitation for", current_combination$taxon, "at", current_combination$site)) +
+    xlab("Climate Variable Value") +
+    ylab("AGBI.mean") +
+    theme_minimal()
+  
+  # Print the plot to the PDF
+  print(p)
+}
+
+# Close the PDF device
+dev.off()
 
 
 
