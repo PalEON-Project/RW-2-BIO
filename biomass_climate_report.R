@@ -508,12 +508,15 @@ clim_melt$year = as.integer(clim_melt$year)
 summary(clim_melt)
 
 
-
+#dataframe with AGB data (no taxon) + climate data in melted format 
+#AGBI.mean represents each site 
 clim_total <- all_site_summary|>
   left_join(clim_melt, by = c('year', 'site','model'))
 head(clim_total)
 summary(clim_melt)
 
+#biomass data with taxon data and climate in melted format
+#AGBI.mean is for each taxon at a site 
 clim_taxon <- all_taxon_summary|>
   left_join(clim_melt, by = c('year', 'site', 'model')) %>% 
   select(-site)
@@ -521,46 +524,45 @@ head(clim_taxon)
 summary(clim_melt)
 
 
-vpd = select(clim_agb, year, AGBI.mean, site,
-             starts_with('Vpdmean'))
-colnames(vpd)[which(names(vpd) == "AGBI.mean")] <- "AGBI.mean.site"
-tmin = select(clim_agb, year, AGBI.mean, site,
-              starts_with('Tmin'))
-tmax = select(clim_agb, year, AGBI.mean, site,
-              starts_with('Tmax'))
-tmean = select(clim_agb, year, AGBI.mean, site,
-               starts_with('Tmean'))
-ppt = select(clim_agb, year, AGBI.mean, site,
-             starts_with('PPT'))
-colnames(ppt)[which(names(ppt) == "AGBI.mean")] <- "AGBI.mean.site"
-
-
-
 annual_vars = select(clim_agb, year, AGBI.mean, site,
                      yearly_meanT, PPT_total_tree, T_min_mean, T_max_mean)
 annual_vars_melt = melt(annual_vars, id.vars = c('model', 'year', 'AGBI.mean', 'site'))
 
 
-############PPT########
+############PPT##################################################
+#ppt data with AGBI.mean at the site level
+ppt = select(clim_agb, year, AGBI.mean, site,
+             starts_with('PPT'))
+colnames(ppt)[which(names(ppt) == "AGBI.mean")] <- "AGBI.mean.site"
+
+#melt at the site level
+ppt_melt = melt(ppt, id.vars = c('model', 'year', 'AGBI.mean.site', 'site'))
+ppt_melt$site = factor(ppt_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD'))
+
+#ppt at the taxon level 
 ppt_taxon = all_taxon_summary %>% 
   left_join(ppt, by = c('year', 'site', 'model'))
 
-ppt_melt = melt(ppt, id.vars = c('model', 'year', 'AGBI.mean.site', 'site'))
+#melt at the taxon level 
 ppt_melt_taxon = melt(ppt_taxon, id.vars = c('model', 'year', 'AGBI.mean','AGBI.mean.site', 'site','taxon', 'AGB.mean',
                                              'AGB.sd','AGB.lo','AGB.hi','AGBI.sd',
                                              'AGBI.lo','AGBI.hi'))
-ppt_melt$site = factor(ppt_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD'))
 
 
+##########VPD#########################################################
+vpd = select(clim_agb, year, AGBI.mean, site,
+             starts_with('Vpdmean'))
+colnames(vpd)[which(names(vpd) == "AGBI.mean")] <- "AGBI.mean.site"
 
-##########VPD###########
-vpd_taxon = all_taxon_summary %>% 
-  left_join(vpd, by = c('year', 'site', 'model'))
-            
-      
+#vpd at the site level      
 vpd_melt = melt(vpd, 
                 id.vars = c('model', 'year', 'AGBI.mean.site', 'site'))
 vpd_melt$site = factor(vpd_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD'))
+
+vpd_taxon = all_taxon_summary %>% 
+  left_join(vpd, by = c('year', 'site', 'model'))
+
+#vpd at the taxon level 
 vpd_melt_taxon = melt(vpd_taxon, id.vars = c('model', 'year', 'AGBI.mean', 'AGBI.mean.site', 'site','taxon', 'AGB.mean',
                                              'AGB.sd','AGB.lo','AGB.hi','AGBI.sd',
                                              'AGBI.lo','AGBI.hi'))
@@ -569,37 +571,58 @@ vpd_melt_taxon = melt(vpd_taxon, id.vars = c('model', 'year', 'AGBI.mean', 'AGBI
 
 
 
-######TMIN and TMAX############
+######TMIN and TMAX#############################################################
+tmin = select(clim_agb, year, AGBI.mean, site,
+              starts_with('Tmin'))
+colnames(tmin)[which(names(tmin) == "AGBI.mean")] <- "AGBI.mean.site"
+
 tmin_melt = melt(tmin,
-                 id.vars = c('model', 'year', 'AGBI.mean', 'site'))
+                 id.vars = c('model', 'year', 'AGBI.mean.site', 'site'))
 tmin_melt$site = factor(tmin_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD'))
 
+tmin_taxon = all_taxon_summary %>% 
+  left_join(tmin, by = c('year', 'site', 'model'))
+
+tmin_melt_taxon = melt(tmin_taxon, id.vars = c('model', 'year', 'AGBI.mean', 'AGBI.mean.site', 'site','taxon', 'AGB.mean',
+                                             'AGB.sd','AGB.lo','AGB.hi','AGBI.sd',
+                                             'AGBI.lo','AGBI.hi'))
+
+
+
+tmax = select(clim_agb, year, AGBI.mean, site,
+              starts_with('Tmax'))
+colnames(tmax)[which(names(tmax) == "AGBI.mean")] <- "AGBI.mean.site"
+
 tmax_melt = melt(tmax, 
-                 id.vars = c('model', 'year', 'AGBI.mean', 'site'))
+                 id.vars = c('model', 'year', 'AGBI.mean.site', 'site'))
 tmax_melt$site = factor(tmax_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD'))
+
+tmax_taxon = all_taxon_summary %>% 
+  left_join(tmax, by = c('year', 'site', 'model'))
+
+tmax_melt_taxon = melt(tmax_taxon, id.vars = c('model', 'year', 'AGBI.mean', 'AGBI.mean.site', 'site','taxon', 'AGB.mean',
+                                               'AGB.sd','AGB.lo','AGB.hi','AGBI.sd',
+                                               'AGBI.lo','AGBI.hi'))
+
+
+tmean = select(clim_agb, year, AGBI.mean, site,
+               starts_with('Tmean'))
+colnames(tmean)[which(names(tmean) == "AGBI.mean.site")] <- "AGBI.mean.site"
 
 tmean_melt = melt(tmean, 
                   id.vars = c('model', 'year', 'AGBI.mean', 'site'))
 
 tmean_melt$site = factor(tmean_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD'))
 
+tmean_taxon = all_taxon_summary %>% 
+  left_join(tmean, by = c('year', 'site', 'model'))
+
+tmean_melt_taxon = melt(tmean_taxon, id.vars = c('model', 'year', 'AGBI.mean', 'AGBI.mean.site', 'site','taxon', 'AGB.mean',
+                                               'AGB.sd','AGB.lo','AGB.hi','AGBI.sd',
+                                               'AGBI.lo','AGBI.hi'))
 
 
-
-
-#plotting AGBI.mean of each taxon for each PPT by site....
-#how do we do this...
-ggplot(data = ppt_taxon )+
-  geom_line(aes(x = AGBI.mean, y =  ))
-
-#wrap by variable?????
-
-
-
-
-
-
-
+##############PLOTTING PPT WITH TAXON #################################################3333333
 
 
 #organizes sites on one page but generates a page for every taxon for EVERY variable
@@ -638,8 +661,6 @@ for (i in 1:nrow(unique_combinations)) {
 dev.off()
 
 
-
-
 #keeping taxa on one page....?
 unique_combinations <- ppt_melt_taxon %>%
   distinct(variable, site)
@@ -671,11 +692,8 @@ for (i in 1:nrow(unique_combinations)) {
   # Print the plot to the PDF
   print(p)
 }
-
 # Close the PDF device
 dev.off()
-
-
 
 
 
@@ -703,6 +721,114 @@ for (i in 1:nrow(unique_combinations)) {
     geom_smooth(method = 'lm', formula = y ~ x) +
     facet_wrap(~variable, scales = 'free_x') +  # Separate plots by variable on the same page
     ggtitle(paste("AGBI.mean vs Climate Precipitation for", current_combination$taxon, "at", current_combination$site)) +
+    xlab("Climate Variable Value") +
+    ylab("AGBI.mean") +
+    theme_minimal()
+  
+  # Print the plot to the PDF
+  print(p)
+}
+# Close the PDF device
+dev.off()
+
+
+###########PLOTTING VPD WITH TAXA###################################3
+
+#organizes sites on one page but generates a page for every taxon for EVERY variable
+unique_combinations <- vpd_melt_taxon %>%
+  distinct(variable, taxon)
+
+# Open a PDF device
+pdf("AGBI_vs_Value_by_vpd_Taxon_Site.pdf", width = 10, height = 8)
+
+# Loop through each combination of variable and taxon
+for (i in 1:nrow(unique_combinations)) {
+  
+  # Get the current combination
+  current_combination <- unique_combinations[i, ]
+  
+  # Filter the data for the current combination (no site filtering here)
+  df_filtered <- vpd_melt_taxon %>%
+    filter(variable == current_combination$variable, 
+           taxon == current_combination$taxon)
+  
+  # Generate the plot with all sites on the same page
+  p <- ggplot(df_filtered, aes(x = value, y = AGBI.mean, color = site)) +
+    geom_point() +
+    geom_smooth(method = 'lm', formula = y ~ x) +
+    facet_wrap(~site) +  # Separate plots by site on the same page
+    ggtitle(paste("AGBI.mean vs", current_combination$variable, "for", current_combination$taxon)) +
+    xlab(paste(current_combination$variable, "Value")) +
+    ylab("AGBI.mean") +
+    theme_minimal()
+  
+  # Print the plot to the PDF
+  print(p)
+}
+# Close the PDF device
+dev.off()
+
+
+
+#keeping taxa on one page....?
+unique_combinations <- vpd_melt_taxon %>%
+  distinct(variable, site)
+
+# Open a PDF device
+pdf("AGBI_vs_VPD_Site_Taxon.pdf", width = 10, height = 8)
+
+# Loop through each combination of variable and site
+for (i in 1:nrow(unique_combinations)) {
+  
+  # Get the current combination
+  current_combination <- unique_combinations[i, ]
+  
+  # Filter the data for the current combination (variable and site)
+  df_filtered <- vpd_melt_taxon %>%
+    filter(variable == current_combination$variable, 
+           site == current_combination$site)
+  
+  # Generate the plot with all taxa on the same page for the current site
+  p <- ggplot(df_filtered, aes(x = value, y = AGBI.mean, color = taxon)) +
+    geom_point() +
+    geom_smooth(method = 'lm', formula = y ~ x) +
+    facet_wrap(~taxon, scales = 'free_y') +  # Separate plots by taxon on the same page
+    ggtitle(paste("AGBI.mean vs", current_combination$variable, "at", current_combination$site)) +
+    xlab(paste(current_combination$variable, "Value")) +
+    ylab("AGBI.mean") +
+    theme_minimal()
+  
+  # Print the plot to the PDF
+  print(p)
+}
+# Close the PDF device
+dev.off()
+
+
+#######all variables on one page.....
+unique_combinations <- vpd_melt_taxon %>%
+  distinct(site, taxon)
+
+# Open a PDF device
+pdf("AGBI_vs_VPD_by_page_Site_Taxon_Variable.pdf", width = 14, height = 10)
+
+# Loop through each combination of site and taxon
+for (i in 1:nrow(unique_combinations)) {
+  
+  # Get the current combination
+  current_combination <- unique_combinations[i, ]
+  
+  # Filter the data for the current combination (site and taxon)
+  df_filtered <- vpd_melt_taxon %>%
+    filter(site == current_combination$site, 
+           taxon == current_combination$taxon)
+  
+  # Generate the plot with all variables on the same page for the current site and taxon
+  p <- ggplot(df_filtered, aes(x = value, y = AGBI.mean, color = variable)) +
+    geom_point() +
+    geom_smooth(method = 'lm', formula = y ~ x) +
+    facet_wrap(~variable, scales = 'free_x') +  # Separate plots by variable on the same page
+    ggtitle(paste("AGBI.mean vs Vapor pressure deficit for", current_combination$taxon, "at", current_combination$site)) +
     xlab("Climate Variable Value") +
     ylab("AGBI.mean") +
     theme_minimal()
@@ -740,11 +866,8 @@ write.csv(cor_clim_vars, file = "AGBI_clim_correlation.csv")
 
 df %>% group_by(site, taxon) %>% summarize(max_cor = max(correlation, na.rm=TRUE)
 
-
-
-
-
-
+                                           
+                                           
 
 
 
