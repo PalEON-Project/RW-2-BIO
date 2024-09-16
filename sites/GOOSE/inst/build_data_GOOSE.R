@@ -1,8 +1,8 @@
 
 # The following R script can be submitted on the ND CRC cluster using the job script (after customization) 
 # in the "jobs" folder
-rm(list=ls())
-setwd('~/RW-2-BIO')
+# rm(list=ls())
+# setwd('~/RW-2-BIO')
 
 # load model run details 
 source('sites/GOOSE/inst/config.R')
@@ -12,7 +12,7 @@ source('R/build_data.R')
 
 require(reshape2)
 
-.libPaths('~/Rlibs')
+# .libPaths('~/Rlibs')
 
 # prepare workspace 
 require(plotrix)

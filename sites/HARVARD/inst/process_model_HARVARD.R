@@ -6,11 +6,10 @@
 
 # load model run details 
 source('sites/HARVARD/inst/config.R')
+source('scripts/validate_model.R')
 
 # load needed function
 source('R/process_rw_model.R')
-
-require(reshape2)
 
 # .libPaths('~/Rlibs')
 
@@ -20,6 +19,7 @@ require(abind)
 require(dplyr)
 require(grid)
 require(gridExtra)
+require(reshape2)
 
 iter = 500
 nchains = 1
@@ -36,3 +36,12 @@ process_rw_model(census_site = census_site,
                  nchains = nchains,
                  keep = keep,
                  pool = pool)
+
+validate_rw_model(census_site = census_site,
+                  mvers = mvers, 
+                  dvers = dvers, 
+                  site = site, 
+                  nest = nest, 
+                  nchains = nchains,
+                  keep = keep,
+                  pool = pool)

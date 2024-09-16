@@ -17,10 +17,14 @@ library(rstan)
 library(gridExtra)
 library(ggplotify)
 
+nchains = 1
+iter = 500
+keep = iter / 2
+
 # run step 
 run_rw_model(census_site = census_site, 
              site = site, 
              mvers = mvers, 
              dvers = dvers,
-             nchains = 1, 
-             iter = 500)
+             nchains = nchains, 
+             iter = iter)

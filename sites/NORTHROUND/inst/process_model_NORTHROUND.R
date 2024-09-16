@@ -23,6 +23,9 @@ require(grid)
 require(gridExtra)
 
 iter = 500
+nchains = 1
+keep = iter/2
+pool = iter/2
 
 # run step 
 process_rw_model(census_site = census_site,
@@ -31,15 +34,15 @@ process_rw_model(census_site = census_site,
                  site = site, 
                  nest = nest, 
                  finalyr = finalyr,
-                 nchains = 1,
-                 keep = iter/2,
-                 pool = iter/2)
+                 nchains = nchains,
+                 keep = keep,
+                 pool = pool)
 
 validate_rw_model(census_site = census_site,
                   mvers = mvers, 
                   dvers = dvers, 
                   site = site, 
                   nest = nest, 
-                  nchains = 1,
-                  keep = iter/2,
-                  pool = iter/2)
+                  nchains = nchains,
+                  keep = keep,
+                  pool = pool)

@@ -12,7 +12,7 @@ source('R/build_data.R')
 
 require(reshape2)
 
-.libPaths('~/Rlibs')
+# .libPaths('~/Rlibs')
 
 # prepare workspace 
 require(plotrix)

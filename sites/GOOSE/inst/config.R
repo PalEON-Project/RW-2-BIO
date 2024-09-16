@@ -2,7 +2,7 @@
 
 # data details
 dvers = '012021'
-mvers = 'v2.0'
+mvers = 'v3.1'
 
 # site details
 site = 'GOOSE'
