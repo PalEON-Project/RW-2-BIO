@@ -121,23 +121,36 @@
     # first, for the singulars 
     nchains = dim(post)[2]
     niter = dim(post)[1]
-    for (par in c('beta0','beta_sd','beta_t_sd','sig_x','sig_x_obs','sig_d_obs')){
+    for (par in c('beta0','beta_sd','beta_t_sd','sig_x_obs', 'sig_d_obs')){
       temp.ind = which(variables == par)
       temp.data = reshape2::melt(post[,,temp.ind])
       temp.data$iterations = seq(1, nrow(temp.data))
-      if (nchains==1){
-        temp.data$chains = rep(1)
+      if(nchains == 1){
+        temp.data$chains = rep(1, nrow(temp.data))
       }
       pl.temp = ggplot(temp.data) + 
         geom_line(aes(x = iterations, y = value, group = as.factor(chains), color = as.factor(chains))) + 
         labs(x = 'iteration', y = 'value', title = paste0('trace plot for ',par), 
              color = 'chain')
-      # else {
-      #   pl.temp = ggplot(temp.data) + 
-      #     geom_line(aes(x = iterations, y = value, group = as.factor(chains), color = as.factor(chains))) + 
-      #     labs(x = 'iteration', y = 'value', title = paste0('trace plot for ',par), 
-      #          color = 'chain')
-      # }
+      print(pl.temp)
+      mcmc_diags[[trk_ind]] = pl.temp
+      trk_ind = trk_ind + 1
+    }
+    
+    nchains = dim(post)[2]
+    niter = dim(post)[1]
+    for (k in 1:dat$N_taxa){
+      temp.ind = which(variables == paste0('sig_x[',k,']'))
+      temp.data = reshape2::melt(post[,,temp.ind])
+      temp.data$iterations = seq(1, nrow(temp.data))
+      if(nchains == 1){
+        temp.data$chains = rep(1, nrow(temp.data))
+      }
+      pl.temp = ggplot(temp.data) + 
+        geom_line(aes(x = iterations, y = value, group = as.factor(chains), color = as.factor(chains))) + 
+        labs(x = 'iteration', y = 'value', title = paste0('trace plot for sig_x ', k), 
+             color = 'chain')
+      print(pl.temp)
       mcmc_diags[[trk_ind]] = pl.temp
       trk_ind = trk_ind + 1
     }
@@ -250,6 +263,9 @@
     sig_d_obs = median(sig_d_obs)
     # rm(post)
     
+    saveRDS(sig_d_obs, file = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'input','sig_d_obs.RDS'))
+    
+    
     # plot estimated diameter for all individuals over time 
     pl = ggplot(output) + 
       geom_line(aes(x = year, y = D, group = tree, color = tree)) +
@@ -269,16 +285,25 @@
   # from a site that has both of these datasets (i.e. Harvard Forest)
   # TO DO: this needs to be automated I think so that we can adjust which site we want to use
   if (!census_site){
-    out = readRDS('sites/HARVARD/runs/v2.0_102020/output/ring_model_t_pdbh_STAN_HARVARD_v2.0_102020.RDS')
+    # out = readRDS('sites/HARVARD/runs/v2.0_102020/output/ring_model_t_pdbh_STAN_HARVARD_v2.0_102020.RDS')
+    # 
+    # col_names = sapply(strsplit(colnames(out[,1,]), '\\['), function(x) x[[1]])
+    # hist(out[,1,which(col_names=="sig_d_obs")])
+    # sig_d_obs_chains = apply(out, 2, function(x) x[, which(col_names=="sig_d_obs")])
+    # sig_d_obs = mean(sig_d_obs_chains)
     
-    # col_names = sapply(strsplit(colnames(out), '\\['), function(x) x[[1]])
-    # hist(out[,which(col_names=="sig_d_obs")])
-    # sig_d_obs = mean(out[,which(col_names=="sig_d_obs")])
+    out = readRDS('sites/HARVARD/runs/v3.1_102020/output/ring_model_t_pdbh_species_sigxk_STAN_HARVARD_v3.1_102020.RDS')
     
     col_names = sapply(strsplit(colnames(out[,1,]), '\\['), function(x) x[[1]])
     hist(out[,1,which(col_names=="sig_d_obs")])
     sig_d_obs_chains = apply(out, 2, function(x) x[, which(col_names=="sig_d_obs")])
     sig_d_obs = mean(sig_d_obs_chains)
+    
+    # col_names = sapply(strsplit(colnames(out), '\\['), function(x) x[[1]])
+    # hist(out[,which(col_names=="sig_d_obs")])
+    # sig_d_obs = mean(out[,which(col_names=="sig_d_obs")])
+    
+
     
     # # extract measurement error from dataset and find median (better measure of center due to skewness of distribution)
     # needed = which(names(out[1,1,]) == 'sig_d_obs')
@@ -291,6 +316,8 @@
     
   # otherwise we use the value found in the model above 
   }else{
+    # dat$sig_d_obs = sig_d_obs
+    sig_d_obs = readRDS(file = file.path(site_dir,'runs',paste0(mvers,'_',dvers),'input','sig_d_obs.RDS'))
     dat$sig_d_obs = sig_d_obs
   }
 

@@ -39,6 +39,14 @@ build_data <- function(site, dvers, mvers, prefix,
   
   # Load CSV with tree data
   treeMeta = read.csv(meta_loc, stringsAsFactors = FALSE)
+  treeMeta$species[which(treeMeta$species == 'ASCA')] = 'ACSA'
+  if (site == 'HMC'){
+    treeMeta$site = treeMeta$plot
+    # treeMeta$ID = treeMeta$tree_number
+    # treeMeta$ID[which(nchar(treeMeta$ID) == 1)] = paste0('00',  treeMeta$ID[which(nchar(treeMeta$ID) == 1)])
+    # treeMeta$ID[which(nchar(treeMeta$ID) == 2)] = paste0('0',  treeMeta$ID[which(nchar(treeMeta$ID) == 2)])
+  }
+  
   len = nchar(treeMeta$ID[1])
   
   # List of files with tree ring increments, extract only RWL files 
@@ -72,7 +80,7 @@ build_data <- function(site, dvers, mvers, prefix,
   
   foo = incr_missing_data %>%
     group_by(id, year) %>%
-    summarize(any_missing = any(incr==0, na.rm=TRUE),
+    dplyr::summarize(any_missing = any(incr==0, na.rm=TRUE),
            not_missing = any(incr>0, na.rm=TRUE))
   
   head(foo)
@@ -112,6 +120,10 @@ build_data <- function(site, dvers, mvers, prefix,
   }
   
   # Assign stat IDs
+  #for HMC, there are some sampled trees without RWs
+  treeMeta[which(!(treeMeta$ID %in% unique(incr_data$id))),]
+  
+  
   treeMeta = treeMeta %>% filter(ID %in% unique(incr_data$id))
   treeMeta$stat_id = seq(1,nrow(treeMeta))
   incr_data$stat_id = as.numeric(plyr::mapvalues(incr_data$id, 
@@ -127,14 +139,30 @@ build_data <- function(site, dvers, mvers, prefix,
   if (census_site){
     census = read.csv(census_loc, stringsAsFactors = FALSE) %>% 
       filter(species %in% unique(treeMeta$species))
-    census_long = melt(census, id=c('site', 'ID', 'species', 'distance', 'finalCond'))
-    colnames(census_long) = c('site', 'ID', 'species', 'distance','finalCond','year', 'dbh')
     
-    # remove NA years and reformat census year column
-    census_long = census_long %>% 
-      filter(!is.na(dbh)) %>%
-      mutate(year = substr(year, 2, 3)) %>%
-      mutate(year = ifelse(as.numeric(year) < 30, paste0('20',year), paste0('19',year)))
+    if (site == 'HMC'){
+      census$site = as.numeric(substr(census$plot, 4, 4))
+      census$finalCond = NA
+      census$ID = census$tree_number
+    }
+    # if (site == 'HARVARD'){
+    if (site == 'HMC'){
+      census_long = census[, c('site', 'ID', 'species', 'distance','finalCond', 'year', 'dbh')]
+      census_long = census_long %>% 
+        filter(!is.na(dbh))
+    } else {
+      census_long = melt(census, 
+                         id=c('site', 'ID', 'species', 'distance', 'finalCond'))
+      colnames(census_long) = c('site', 'ID', 'species', 'distance','finalCond', 'dbh', 'year')
+      # remove NA years and reformat census year column
+      census_long = census_long %>% 
+        filter(!is.na(dbh)) %>%
+        mutate(year = substr(year, 2, 3)) %>%
+        mutate(year = ifelse(as.numeric(year) < 30, paste0('20',year), paste0('19',year)))
+    }
+ # }
+    
+
     
     # get census years
     census_years = as.numeric(sort(unique(census_long$year)))
