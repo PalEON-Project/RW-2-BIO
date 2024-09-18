@@ -242,7 +242,7 @@ ggplot(data=all_site_summary) +
   xlab('Year') +
   ylab('AGBI (Mg/ha)') +
   facet_grid(model~.)
-ggsave("figures1950/AGBI_over_time.jpg")
+ggsave("report/figures/AGBI_over_time.jpg")
 
 #AGB ovetime
 ggplot(data=all_site_summary) +
@@ -252,7 +252,7 @@ ggplot(data=all_site_summary) +
   xlab('Year') +
   ylab('AGB (Mg/ha)') +
   facet_grid(model~.)
-ggsave("figures1950/AGB_over_time.jpg")
+ggsave("report/figures/AGB_over_time.jpg")
 
 #AGBI over time by taxon 
 ggplot(data=all_taxon_summary) +
@@ -262,7 +262,7 @@ ggplot(data=all_taxon_summary) +
   xlab('Year') +
   ylab('AGBI (Mg/ha)') +
   facet_wrap(~site)
-ggsave("figures1950/AGBI_over_time_taxons.jpg")
+ggsave("report/figures/AGBI_over_time_taxons.jpg")
 
 #AGBI over time by taxon, scales = free_y
 ggplot(data=all_taxon_summary) +
@@ -272,7 +272,7 @@ ggplot(data=all_taxon_summary) +
   xlab('Year') +
   ylab('AGBI (Mg/ha)') +
   facet_wrap(~site, scales = 'free_y')
-ggsave("figures1950/AGBI_over_time_taxons_freey.jpg")
+ggsave("report/figures/AGBI_over_time_taxons_freey.jpg")
 
 #AGBI over time by taxon with sd
 ggplot(data=all_taxon_summary) +
@@ -280,7 +280,7 @@ ggplot(data=all_taxon_summary) +
                   ymax=AGBI.mean+2*AGBI.sd, color = taxon, fill = taxon), alpha=0.3) +
   geom_line(aes(x=year, y=AGBI.mean, color = taxon)) +
   facet_wrap(~site)
-ggsave("figures1950/AGBI_site_taxon_with_sd.jpg")
+ggsave("report/figures/AGBI_site_taxon_with_sd.jpg")
 
   
 #changing to wide format with taxons as column names and values = ABGI.mean 
@@ -413,29 +413,36 @@ correlation_matrices_by_site[[1]]
 # > correlation_matrices_by_site[[2]]
 #to get correlation matrix for GOOSE, we do:
 # > correlation_matrices_by_site[[2]][[1]]
-
+pdf('report/figures/AGBI_corr_taxa.pdf')
 #goose correlation plot
 ggcorrplot(correlation_matrices_by_site[[2]][[1]], 
            method = "square", 
            type = "lower", 
-           show.diag = TRUE)
+           show.diag = TRUE, 
+           title = 'Goose')
 
 #harvard correlation plot
 ggcorrplot(correlation_matrices_by_site[[2]][[2]], 
            method = "square", 
            type = "lower", 
-           show.diag = TRUE)
+           show.diag = TRUE, 
+           title = 'Harvard')
+
 #NRP correlation plot
 ggcorrplot(correlation_matrices_by_site[[2]][[3]], method = "square", type = "lower", 
-           show.diag = TRUE)
+           show.diag = TRUE, 
+           title = 'North Round Pond')
+
 #rooster correlation plot
 ggcorrplot(correlation_matrices_by_site[[2]][[4]], method = "square", type = "lower", 
-           show.diag = TRUE)
+           show.diag = TRUE, 
+           title = 'Rooster')
 #sylvania
 ggcorrplot(correlation_matrices_by_site[[2]][[5]], method = "square", type = "lower", 
-           show.diag = TRUE)
+           show.diag = TRUE, 
+           title = 'Sylvania')
 
-
+dev.off()
 
  #########################################################################################
 #CLIMATE
@@ -630,7 +637,7 @@ unique_combinations <- ppt_melt_taxon %>%
   distinct(variable, taxon)
 
 # Open a PDF device
-pdf("AGBI_vs_Value_by_Variable_Taxon_Site.pdf", width = 10, height = 8)
+pdf("report/figures/AGBI_vs_Value_by_Variable_Taxon_Site.pdf", width = 10, height = 8)
 
 # Loop through each combination of variable and taxon
 for (i in 1:nrow(unique_combinations)) {
@@ -666,7 +673,7 @@ unique_combinations <- ppt_melt_taxon %>%
   distinct(variable, site)
 
 # Open a PDF device
-pdf("AGBI_vs_PPT_Site_Taxon.pdf", width = 10, height = 8)
+pdf("report/figures/AGBI_vs_PPT_Site_Taxon.pdf", width = 10, height = 8)
 
 # Loop through each combination of variable and site
 for (i in 1:nrow(unique_combinations)) {
@@ -702,7 +709,7 @@ unique_combinations <- ppt_melt_taxon %>%
   distinct(site, taxon)
 
 # Open a PDF device
-pdf("AGBI_vs_PPT_by_page_Site_Taxon_Variable.pdf", width = 14, height = 10)
+pdf("report/figures/AGBI_vs_PPT_by_page_Site_Taxon_Variable.pdf", width = 14, height = 10)
 
 # Loop through each combination of site and taxon
 for (i in 1:nrow(unique_combinations)) {
@@ -739,7 +746,7 @@ unique_combinations <- vpd_melt_taxon %>%
   distinct(variable, taxon)
 
 # Open a PDF device
-pdf("AGBI_vs_Value_by_vpd_Taxon_Site.pdf", width = 10, height = 8)
+pdf("report/figures/AGBI_vs_Value_by_vpd_Taxon_Site.pdf", width = 10, height = 8)
 
 # Loop through each combination of variable and taxon
 for (i in 1:nrow(unique_combinations)) {
@@ -775,7 +782,7 @@ unique_combinations <- vpd_melt_taxon %>%
   distinct(variable, site)
 
 # Open a PDF device
-pdf("AGBI_vs_VPD_Site_Taxon.pdf", width = 10, height = 8)
+pdf("report/figures/AGBI_vs_VPD_Site_Taxon.pdf", width = 10, height = 8)
 
 # Loop through each combination of variable and site
 for (i in 1:nrow(unique_combinations)) {
@@ -810,7 +817,7 @@ unique_combinations <- vpd_melt_taxon %>%
   distinct(site, taxon)
 
 # Open a PDF device
-pdf("AGBI_vs_VPD_by_page_Site_Taxon_Variable.pdf", width = 14, height = 10)
+pdf("report/figures/AGBI_vs_VPD_by_page_Site_Taxon_Variable.pdf", width = 14, height = 10)
 
 # Loop through each combination of site and taxon
 for (i in 1:nrow(unique_combinations)) {
@@ -847,7 +854,7 @@ unique_combinations <- vpd_melt_taxon %>%
   distinct(variable, taxon)
 
 # Open a PDF device
-pdf("AGBI_vs_Value_by_vpd_Taxon_Site.pdf", width = 10, height = 8)
+pdf("report/figures/AGBI_vs_Value_by_vpd_Taxon_Site.pdf", width = 10, height = 8)
 
 # Loop through each combination of variable and taxon
 for (i in 1:nrow(unique_combinations)) {
@@ -883,7 +890,7 @@ unique_combinations <- vpd_melt_taxon %>%
   distinct(variable, site)
 
 # Open a PDF device
-pdf("AGBI_vs_VPD_Site_Taxon.pdf", width = 10, height = 8)
+pdf("report/figures/AGBI_vs_VPD_Site_Taxon.pdf", width = 10, height = 8)
 
 # Loop through each combination of variable and site
 for (i in 1:nrow(unique_combinations)) {
@@ -918,7 +925,7 @@ unique_combinations <- vpd_melt_taxon %>%
   distinct(site, taxon)
 
 # Open a PDF device
-pdf("AGBI_vs_VPD_by_page_Site_Taxon_Variable.pdf", width = 14, height = 10)
+pdf("report/figures/AGBI_vs_VPD_by_page_Site_Taxon_Variable.pdf", width = 14, height = 10)
 
 # Loop through each combination of site and taxon
 for (i in 1:nrow(unique_combinations)) {
@@ -957,7 +964,7 @@ unique_combinations <- tmin_melt_taxon %>%
   distinct(variable, taxon)
 
 # Open a PDF device
-pdf("AGBI_vs_Value_by_tmin_Taxon_Site.pdf", width = 10, height = 8)
+pdf("report/figures/AGBI_vs_Value_by_tmin_Taxon_Site.pdf", width = 10, height = 8)
 
 # Loop through each combination of variable and taxon
 for (i in 1:nrow(unique_combinations)) {
@@ -993,7 +1000,7 @@ unique_combinations <- tmin_melt_taxon %>%
   distinct(variable, site)
 
 # Open a PDF device
-pdf("AGBI_vs_TMIN_Site_Taxon.pdf", width = 10, height = 8)
+pdf("report/figures/AGBI_vs_TMIN_Site_Taxon.pdf", width = 10, height = 8)
 
 # Loop through each combination of variable and site
 for (i in 1:nrow(unique_combinations)) {
@@ -1028,7 +1035,7 @@ unique_combinations <- tmin_melt_taxon %>%
   distinct(site, taxon)
 
 # Open a PDF device
-pdf("AGBI_vs_TMIN_by_page_Site_Taxon_Variable.pdf", width = 14, height = 10)
+pdf("report/figures/AGBI_vs_TMIN_by_page_Site_Taxon_Variable.pdf", width = 14, height = 10)
 
 # Loop through each combination of site and taxon
 for (i in 1:nrow(unique_combinations)) {
@@ -1076,7 +1083,7 @@ cor_clim_AGBI <- clim_total %>%
   # Summarize by calculating correlation between AGBI.mean and value
   summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"), .groups = 'drop')
 head(cor_clim_AGBI)
-write.csv(cor_clim_AGBI, file = "AGBI_clim_correlation.csv")
+write.csv(cor_clim_AGBI, file = "report/AGBI_clim_correlation.csv")
 
 cor_AGBI_PPT = filter(cor_clim_AGBI, substr(cor_clim_AGBI$variable,1,3) == 'PPT' )
 
@@ -1182,7 +1189,7 @@ cor_clim_vars_taxon <- clim_taxon %>%
   group_by(site, taxon, variable) %>%
   # Summarize by calculating correlation between AGBI.mean and value
   summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"), .groups = 'drop')
-write.csv(cor_clim_vars_taxon, file = "AGBI_clim_taxon_correlation.csv")
+write.csv(cor_clim_vars_taxon, file = "report/AGBI_clim_taxon_correlation.csv")
 
 cor_GOOSE_taxa = filter(cor_clim_vars_taxon, (cor_clim_vars_taxon$site == "GOOSE")&(substr(cor_clim_vars_taxon$variable,1,3)=='Vpd'))
 
@@ -1204,6 +1211,17 @@ cor_clim_vars_taxon_t$variable = as.character(cor_clim_vars_taxon_t$variable)
 
 cor_clim_vars_taxon_t$type = sapply(strsplit(cor_clim_vars_taxon_t$variable, split='_'), function(x) x[1])
 
+cor_clim_vars_taxon_t$period = sapply(strsplit(cor_clim_vars_taxon_t$variable, split='_'), function(x) x[2])
+
+
+periods = unique(cor_clim_vars_taxon_t$period)
+period_names = c('jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 
+                 'aug', 'sep', 'oct', 'nov', 'dec', 'total tree') 
+
+cor_clim_vars_taxon_t$period_names = period_names[match(cor_clim_vars_taxon_t$period, periods)]
+cor_clim_vars_taxon_t$period_names = factor(cor_clim_vars_taxon_t$period_names,
+                                            levels = period_names)
+  
 cor_clim_p_subset = subset(cor_clim_vars_taxon_t, p_value < 0.05)
 head(cor_clim_p_subset)
 
@@ -1214,7 +1232,7 @@ clim_vars = c("PPT", "Tmean", "Tmin2", "Tmax2", "Vpdmin2", "Vpdmax2")
 sites = c('GOOSE', 'ROOSTER', 'NRP', 'HARVARD', 'SYLVANIA')
 
 # Open a PDF device
-pdf("AGBI_clim_cor_sites.pdf", width = 10, height = 8)
+pdf("report/figures/AGBI_clim_cor_sites.pdf", width = 10, height = 8)
 
 for (site in sites) {
 
@@ -1227,10 +1245,15 @@ for (var in clim_vars) {
   cor_taxa_p$sig = ifelse(cor_taxa_p$p_value<0.05, TRUE, NA)
   
  p = ggplot()+
-    geom_tile(data= cor_taxa_p, aes(x=variable, y= taxon, fill = correlation))+
+    geom_tile(data= cor_taxa_p, aes(x=period_names, y= taxon, fill = correlation))+
     scale_fill_gradient2()+
-    geom_point(data = cor_taxa_p, aes(x=variable, y= taxon, shape = sig))+
-   ggtitle(site)
+    geom_point(data = cor_taxa_p, aes(x=period_names, y= taxon, shape = sig), size=3)+
+    scale_shape_manual(values=c(1, NA)) + 
+   xlab('Period') +
+   ylab('Species') + 
+   ggtitle(paste0(site, '; ', var)) + 
+   theme(plot.title = element_text(size=18))
+
   
   
   # Print the plot to the PDF
@@ -1805,6 +1828,8 @@ all_taxon_summed = taxon_summed %>%
 fractional_biomass = all_taxon_summed %>% 
   mutate(taxon_fractions = total_AGBI_mean/AGBI.mean)
 
+
+
 ggplot(data = fractional_biomass) +
   geom_line(aes(x =year, y = taxon_fractions, color = taxon))+ 
   facet_wrap(~site)
@@ -1815,6 +1840,15 @@ ggplot(data = fractional_biomass) +
   geom_area(aes(x =year, y = taxon_fractions, fill = taxon))+ 
   facet_wrap(~site)
 ggsave("figures1950/taxon_fractions_fill_time.png")  
+
+# correlation
+head(cor_clim_vars_taxon)
+
+foo = taxon_site_total %>% group_by(site) %>% slice_max(order_by=total_AGBI_mean, n=3)
+
+cor_clim_vars_taxon
+
+bar = left_join(cor_clim_vars_taxon, foo)
 
 #################################################################################
 # Individual tree 
