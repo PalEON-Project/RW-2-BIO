@@ -1,3 +1,22 @@
+all_taxon_summary %>% 
+  group_by(site) %>%
+  summarize(year_max = max(year)) 
+
+agbi_recent = all_taxon_summary %>% 
+  group_by(site, taxon) %>%
+  filter(year == max(year)) 
+
+agbi_recent = all_taxon_summary %>% 
+  group_by(site, taxon) %>%
+  filter(year == 2010) 
+
+agbi_recent %>% 
+  # group_by(site, model) %>%
+  dplyr::arrange(site, desc(AGBI.mean)) %>%
+  group_by(site) %>%
+  mutate(cum_sum = cumsum(AGBI.mean) / sum(AGBI.mean))
+
+
 ## Figures
 
 # 1. Total biomass over time / site
@@ -227,8 +246,8 @@ all_taxon_summary = all_taxon_by_iter %>%
             AGB.sd = sd(AGB.sum),
             AGB.lo = quantile(AGB.sum, c(0.025), na.rm=TRUE),
             AGB.hi = quantile(AGB.sum, c(0.975), na.rm=TRUE), 
-            AGBI.mean = mean(AGBI.sum, na.rm = T),
-            AGBI.sd = sd(AGBI.sum),
+            AGBI.mean = mean(AGBI.sum, na.rm = TRUE),
+            AGBI.sd = sd(AGBI.sum, na.rm = TRUE),
             AGBI.lo = quantile(AGBI.sum, c(0.025), na.rm=TRUE),
             AGBI.hi = quantile(AGBI.sum, c(0.975), na.rm=TRUE), 
             .groups='keep')
