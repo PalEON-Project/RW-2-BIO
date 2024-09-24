@@ -27,50 +27,6 @@ library(correlation)
 library(stringr)
 library(corrplot)
 
-# #above ground biomass
-# goose_total_agb <- readRDS('sites/GOOSE/runs/v2.0_012021/output/AGB_STAN_GOOSE_v2.0_012021.RDS')
-# harvard_total_agb <- readRDS('sites/HARVARD/runs/v2.0_102020/output/AGB_STAN_HARVARD_v2.0_102020.RDS')
-# northround_total_agb <- readRDS('sites/NORTHROUND/runs/v2.0_082020/output/AGB_STAN_NORTHROUND_v2.0_082020.RDS')
-# rooster_total_agb <- readRDS('sites/ROOSTER/runs/v2.0_082020/output/AGB_STAN_ROOSTER_v2.0_082020.RDS')
-# sylvania_total_agb <- readRDS('sites/SYLVANIA/runs/v2.0_082020/output/AGB_STAN_SYLVANIA_v2.0_082020.RDS')
-#
-# #above ground biomass increment 
-# goose_total_agbi <- readRDS('sites/GOOSE/runs/v2.0_012021/output/AGBI_STAN_GOOSE_v2.0_012021.RDS')
-# harvard_total_agbi <- readRDS('sites/HARVARD/runs/v2.0_102020/output/AGBI_STAN_HARVARD_v2.0_102020.RDS')
-# northround_total_agbi <- readRDS('sites/NORTHROUND/runs/v2.0_082020/output/AGBI_STAN_NORTHROUND_v2.0_082020.RDS')
-# rooster_total_agbi <- readRDS('sites/ROOSTER/runs/v2.0_082020/output/AGBI_STAN_ROOSTER_v2.0_082020.RDS')
-# sylvania_total_agbi <- readRDS('sites/SYLVANIA/runs/v2.0_082020/output/AGBI_STAN_SYLVANIA_v2.0_082020.RDS')
-
-# goose_ind_agb <- readRDS('sites/GOOSE/runs/v3.1_012021/output/AGB_STAN_GOOSE_v3.1_012021.RDS')
-# 
-# foo = subset(goose_ind_agb, iter==1) %>%
-#   group_by(year, iter) %>%
-#   count(type)
-# ggplot(data=foo) +
-#   geom_line(aes(x=year, y=n))
-# 
-# foo = subset(goose_ind_agb, iter==1) %>%
-#   group_by(year, iter) %>%
-#   count(taxon)
-# ggplot(data=foo) +
-#   geom_line(aes(x=year, y=n, colour=taxon))
-# 
-# # ggplot(data=goose_ind_agb) +
-# #   geom_line(aes(x=year, y=value,))
-# 
-# rooster_ind_agb <- readRDS('sites/ROOSTER/runs/v3.1_082020/output/AGB_STAN_ROOSTER_v3.1_082020.RDS')
-# 
-# foo = subset(rooster_ind_agb, iter==1) %>%
-#   group_by(year, iter) %>%
-#   count(type)
-# ggplot(data=foo) +
-#   geom_line(aes(x=year, y=n))
-# 
-# foo = subset(rooster_ind_agb, iter==1) %>%
-#   group_by(year, iter) %>%
-#   count(taxon)
-# ggplot(data=foo) +
-#   geom_line(aes(x=year, y=n, colour=taxon))
 
 #above ground biomass
 goose_total_agb <- readRDS('sites/GOOSE/runs/v3.1_012021/output/AGB_TAXA_STAN_GOOSE_v3.1_012021.RDS')
@@ -306,20 +262,6 @@ all_site_summary_wide = pivot_wider(data = all_site_summary[,(colnames(all_site_
 #CORRELATION
 ################################################################################################
 
-#correlation matrix between all species for GOOSE for all trees found in one SITE for each given year....
-# cor(all_taxon_summary_wide$ACSA, all_taxon_summary_wide$BEPA, use = "complete.obs")
-# correlation_A = data.frame(cor(all_taxon_summary_wide[, c('ACRU','ACSA','BEPA', 'FAGR', 'PIST', 'QUAL', 'QUMO', 'QURU', 'BELE',
-#                    'OSVI', 'AMAR')],use = "complete.obs"))
-#find significance 
-#correlation_B = correlation_A
-#correlation_B[correlation_B<0.4] = NA
-
-#correlation figure between species for ABGI.mean
-#ggcorrplot(correlation_A, method = "circle", type = "lower", hc.order = FALSE)
-#ggcorrplot(correlation_B, type = "lower",)
-#  scale_fill_gradient2(low = "yellow", mid = 'pink', high = "light green", breaks=c(0, 1), limit=c(0, 1))
-
-
 #correlation between sites of AGBI
 cor_site = data.frame(cor(all_site_summary_wide[, c('GOOSE', 'ROOSTER', 'SYLVANIA', 'NRP', 'HARVARD')], 
                           use = "complete.obs"))
@@ -327,51 +269,6 @@ ggcorrplot(cor_site, method = "circle", type = "lower", hc.order = FALSE)
 write.csv(cor_site, "correlation_AGBI_site.csv")  
 
 
-# cor_plot_goose = data.frame(cor(goose_plot_wide[,c('1', '2', '3')], use = "complete.obs"))
-# ggcorrplot(cor_plot_goose, method = "square", type = "lower")
-# 
-# 
-# cor(clim_agb$AGBI.mean, clim_agb$PPT_01, use = "complete.obs")
-
-
-# # all_site_plot_summary
-# goose_plot_summary = subset(all_site_plot_summary, site == 'GOOSE')
-# goose_plot_summary_wide = pivot_wider(data = goose_plot_summary[,(colnames(goose_plot_summary) %in% 
-#                                                                 c('year', 'plot', 'AGBI.mean', 'site'))],
-#                                     id_cols = c(year),
-#                                     names_from = plot, 
-#                                     values_from = AGBI.mean, 
-#                                     values_fill = 0 )
-# colnames(goose_plot_summary_wide) = c('year', 'plot1', 'plot2', 'plot3')
-# 
-# cor_plot_goose = data.frame(cor(goose_plot_summary_wide[,c('plot1', 'plot2', 'plot3')], use = "complete.obs"))
-# ggcorrplot(cor_plot_goose, method = "square", type = "lower")
-
-# #correlation between AGBI and all climate variables
-# cor_clim_vars <- all_taxon_summary_wide %>%
-#   # Filter to keep only the relevant rows for correlation
-#   filter(str_detect(variable, "^(ACRU|ACSA|AMAR)")) %>%
-#   # Group by site and variable
-#   group_by(site) %>%
-#   # Summarize by calculating correlation between AGBI.mean and value
-#   summarize(correlation = cor(c(ACRU|ACSA|AMAR), value, use = "complete.obs"), .groups = 'drop')
-# head(cor_clim_vars)
-# 
-# goose_taxon_summary = subset(all_taxon_summary_wide, site=='GOOSE')
-# cor(goose_taxon_summary[,3:ncol(goose_taxon_summary)], use = "na.or.complete")
-# 
-# 
-# correlation_by_site <- all_taxon_summary_wide %>%
-#   group_by(site) %>%
-#   summarise(across(all_of(3:ncol(all_taxon_summary_wide)), 
-#                    list(correlation = ~ cor(., use = "complete.obs")), 
-#                    .names = "cor_{col}"))
-
-
-# correlation_matrices_by_site <- all_taxon_summary_wide %>%
-#   group_by(site) %>%
-#   summarise(cor_matrix = list(cor(select_if(cur_data(), is.numeric),
-#                                   use = "pairwise.complete.obs")))
 
 #does this work?
 correlation_matrices_by_site <- all_taxon_summary_wide %>%
@@ -413,7 +310,7 @@ correlation_matrices_by_site[[1]]
 # > correlation_matrices_by_site[[2]]
 #to get correlation matrix for GOOSE, we do:
 # > correlation_matrices_by_site[[2]][[1]]
-pdf('report/figures/AGBI_corr_taxa.pdf')
+pdf('figures/AGBI_corr_taxa.pdf')
 #goose correlation plot
 ggcorrplot(correlation_matrices_by_site[[2]][[1]], 
            method = "square", 
@@ -614,10 +511,10 @@ tmax_melt_taxon = melt(tmax_taxon, id.vars = c('model', 'year', 'AGBI.mean', 'AG
 
 tmean = select(clim_agb, year, AGBI.mean, site,
                starts_with('Tmean'))
-colnames(tmean)[which(names(tmean) == "AGBI.mean.site")] <- "AGBI.mean.site"
+colnames(tmean)[which(names(tmean) == "AGBI.mean")] <- "AGBI.mean.site"
 
 tmean_melt = melt(tmean, 
-                  id.vars = c('model', 'year', 'AGBI.mean', 'site'))
+                  id.vars = c('model', 'year', 'AGBI.mean.site', 'site'))
 
 tmean_melt$site = factor(tmean_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD'))
 
@@ -1089,20 +986,26 @@ cor_AGBI_PPT = filter(cor_clim_AGBI, substr(cor_clim_AGBI$variable,1,3) == 'PPT'
 
 ggplot()+
   geom_tile(data= cor_AGBI_PPT, aes(x=variable, y= site, fill = correlation))+
-  scale_fill_gradient2()
+  scale_fill_gradient2(limits = c(-0.4, 0.4), 
+                       low = "red", mid = "white", high = "purple", 
+                       midpoint = 0)
 
 
 cor_AGBI_TMIN = filter(cor_clim_AGBI, substr(cor_clim_AGBI$variable,1,4) == 'Tmin' )
 
 ggplot()+
   geom_tile(data= cor_AGBI_TMIN, aes(x=variable, y= site, fill = correlation))+
-  scale_fill_gradient2()
+  scale_fill_gradient2(limits = c(-0.4, 0.4), 
+                       low = "red", mid = "white", high = 'purple', 
+                       midpoint = 0)
 
 cor_AGBI_TMAX = filter(cor_clim_AGBI, substr(cor_clim_AGBI$variable,1,4) == 'Tmax' )
 
 ggplot()+
   geom_tile(data= cor_AGBI_TMAX, aes(x=variable, y= site, fill = correlation))+
-  scale_fill_gradient2()
+  scale_fill_gradient2(limits = c(-0.4, 0.4), 
+                       low = "red", mid = "white", high = "purple", 
+                       midpoint = 0)
 
 
 max_variable_cor = cor_clim_AGBI %>% 
@@ -1195,7 +1098,9 @@ cor_GOOSE_taxa = filter(cor_clim_vars_taxon, (cor_clim_vars_taxon$site == "GOOSE
 
 ggplot()+
   geom_tile(data= cor_GOOSE_taxa, aes(x=variable, y= taxon, fill = correlation))+
-  scale_fill_gradient2()
+  scale_fill_gradient2(limits = c(-0.4, 0.4), 
+                       low = "red", mid = "white", high = "purple", 
+                       midpoint = 0)
 
 #generating the pvalues of the correlation between AGBI.mean and climate variables 
 cor_clim_vars_taxon_t <- clim_taxon %>%
@@ -1232,7 +1137,7 @@ clim_vars = c("PPT", "Tmean", "Tmin2", "Tmax2", "Vpdmin2", "Vpdmax2")
 sites = c('GOOSE', 'ROOSTER', 'NRP', 'HARVARD', 'SYLVANIA')
 
 # Open a PDF device
-pdf("report/figures/AGBI_clim_cor_sites.pdf", width = 10, height = 8)
+pdf("figures/AGBI_clim_cor_sites.pdf", width = 10, height = 8)
 
 for (site in sites) {
 
@@ -1246,7 +1151,9 @@ for (var in clim_vars) {
   
  p = ggplot()+
     geom_tile(data= cor_taxa_p, aes(x=period_names, y= taxon, fill = correlation))+
-    scale_fill_gradient2()+
+    scale_fill_gradient2(limits = c(-0.4, 0.4), 
+                         low = "red", mid = "white", high = "blue", 
+                         midpoint = 0)+
     geom_point(data = cor_taxa_p, aes(x=period_names, y= taxon, shape = sig), size=3)+
     scale_shape_manual(values=c(1, NA)) + 
    xlab('Period') +
