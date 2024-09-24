@@ -1054,34 +1054,34 @@ ggplot(cor_clim_p_site_subset, aes(x = variable, y = correlation, fill = site)) 
 
 
 #########plotting the correlation for each climate variable vs. AGBI.mean
-# Get the unique climate variables
-climate_variables <- unique(cor_clim_vars$variable)
-
-# Open a PDF device
-pdf("AGBI_clim_correlation_by_variable.pdf", width = 10, height = 8)
-
-# Loop through each climate variable
-for (var in climate_variables) {
-  
-  # Filter the data for the current climate variable
-  cor_clim_var <- cor_clim_vars %>%
-    filter(variable == var)
-  
-  # Generate the plot for the current climate variable
-  p <- ggplot(cor_clim_var, aes(x = site, y = correlation, fill = site)) +
-    geom_bar(stat = "identity", position = "dodge") +
-    theme_minimal() +
-    ggtitle(paste("Correlation between AGBI.mean and", var)) +
-    xlab("Site") +
-    ylab("Correlation") +
-    ylim(-1, 1) +  # Ensures the y-axis is consistent across plots
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
-  
-  # Print the plot to the PDF
-  print(p)
-}
-# Close the PDF device
-dev.off()
+# # Get the unique climate variables
+# climate_variables <- unique(cor_clim_vars$variable)
+# 
+# # Open a PDF device
+# pdf("AGBI_clim_correlation_by_variable.pdf", width = 10, height = 8)
+# 
+# # Loop through each climate variable
+# for (var in climate_variables) {
+#   
+#   # Filter the data for the current climate variable
+#   cor_clim_var <- cor_clim_vars %>%
+#     filter(variable == var)
+#   
+#   # Generate the plot for the current climate variable
+#   p <- ggplot(cor_clim_var, aes(x = site, y = correlation, fill = site)) +
+#     geom_bar(stat = "identity", position = "dodge") +
+#     theme_minimal() +
+#     ggtitle(paste("Correlation between AGBI.mean and", var)) +
+#     xlab("Site") +
+#     ylab("Correlation") +
+#     ylim(-1, 1) +  # Ensures the y-axis is consistent across plots
+#     theme(axis.text.x = element_text(angle = 45, hjust = 1))
+#   
+#   # Print the plot to the PDF
+#   print(p)
+# }
+# # Close the PDF device
+# dev.off()
 
 #calculating correlation between AGBI.mean and climate variables for each 
 #climate variable at each site
@@ -1136,6 +1136,8 @@ clim_vars = c("PPT", "Tmean", "Tmin2", "Tmax2", "Vpdmin2", "Vpdmax2")
 
 sites = c('GOOSE', 'ROOSTER', 'NRP', 'HARVARD', 'SYLVANIA')
 
+cor_max = max(cor_clim_vars_taxon_t$correlation)
+cor_min = min(cor_clim_vars_taxon_t$correlation)
 # Open a PDF device
 pdf("figures/AGBI_clim_cor_sites.pdf", width = 10, height = 8)
 
@@ -1151,7 +1153,7 @@ for (var in clim_vars) {
   
  p = ggplot()+
     geom_tile(data= cor_taxa_p, aes(x=period_names, y= taxon, fill = correlation))+
-    scale_fill_gradient2(limits = c(-0.4, 0.4), 
+    scale_fill_gradient2(limits = c(-0.6, 0.6), 
                          low = "red", mid = "white", high = "blue", 
                          midpoint = 0)+
     geom_point(data = cor_taxa_p, aes(x=period_names, y= taxon, shape = sig), size=3)+
