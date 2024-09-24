@@ -4,8 +4,8 @@ rm(list = ls())
 
 # Load tree data
 # Choose trended or detrended
-load('out/tree_trended_AGBI.RData')
-#load('out/tree_detrended_AGBI.RData')
+#load('out/tree_trended_AGBI.RData')
+load('out/tree_detrended_AGBI.RData')
 
 # Rename trended dataframe
 if(exists('tree_agbi')) save_comb <- tree_agbi
@@ -77,6 +77,108 @@ corr_all_sites_taxa |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
 
+corr_all_sites_taxa |>
+  tibble::rownames_to_column(var = 'variable_time') |>
+  dplyr::rename(correlation = V1)|>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_time),
+                time = sub(pattern = '.*_', replacement = '', x = variable_time)) |>
+  dplyr::filter(variable %in% c('PPT2', 'PPT')) |>
+  dplyr::mutate(correlation = dplyr::if_else(abs(correlation) < 0.1, NA, correlation)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable_time, y = 'All sites', fill = correlation)) +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text = ggplot2::element_text(angle = 90))
+
+corr_all_sites_taxa |>
+  tibble::rownames_to_column(var = 'variable_time') |>
+  dplyr::rename(correlation = V1)|>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_time),
+                time = sub(pattern = '.*_', replacement = '', x = variable_time)) |>
+  dplyr::filter(variable %in% c('Tmean2', 'Tmean')) |>
+  dplyr::mutate(correlation = dplyr::if_else(abs(correlation) < 0.1, NA, correlation)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable_time, y = 'All sites', fill = correlation)) +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text = ggplot2::element_text(angle = 90))
+
+corr_all_sites_taxa |>
+  tibble::rownames_to_column(var = 'variable_time') |>
+  dplyr::rename(correlation = V1)|>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_time),
+                time = sub(pattern = '.*_', replacement = '', x = variable_time)) |>
+  dplyr::filter(variable %in% c('Tmin2', 'Tmin')) |>
+  dplyr::mutate(correlation = dplyr::if_else(abs(correlation) < 0.1, NA, correlation)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable_time, y = 'All sites', fill = correlation)) +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text = ggplot2::element_text(angle = 90))
+
+corr_all_sites_taxa |>
+  tibble::rownames_to_column(var = 'variable_time') |>
+  dplyr::rename(correlation = V1)|>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_time),
+                time = sub(pattern = '.*_', replacement = '', x = variable_time)) |>
+  dplyr::filter(variable %in% c('Tmax2', 'Tmax')) |>
+  dplyr::mutate(correlation = dplyr::if_else(abs(correlation) < 0.1, NA, correlation)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable_time, y = 'All sites', fill = correlation)) +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text = ggplot2::element_text(angle = 90))
+
+corr_all_sites_taxa |>
+  tibble::rownames_to_column(var = 'variable_time') |>
+  dplyr::rename(correlation = V1)|>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_time),
+                time = sub(pattern = '.*_', replacement = '', x = variable_time)) |>
+  dplyr::filter(variable %in% c('Vpdmin2', 'Vpdmin')) |>
+  dplyr::mutate(correlation = dplyr::if_else(abs(correlation) < 0.1, NA, correlation)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable_time, y = 'All sites', fill = correlation)) +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text = ggplot2::element_text(angle = 90))
+
+corr_all_sites_taxa |>
+  tibble::rownames_to_column(var = 'variable_time') |>
+  dplyr::rename(correlation = V1)|>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_time),
+                time = sub(pattern = '.*_', replacement = '', x = variable_time)) |>
+  dplyr::filter(variable %in% c('Vpdmax2', 'Vpdmax')) |>
+  dplyr::mutate(correlation = dplyr::if_else(abs(correlation) < 0.1, NA, correlation)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable_time, y = 'All sites', fill = correlation)) +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text = ggplot2::element_text(angle = 90))
+
 #### Correlations for each site individually across all individual trees ####
 
 ## GOOSE
@@ -94,6 +196,13 @@ cor_goose |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
 
+cor_goose2 <- cor_goose |>
+  tibble::rownames_to_column(var = 'variable_month') |>
+  dplyr::rename(correlation = V1) |>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_month),
+                month = sub(pattern = '.*_', replacement = '', x = variable_month),
+                site = 'Goose Egg')
+  
 ## NRP
 
 nrp_agbi_monthly_growing <- agbi_monthly_growing |>
@@ -109,6 +218,13 @@ cor_nrp |>
   dplyr::rename(cor = V1) |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
+
+cor_nrp2 <- cor_nrp |>
+  tibble::rownames_to_column(var = 'variable_month') |>
+  dplyr::rename(correlation = V1) |>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_month),
+                month = sub(pattern = '.*_', replacement = '', x = variable_month),
+                site = 'North Round Pond')
 
 ## ROOSTER
 
@@ -126,6 +242,13 @@ cor_rooster |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
 
+cor_rooster2 <- cor_rooster |>
+  tibble::rownames_to_column(var = 'variable_month') |>
+  dplyr::rename(correlation = V1) |>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_month),
+                month = sub(pattern = '.*_', replacement = '', x = variable_month),
+                site = 'Rooster Hill')
+
 ## SYLVANIA
 
 sylvania_agbi_monthly_growing <- agbi_monthly_growing |>
@@ -141,6 +264,13 @@ cor_sylvania |>
   dplyr::rename(cor = V1) |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
+
+cor_sylvania2 <- cor_sylvania |>
+  tibble::rownames_to_column(var = 'variable_month') |>
+  dplyr::rename(correlation = V1) |>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_month),
+                month = sub(pattern = '.*_', replacement = '', x = variable_month),
+                site = 'Sylvania Wilderness')
 
 ## HARVARD Model RW
 
@@ -158,6 +288,13 @@ cor_harvard |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
 
+cor_harvard_rw <- cor_harvard |>
+  tibble::rownames_to_column(var = 'variable_month') |>
+  dplyr::rename(correlation = V1) |>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_month),
+                month = sub(pattern = '.*_', replacement = '', x = variable_month),
+                site = 'Harvard Forest\nRW only')
+
 ## HARVARD Model RW + Census
 
 harvard_agbi_monthly_growing <- agbi_monthly_growing |>
@@ -173,6 +310,96 @@ cor_harvard |>
   dplyr::rename(cor = V1) |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
+
+cor_harvard_rw_census <- cor_harvard |>
+  tibble::rownames_to_column(var = 'variable_month') |>
+  dplyr::rename(correlation = V1) |>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_month),
+                month = sub(pattern = '.*_', replacement = '', x = variable_month),
+                site = 'Harvard Forest\nRW + Census')
+
+# Combine
+corr_by_site <- rbind(cor_goose2, cor_nrp2, cor_rooster2, cor_sylvania2,
+                      cor_harvard_rw, cor_harvard_rw_census)
+
+# Plot correlations by site
+corr_by_site |>
+  dplyr::filter(variable %in% c('PPT2', 'PPT')) |>
+  dplyr::mutate(correlation = dplyr::if_else(abs(correlation) < 0.1, NA, correlation)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable_month, y = site, fill = correlation)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
+
+corr_by_site |>
+  dplyr::filter(variable %in% c('Tmean2', 'Tmean')) |>
+  dplyr::mutate(correlation = dplyr::if_else(abs(correlation) < 0.1, NA, correlation)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable_month, y = site, fill = correlation)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
+
+corr_by_site |>
+  dplyr::filter(variable %in% c('Tmin2', 'Tmin')) |>
+  dplyr::mutate(correlation = dplyr::if_else(abs(correlation) < 0.1, NA, correlation)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable_month, y = site, fill = correlation)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
+
+corr_by_site |>
+  dplyr::filter(variable %in% c('Tmax2', 'Tmax')) |>
+  dplyr::mutate(correlation = dplyr::if_else(abs(correlation) < 0.1, NA, correlation)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable_month, y = site, fill = correlation)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
+
+corr_by_site |>
+  dplyr::filter(variable %in% c('Vpdmin2', 'Vpdmin')) |>
+  dplyr::mutate(correlation = dplyr::if_else(abs(correlation) < 0.1, NA, correlation)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable_month, y = site, fill = correlation)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
+
+corr_by_site |>
+  dplyr::filter(variable %in% c('Vpdmax2', 'Vpdmax')) |>
+  dplyr::mutate(correlation = dplyr::if_else(abs(correlation) < 0.1, NA, correlation)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable_month, y = site, fill = correlation)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
 
 #### Correlations for each taxon individually across all individual sites and trees ####
 
@@ -194,6 +421,13 @@ cor_acru |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
 
+cor_acru2 <- cor_acru |>
+  tibble::rownames_to_column(var = 'variable_month') |>
+  dplyr::rename(correlation = V1) |>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_month),
+                month = sub(pattern = '.*_', replacement = '', x = variable_month),
+                taxon = 'Red Maple')
+
 ## ACSA (n = 1295 obs, 3 sites, 32 trees)
 
 acsa_agbi_monthly_growing <- agbi_monthly_growing |>
@@ -209,6 +443,13 @@ cor_acsa |>
   dplyr::rename(cor = V1) |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
+
+cor_acsa2 <- cor_acsa |>
+  tibble::rownames_to_column(var = 'variable_month') |>
+  dplyr::rename(correlation = V1) |>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_month),
+                month = sub(pattern = '.*_', replacement = '', x = variable_month),
+                taxon = 'Sugar Maple')
 
 ## QUAL (n = 465 obs, 1 site, 17 trees)
 
@@ -226,6 +467,13 @@ cor_qual |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
 
+cor_qual2 <- cor_qual |>
+  tibble::rownames_to_column(var = 'variable_month') |>
+  dplyr::rename(correlation = V1) |>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_month),
+                month = sub(pattern = '.*_', replacement = '', x = variable_month),
+                taxon = 'White Oak')
+
 ## BEAL (n = 1786 obs, 3 sites, 57 trees)
 
 beal_agbi_monthly_growing <- agbi_monthly_growing |>
@@ -241,6 +489,13 @@ cor_beal |>
   dplyr::rename(cor = V1) |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
+
+cor_beal2 <- cor_beal |>
+  tibble::rownames_to_column(var = 'variable_month') |>
+  dplyr::rename(correlation = V1) |>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_month),
+                month = sub(pattern = '.*_', replacement = '', x = variable_month),
+                taxon = 'Yellow Birch')
 
 ## PCRU (n = 1500 obs, 1 site, 39 trees)
 
@@ -258,6 +513,13 @@ cor_pcru |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
 
+cor_pcru2 <- cor_pcru |>
+  tibble::rownames_to_column(var = 'variable_month') |>
+  dplyr::rename(correlation = V1) |>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_month),
+                month = sub(pattern = '.*_', replacement = '', x = variable_month),
+                taxon = 'Red Spruce')
+
 ## PIST (n = 4262 obs, 4 sites, 120 trees)
 
 pist_agbi_monthly_growing <- agbi_monthly_growing |>
@@ -273,6 +535,13 @@ cor_pist |>
   dplyr::rename(cor = V1) |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
+
+cor_pist2 <- cor_pist |>
+  tibble::rownames_to_column(var = 'variable_month') |>
+  dplyr::rename(correlation = V1) |>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_month),
+                month = sub(pattern = '.*_', replacement = '', x = variable_month),
+                taxon = 'White Pine')
 
 ## FAGR (n = 3881 obs, 4 sites, 107 trees)
 
@@ -290,6 +559,13 @@ cor_fagr |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
 
+cor_fagr2 <- cor_fagr |>
+  tibble::rownames_to_column(var = 'variable_month') |>
+  dplyr::rename(correlation = V1) |>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_month),
+                month = sub(pattern = '.*_', replacement = '', x = variable_month),
+                taxon = 'American Beech')
+
 ## AMAR (n = 41 obs, 1 site, 1 tree)
 
 amar_agbi_monthly_growing <- agbi_monthly_growing |>
@@ -305,6 +581,13 @@ cor_amar |>
   dplyr::rename(cor = V1) |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
+
+cor_amar2 <- cor_amar |>
+  tibble::rownames_to_column(var = 'variable_month') |>
+  dplyr::rename(correlation = V1) |>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_month),
+                month = sub(pattern = '.*_', replacement = '', x = variable_month),
+                taxon = 'Common Serviceberry')
 
 ## QUMO (n = 1151 obs, 1 site, 30 trees)
 
@@ -322,6 +605,13 @@ cor_qumo |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
 
+cor_qumo2 <- cor_qumo |>
+  tibble::rownames_to_column(var = 'variable_month') |>
+  dplyr::rename(correlation = V1) |>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_month),
+                month = sub(pattern = '.*_', replacement = '', x = variable_month),
+                taxon = 'Chestnut Oak')
+
 ## FRAM (n = 1270 obs, 1 site, 31 trees)
 
 fram_agbi_monthly_growing <- agbi_monthly_growing |>
@@ -337,6 +627,13 @@ cor_fram |>
   dplyr::rename(cor = V1) |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
+
+cor_fram2 <- cor_fram |>
+  tibble::rownames_to_column(var = 'variable_month') |>
+  dplyr::rename(correlation = V1) |>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_month),
+                month = sub(pattern = '.*_', replacement = '', x = variable_month),
+                taxon = 'White Ash')
 
 ## QURU (n = 10467 obs, 4 sites, 215 trees)
 
@@ -354,6 +651,13 @@ cor_quru |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
 
+cor_quru2 <- cor_quru |>
+  tibble::rownames_to_column(var = 'variable_month') |>
+  dplyr::rename(correlation = V1) |>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_month),
+                month = sub(pattern = '.*_', replacement = '', x = variable_month),
+                taxon = 'Red Oak')
+
 ## THOC (n = 440 obs, 1 site, 11 trees)
 
 thoc_agbi_monthly_growing <- agbi_monthly_growing |>
@@ -369,6 +673,13 @@ cor_thoc |>
   dplyr::rename(cor = V1) |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
+
+cor_thoc2 <- cor_thoc |>
+  tibble::rownames_to_column(var = 'variable_month') |>
+  dplyr::rename(correlation = V1) |>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_month),
+                month = sub(pattern = '.*_', replacement = '', x = variable_month),
+                taxon = 'Arborvitae')
 
 ## OSVI (n = 82 obs, 1 site, 2 trees)
 
@@ -386,6 +697,13 @@ cor_osvi |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
 
+cor_osvi2 <- cor_osvi |>
+  tibble::rownames_to_column(var = 'variable_month') |>
+  dplyr::rename(correlation = V1) |>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_month),
+                month = sub(pattern = '.*_', replacement = '', x = variable_month),
+                taxon = 'American\nHophornbeam')
+
 ## TSCA (n = 7219 obs, 3 sites, 177 trees)
 
 tsca_agbi_monthly_growing <- agbi_monthly_growing |>
@@ -401,6 +719,13 @@ cor_tsca |>
   dplyr::rename(cor = V1) |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
+
+cor_tsca2 <- cor_tsca |>
+  tibble::rownames_to_column(var = 'variable_month') |>
+  dplyr::rename(correlation = V1) |>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_month),
+                month = sub(pattern = '.*_', replacement = '', x = variable_month),
+                taxon = 'Eastern Hemlock')
 
 ## PRSE (n = 84 obs, 2 sites, 2 trees)
 
@@ -418,6 +743,13 @@ cor_prse |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
 
+cor_prse2 <- cor_prse |>
+  tibble::rownames_to_column(var = 'variable_month') |>
+  dplyr::rename(correlation = V1) |>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_month),
+                month = sub(pattern = '.*_', replacement = '', x = variable_month),
+                taxon = 'Black Cherry')
+
 ## BEPA (n = 161 obs, 3 sites, 4 trees)
 
 bepa_agbi_monthly_growing <- agbi_monthly_growing |>
@@ -433,6 +765,13 @@ cor_bepa |>
   dplyr::rename(cor = V1) |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
+
+cor_bepa2 <- cor_bepa |>
+  tibble::rownames_to_column(var = 'variable_month') |>
+  dplyr::rename(correlation = V1) |>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_month),
+                month = sub(pattern = '.*_', replacement = '', x = variable_month),
+                taxon = 'Paper Birch')
 
 ## BELE (n = 1026 obs, 3 sites, 33 trees)
 
@@ -450,6 +789,13 @@ cor_bele |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
 
+cor_bele2 <- cor_bele |>
+  tibble::rownames_to_column(var = 'variable_month') |>
+  dplyr::rename(correlation = V1) |>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_month),
+                month = sub(pattern = '.*_', replacement = '', x = variable_month),
+                taxon = 'Black Birch')
+
 ## QUVE (n = 239 obs, 1 site, 8 trees)
 
 quve_agbi_monthly_growing <- agbi_monthly_growing |>
@@ -466,6 +812,13 @@ cor_quve |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
 
+cor_quve2 <- cor_quve |>
+  tibble::rownames_to_column(var = 'variable_month') |>
+  dplyr::rename(correlation = V1) |>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_month),
+                month = sub(pattern = '.*_', replacement = '', x = variable_month),
+                taxon = 'Black Oak')
+
 ## HAVI (n = 422 obs, 1 site, 37 trees)
 
 havi_agbi_monthly_growing <- agbi_monthly_growing |>
@@ -481,6 +834,99 @@ cor_havi |>
   dplyr::rename(cor = V1) |>
   dplyr::arrange(desc(abs(cor))) |>
   dplyr::slice_head(n = 10)
+
+cor_havi2 <- cor_havi |>
+  tibble::rownames_to_column(var = 'variable_month') |>
+  dplyr::rename(correlation = V1) |>
+  dplyr::mutate(variable = sub(pattern = '_.*', replacement = '', x = variable_month),
+                month = sub(pattern = '.*_', replacement = '', x = variable_month),
+                taxon = 'Witch Hazel')
+
+# Combine
+corr_by_taxon <- rbind(cor_acru2, cor_acsa2, cor_qual2, cor_tsca2,
+                       cor_beal2, cor_pcru2, cor_pist2, cor_quru2,
+                       cor_fagr2, cor_amar2, cor_qumo2, cor_fram2,
+                       cor_thoc2, cor_osvi2, cor_bele2, cor_prse2,
+                       cor_bepa2, cor_quve2, cor_havi2)
+
+# Plot correlations by taxon
+corr_by_taxon |>
+  dplyr::filter(variable %in% c('PPT2', 'PPT')) |>
+  dplyr::mutate(correlation = dplyr::if_else(abs(correlation) < 0.1, NA, correlation)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable_month, y = taxon, fill = correlation)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
+
+corr_by_taxon |>
+  dplyr::filter(variable %in% c('Tmean2', 'Tmean')) |>
+  dplyr::mutate(correlation = dplyr::if_else(abs(correlation) < 0.1, NA, correlation)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable_month, y = taxon, fill = correlation)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
+
+corr_by_taxon |>
+  dplyr::filter(variable %in% c('Tmin2', 'Tmin')) |>
+  dplyr::mutate(correlation = dplyr::if_else(abs(correlation) < 0.1, NA, correlation)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable_month, y = taxon, fill = correlation)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
+
+corr_by_taxon |>
+  dplyr::filter(variable %in% c('Tmax2', 'Tmax')) |>
+  dplyr::mutate(correlation = dplyr::if_else(abs(correlation) < 0.1, NA, correlation)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable_month, y = taxon, fill = correlation)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
+
+corr_by_taxon |>
+  dplyr::filter(variable %in% c('Vpdmin2', 'Vpdmin')) |>
+  dplyr::mutate(correlation = dplyr::if_else(abs(correlation) < 0.1, NA, correlation)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable_month, y = taxon, fill = correlation)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
+
+corr_by_taxon |>
+  dplyr::filter(variable %in% c('Vpdmax2', 'Vpdmax')) |>
+  dplyr::mutate(correlation = dplyr::if_else(abs(correlation) < 0.1, NA, correlation)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable_month, y = taxon, fill = correlation)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
 
 #### Correlations for each individual tree ####
 
@@ -672,6 +1118,103 @@ ind_cors |>
   ggplot2::theme_minimal() +
   ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
 
+# Correlation matrices across all individuals
+ind_cors |>
+  tidyr::pivot_longer(cols = c(PPT2_01:PPT2_12, PPT_growing),
+                      names_to = 'variable', values_to = 'cor') |>
+  dplyr::group_by(variable) |>
+  dplyr::summarize(mean = mean(cor, na.rm = TRUE)) |>
+  dplyr::mutate(mean = dplyr::if_else(abs(mean) < 0.1, NA, mean)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable, y = 'All sites', fill = mean)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text = ggplot2::element_text(angle = 90))
+
+ind_cors |>
+  tidyr::pivot_longer(cols = c(Tmean2_01:Tmean2_12, Tmean_growing),
+                      names_to = 'variable', values_to = 'cor') |>
+  dplyr::group_by(variable) |>
+  dplyr::summarize(mean = mean(cor, na.rm = TRUE)) |>
+  dplyr::mutate(mean = dplyr::if_else(abs(mean) < 0.1, NA, mean)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable, y = 'All sites', fill = mean)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text = ggplot2::element_text(angle = 90))
+
+ind_cors |>
+  tidyr::pivot_longer(cols = c(Tmin2_01:Tmin2_12, Tmin_growing),
+                      names_to = 'variable', values_to = 'cor') |>
+  dplyr::group_by(variable) |>
+  dplyr::summarize(mean = mean(cor, na.rm = TRUE)) |>
+  dplyr::mutate(mean = dplyr::if_else(abs(mean) < 0.1, NA, mean)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable, y = 'All sites', fill = mean)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text = ggplot2::element_text(angle = 90))
+
+ind_cors |>
+  tidyr::pivot_longer(cols = c(Tmax2_01:Tmax2_12, Tmax_growing),
+                      names_to = 'variable', values_to = 'cor') |>
+  dplyr::group_by(variable) |>
+  dplyr::summarize(mean = mean(cor, na.rm = TRUE)) |>
+  dplyr::mutate(mean = dplyr::if_else(abs(mean) < 0.1, NA, mean)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable, y = 'All sites', fill = mean)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text = ggplot2::element_text(angle = 90))
+
+ind_cors |>
+  tidyr::pivot_longer(cols = c(Vpdmin2_01:Vpdmin2_12, Vpdmin_growing),
+                      names_to = 'variable', values_to = 'cor') |>
+  dplyr::group_by(variable) |>
+  dplyr::summarize(mean = mean(cor, na.rm = TRUE)) |>
+  dplyr::mutate(mean = dplyr::if_else(abs(mean) < 0.1, NA, mean)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable, y = 'All sites', fill = mean)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text = ggplot2::element_text(angle = 90))
+
+ind_cors |>
+  tidyr::pivot_longer(cols = c(Vpdmax2_01:Vpdmax2_12, Vpdmax_growing),
+                      names_to = 'variable', values_to = 'cor') |>
+  dplyr::group_by(variable) |>
+  dplyr::summarize(mean = mean(cor, na.rm = TRUE)) |>
+  dplyr::mutate(mean = dplyr::if_else(abs(mean) < 0.1, NA, mean)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable, y = 'All sites', fill = mean)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text = ggplot2::element_text(angle = 90))
+
 ### Distribution by site ###
 
 ## Precipitation
@@ -827,6 +1370,103 @@ ind_cors |>
                       linetype = 'dashed', linewidth = 1, color = 'maroon') +
   ggplot2::facet_wrap(~site) +
   ggplot2::xlab('') + ggplot2::ylab('Correlation') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
+
+# Mean correlations
+ind_cors |>
+  tidyr::pivot_longer(cols = c(PPT2_01:PPT2_12, PPT_growing),
+                      names_to = 'variable', values_to = 'cor') |>
+  dplyr::group_by(variable, site) |>
+  dplyr::summarize(mean = mean(cor, na.rm = TRUE)) |>
+  dplyr::mutate(mean = dplyr::if_else(abs(mean) < 0.1, NA, mean)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable, y = site, fill = mean)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
+
+ind_cors |>
+  tidyr::pivot_longer(cols = c(Tmean2_01:Tmean2_12, Tmean_growing),
+                      names_to = 'variable', values_to = 'cor') |>
+  dplyr::group_by(variable, site) |>
+  dplyr::summarize(mean = mean(cor, na.rm = TRUE)) |>
+  dplyr::mutate(mean = dplyr::if_else(abs(mean) < 0.1, NA, mean)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable, y = site, fill = mean)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
+
+ind_cors |>
+  tidyr::pivot_longer(cols = c(Tmin2_01:Tmin2_12, Tmin_growing),
+                      names_to = 'variable', values_to = 'cor') |>
+  dplyr::group_by(variable, site) |>
+  dplyr::summarize(mean = mean(cor, na.rm = TRUE)) |>
+  dplyr::mutate(mean = dplyr::if_else(abs(mean) < 0.1, NA, mean)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable, y = site, fill = mean)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
+
+ind_cors |>
+  tidyr::pivot_longer(cols = c(Tmax2_01:Tmax2_12, Tmax_growing),
+                      names_to = 'variable', values_to = 'cor') |>
+  dplyr::group_by(variable, site) |>
+  dplyr::summarize(mean = mean(cor, na.rm = TRUE)) |>
+  dplyr::mutate(mean = dplyr::if_else(abs(mean) < 0.1, NA, mean)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable, y = site, fill = mean)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
+
+ind_cors |>
+  tidyr::pivot_longer(cols = c(Vpdmin2_01:Vpdmin2_12, Vpdmin_growing),
+                      names_to = 'variable', values_to = 'cor') |>
+  dplyr::group_by(variable, site) |>
+  dplyr::summarize(mean = mean(cor, na.rm = TRUE)) |>
+  dplyr::mutate(mean = dplyr::if_else(abs(mean) < 0.1, NA, mean)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable, y = site, fill = mean)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
+
+ind_cors |>
+  tidyr::pivot_longer(cols = c(Vpdmax2_01:Vpdmax2_12, Vpdmax_growing),
+                      names_to = 'variable', values_to = 'cor') |>
+  dplyr::group_by(variable, site) |>
+  dplyr::summarize(mean = mean(cor, na.rm = TRUE)) |>
+  dplyr::mutate(mean = dplyr::if_else(abs(mean) < 0.1, NA, mean)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable, y = site, fill = mean)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
   ggplot2::theme_minimal() +
   ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
 
@@ -991,5 +1631,102 @@ ind_cors |>
                       linetype = 'dashed', linewidth = 1, color = 'maroon') +
   ggplot2::facet_wrap(~taxon) +
   ggplot2::xlab('') + ggplot2::ylab('Correlation') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
+
+# Mean correlations
+ind_cors |>
+  tidyr::pivot_longer(cols = c(PPT2_01:PPT2_12, PPT_growing),
+                      names_to = 'variable', values_to = 'cor') |>
+  dplyr::group_by(variable, taxon) |>
+  dplyr::summarize(mean = mean(cor, na.rm = TRUE)) |>
+  dplyr::mutate(mean = dplyr::if_else(abs(mean) < 0.1, NA, mean)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable, y = taxon, fill = mean)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
+
+ind_cors |>
+  tidyr::pivot_longer(cols = c(Tmean2_01:Tmean2_12, Tmean_growing),
+                      names_to = 'variable', values_to = 'cor') |>
+  dplyr::group_by(variable, taxon) |>
+  dplyr::summarize(mean = mean(cor, na.rm = TRUE)) |>
+  dplyr::mutate(mean = dplyr::if_else(abs(mean) < 0.1, NA, mean)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable, y = taxon, fill = mean)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
+
+ind_cors |>
+  tidyr::pivot_longer(cols = c(Tmin2_01:Tmin2_12, Tmin_growing),
+                      names_to = 'variable', values_to = 'cor') |>
+  dplyr::group_by(variable, taxon) |>
+  dplyr::summarize(mean = mean(cor, na.rm = TRUE)) |>
+  dplyr::mutate(mean = dplyr::if_else(abs(mean) < 0.1, NA, mean)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable, y = taxon, fill = mean)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
+
+ind_cors |>
+  tidyr::pivot_longer(cols = c(Tmax2_01:Tmax2_12, Tmax_growing),
+                      names_to = 'variable', values_to = 'cor') |>
+  dplyr::group_by(variable, taxon) |>
+  dplyr::summarize(mean = mean(cor, na.rm = TRUE)) |>
+  dplyr::mutate(mean = dplyr::if_else(abs(mean) < 0.1, NA, mean)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable, y = taxon, fill = mean)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
+
+ind_cors |>
+  tidyr::pivot_longer(cols = c(Vpdmin2_01:Vpdmin2_12, Vpdmin_growing),
+                      names_to = 'variable', values_to = 'cor') |>
+  dplyr::group_by(variable, taxon) |>
+  dplyr::summarize(mean = mean(cor, na.rm = TRUE)) |>
+  dplyr::mutate(mean = dplyr::if_else(abs(mean) < 0.1, NA, mean)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable, y = taxon, fill = mean)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
+
+ind_cors |>
+  tidyr::pivot_longer(cols = c(Vpdmax2_01:Vpdmax2_12, Vpdmax_growing),
+                      names_to = 'variable', values_to = 'cor') |>
+  dplyr::group_by(variable, taxon) |>
+  dplyr::summarize(mean = mean(cor, na.rm = TRUE)) |>
+  dplyr::mutate(mean = dplyr::if_else(abs(mean) < 0.1, NA, mean)) |>
+  ggplot2::ggplot() +
+  ggplot2::geom_tile(ggplot2::aes(x = variable, y = taxon, fill = mean)) +
+  ggplot2::scale_fill_gradient2(low = 'darkred', high = 'cadetblue',
+                                limits = c(-1, 1),
+                                na.value = 'grey85',
+                                name = 'Correlation') +
+  ggplot2::xlab('') + ggplot2::ylab('') +
   ggplot2::theme_minimal() +
   ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90))
