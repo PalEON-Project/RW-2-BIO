@@ -1,20 +1,98 @@
-all_taxon_summary %>% 
-  group_by(site) %>%
-  summarize(year_max = max(year)) 
-
-agbi_recent = all_taxon_summary %>% 
-  group_by(site, taxon) %>%
-  filter(year == max(year)) 
+# all_taxon_summary %>% 
+#   group_by(site) %>%
+#   summarize(year_max = max(year)) 
+# 
+# agbi_recent = all_taxon_summary %>% 
+#   group_by(site, taxon) %>%
+#   filter(year == max(year)) 
 
 agbi_recent = all_taxon_summary %>% 
   group_by(site, taxon) %>%
   filter(year == 2010) 
 
-agbi_recent %>% 
-  # group_by(site, model) %>%
+agbi_cumsum = agbi_recent %>% 
+  #group_by(site, model) %>%
   dplyr::arrange(site, desc(AGBI.mean)) %>%
   group_by(site) %>%
-  mutate(cum_sum = cumsum(AGBI.mean) / sum(AGBI.mean))
+  mutate(cum_sum = cumsum(AGBI.mean) / sum(AGBI.mean)) %>% 
+  ungroup()
+
+agbi_cumsum_filter = agbi_cumsum %>% 
+  filter(cum_sum < 0.95)
+
+
+df = agbi_cumsum_filter %>% 
+  left_join(clim_taxon, by = c('year', 'site', 'taxon', 'AGBI.mean'))
+
+
+  
+  
+  
+for (site in sites) {
+  
+  
+  # Loop through each climate variable
+  for (var in clim_vars) {
+    
+    # Generate the plot for the current climate variable
+    cor_taxa_p = cor_clim_vars_taxon_t[which((cor_clim_vars_taxon_t$site == site )&(cor_clim_vars_taxon_t$type == var)),]
+    cor_taxa_p$sig = ifelse(cor_taxa_p$p_value<0.05, TRUE, NA)
+    
+    p = ggplot()+
+      geom_tile(data= cor_taxa_p, aes(x=period_names, y= taxon, fill = correlation))+
+      scale_fill_gradient2(limits = c(-0.6, 0.6), 
+                           low = "red", mid = "white", high = "blue", 
+                           midpoint = 0)+
+      geom_point(data = cor_taxa_p, aes(x=period_names, y= taxon, shape = sig), size=3)+
+      scale_shape_manual(values=c(1, NA)) + 
+      xlab('Period') +
+      ylab('Species') + 
+      ggtitle(paste0(site, '; ', var)) + 
+      theme(plot.title = element_text(size=18))
+    
+    
+    
+    # Print the plot to the PDF
+    print(p)
+  }}
+# Close the PDF device
+dev.off()
+
+# Open the PDF device
+pdf("agb_species_correlation.pdf")
+
+# Loop through each site
+for (site in unique(df$site)) {
+  
+  # Loop through each model
+  for (model in unique(df$model.x)) {
+    
+    # Filter the data for the current site and model
+    cor_taxa_p = df %>% 
+      filter(site == site, model.x == model)
+    
+    # Add the significance column based on p_value (assuming it's part of your data)
+    cor_taxa_p$sig = ifelse(cor_taxa_p$p_value < 0.05, TRUE, NA)
+    
+    # Generate the plot
+    p = ggplot() +
+      geom_tile(data = cor_taxa_p, aes(x = year, y = taxon, fill = AGBI.mean)) +
+      scale_fill_gradient2(limits = c(min(df$AGBI.mean, na.rm = TRUE), max(df$AGBI.mean, na.rm = TRUE)),
+                           low = "red", mid = "white", high = "blue", midpoint = 0) +
+      geom_point(data = cor_taxa_p, aes(x = year, y = taxon, shape = sig), size = 3) +
+      scale_shape_manual(values = c(1, NA)) + 
+      xlab('Year') +
+      ylab('Species') + 
+      ggtitle(paste0("Site: ", site, "; Model: ", model)) + 
+      theme(plot.title = element_text(size = 18))
+    
+    # Print the plot to the PDF
+    print(p)
+  }
+}
+
+# Close the PDF device after all plots are done
+dev.off()
 
 
 ## Figures
@@ -531,6 +609,7 @@ tmax_melt_taxon = melt(tmax_taxon, id.vars = c('model', 'year', 'AGBI.mean', 'AG
 tmean = select(clim_agb, year, AGBI.mean, site,
                starts_with('Tmean'))
 colnames(tmean)[which(names(tmean) == "AGBI.mean")] <- "AGBI.mean.site"
+
 
 tmean_melt = melt(tmean, 
                   id.vars = c('model', 'year', 'AGBI.mean.site', 'site'))
