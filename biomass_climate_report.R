@@ -223,6 +223,7 @@ library(ggplot2)
 # library(performance)
 library(tidyr)
 library(ggcorrplot)
+library(ggthemes)
 library(reshape2)
 library(broom)
 library(gam)
@@ -394,13 +395,31 @@ all_taxon_summary = all_taxon_by_iter %>%
             .groups='keep')
 head(all_taxon_summary)
 
+#changing to wide format with taxons as column names and values = ABGI.mean 
+#values_fill=0 does not work 
+#wide format of taxon data with AGBI as value data
+all_taxon_summary_wide = pivot_wider(data = all_taxon_summary[,(colnames(all_taxon_summary) %in% 
+                                                                  c('year', 'taxon', 'AGBI.mean', 'site'))],
+                                     id_cols = c(year, site),
+                                     names_from = taxon, 
+                                     values_from = AGBI.mean, 
+                                     values_fill = 0 )
+
+#wide format of site data with AGBI as value
+all_site_summary_wide = pivot_wider(data = all_site_summary[,(colnames(all_site_summary) %in% 
+                                                                c('year','AGBI.mean', 'site'))],
+                                    id_cols = c(year),
+                                    names_from = site, 
+                                    values_from = AGBI.mean, 
+                                    values_fill = 0 )
+
+
 #AGBI over time starting at the year 1900
 ggplot(data=all_site_summary) +
   geom_ribbon(aes(x=year, ymin=AGBI.lo, ymax=AGBI.hi, colour=site, fill=site)) +
   geom_line(aes(x=year, y=AGBI.mean, colour=site)) +
   theme_bw(14) +
-  xlab('Year') +
-  ylab('AGBI (Mg/ha)') +
+  labs( title = "AGBI over time", x = "Year", y = "AGBI (Mg/ha)")+
   facet_grid(model~.)
 ggsave("report/figures/AGBI_over_time.jpg")
 
@@ -409,10 +428,10 @@ ggplot(data=all_site_summary) +
   geom_ribbon(aes(x=year, ymin=AGB.lo, ymax=AGB.hi, colour=site, fill=site)) +
   geom_line(aes(x=year, y=AGB.mean, colour=site)) +
   theme_bw(14) +
-  xlab('Year') +
-  ylab('AGB (Mg/ha)') +
+  labs( title = "Aboveground biomass over time", x = "Year", y = "AGBI (Mg/ha)")+
   facet_grid(model~.)
 ggsave("report/figures/AGB_over_time.jpg")
+
 
 #AGBI over time by taxon 
 ggplot(data=all_taxon_summary) +
@@ -443,27 +462,11 @@ ggplot(data=all_taxon_summary) +
 ggsave("report/figures/AGBI_site_taxon_with_sd.jpg")
 
   
-#changing to wide format with taxons as column names and values = ABGI.mean 
-#values_fill=0 does not work 
-#wide format of taxon data with AGBI as value data
-all_taxon_summary_wide = pivot_wider(data = all_taxon_summary[,(colnames(all_taxon_summary) %in% 
-                                                                  c('year', 'taxon', 'AGBI.mean', 'site'))],
-                         id_cols = c(year, site),
-                         names_from = taxon, 
-                         values_from = AGBI.mean, 
-                         values_fill = 0 )
 
-#wide format of site data with AGBI as value
-all_site_summary_wide = pivot_wider(data = all_site_summary[,(colnames(all_site_summary) %in% 
-                                                                c('year','AGBI.mean', 'site'))],
-                                    id_cols = c(year),
-                                    names_from = site, 
-                                    values_from = AGBI.mean, 
-                                    values_fill = 0 )
 
-## NOW WE WANT TO DO BY SITE, SO NEED TO REWORK THIS
+
 #########################################################################################
-#CORRELATION
+#CORRELATION AT THE SITE LEVEL ONLY WITH BIOMASS
 ################################################################################################
 
 #correlation between sites of AGBI
@@ -552,11 +555,13 @@ dev.off()
 load('climate/prism_clim.RData')
 clim_data = prism_long
 clim_data = clim_data %>% 
-  rename(site = loc, PPT = PPT2, Tmean = Tmean2)
+  rename(site = loc, PPT = PPT2, Tmean = Tmean2, Tmin = Tmin2, Tmax = Tmax2, 
+         Vpdmin = Vpdmin2, Vpdmax = Vpdmax2)
 
+#putting the climat variables in wide format
 clim_wide =  pivot_wider(data = clim_data,
                          names_from = month, 
-                         values_from = c(PPT, Tmean, Tmin2, Tmax2, Vpdmin2, Vpdmax2))
+                         values_from = c(PPT, Tmean, Tmin, Tmax, Vpdmin, Vpdmax))
 # clim_melt = melt(clim_data, 
 #                 id.vars = c('year', 'month', 'site'))
 # 
@@ -576,12 +581,12 @@ clim_summary = clim_wide |>
          T_max_mean = rowMeans(dplyr::select(clim_wide, starts_with('Tmax'))),
   )
 
-Vpd_sets = list(c("Vpdmin2_01", "Vpdmax2_01"), c("Vpdmin2_02", "Vpdmax2_02"),
-                c("Vpdmin2_03", "Vpdmax2_03"), c("Vpdmin2_04", "Vpdmax2_04"),
-                c("Vpdmin2_05", "Vpdmax2_05"), c("Vpdmin2_06", "Vpdmax2_06"),
-                c("Vpdmin2_07", "Vpdmax2_07"), c("Vpdmin2_08", "Vpdmax2_08"),
-                c("Vpdmin2_09", "Vpdmax2_09"), c("Vpdmin2_10", "Vpdmax2_10"),
-                c("Vpdmin2_11", "Vpdmax2_11"), c("Vpdmin2_12", "Vpdmax2_12")
+Vpd_sets = list(c("Vpdmin_01", "Vpdmax_01"), c("Vpdmin_02", "Vpdmax_02"),
+                c("Vpdmin_03", "Vpdmax_03"), c("Vpdmin_04", "Vpdmax_04"),
+                c("Vpdmin_05", "Vpdmax_05"), c("Vpdmin_06", "Vpdmax_06"),
+                c("Vpdmin_07", "Vpdmax_07"), c("Vpdmin_08", "Vpdmax_08"),
+                c("Vpdmin_09", "Vpdmax_09"), c("Vpdmin_10", "Vpdmax_10"),
+                c("Vpdmin_11", "Vpdmax_11"), c("Vpdmin_12", "Vpdmax_12")
 )
 for (i in seq_along(Vpd_sets)) {
   set <- Vpd_sets[[i]]
@@ -596,22 +601,16 @@ clim_summary$PPT_total_tree = NA
 clim_summary$PPT_total_tree[2:N_years] = clim_summary$PPT_total_prev_tree[1:(N_years-1)] +
   clim_summary$PPT_total_current_tree[2:N_years]
 
-
 clim_summary$year <- as.numeric(clim_summary$year)
 
+#joiing climate data with biomass data, climate data still in wide format
+#clim_summary is year, site, all climate data in wide format 
 clim_agb <- all_site_summary|>
   left_join(clim_summary, by = c('year', 'site'))
 
-#shouldnt be needed since we subset in the beginning of the code
-# clim_agb = subset(clim_agb, year>1950)
-
-clim_agb_filtered = clim_agb %>% 
-  select(-AGB.mean,-AGB.sd,-AGB.lo,-AGB.hi,-AGBI.sd,
-         -AGBI.lo,-AGBI.hi,-AGBI.sd, -AGBI.mean)
-
-clim_melt = melt(clim_agb_filtered,
-                id.vars = c('year', 'site','model'))
-
+#melting climate data
+clim_melt = melt(clim_summary,
+                id.vars = c('year', 'site'))
 clim_melt$year = as.integer(clim_melt$year)
 summary(clim_melt)
 
@@ -619,14 +618,14 @@ summary(clim_melt)
 #dataframe with AGB data (no taxon) + climate data in melted format 
 #AGBI.mean represents each site 
 clim_total <- all_site_summary|>
-  left_join(clim_melt, by = c('year', 'site','model'))
+  left_join(clim_melt, by = c('year', 'site'))
 head(clim_total)
 summary(clim_melt)
 
 #biomass data with taxon data and climate in melted format
 #AGBI.mean is for each taxon at a site 
 clim_taxon <- all_taxon_summary|>
-  left_join(clim_melt, by = c('year', 'site', 'model')) %>% 
+  left_join(clim_melt, by = c('year', 'site')) %>% 
   select(-site)
 head(clim_taxon)
 summary(clim_melt)
