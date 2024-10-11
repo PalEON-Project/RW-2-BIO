@@ -151,7 +151,7 @@ for(s in 1:length(unique(taxon_save_comb$site))){
 # note that this only picks the single best fit model, not necessarily all possible windows that fit well
 # but this file might be useful to compare to Alyssa's climate correlations to converge on ideal climate ranges for each site
 best.fit.dAICc.taxon <- function(site.nm, taxon.id){
-  load(paste0("out/climwin/AGBI_taxon/deltaAICc_AGBI_clim_", site.nm,"_", taxon.id, ".Rdata"))
+  load(paste0("out/climwin/AGBI_taxon/deltaAICc_AGBI_taxon_clim_", site.nm,"_", taxon.id, ".Rdata"))
   
   # get the Ppt best filtresults
   
@@ -170,16 +170,18 @@ best.fit.dAICc.taxon <- function(site.nm, taxon.id){
 }
 
 # run over the sites and taxon here to get a big summary:
-site.climate.vars <- list()
+taxon.climate.vars <- site.climate.vars <- list()
 for(s in 1:length(unique(taxon_save_comb$site))){
   taxon_site_comb <- taxon_save_comb %>% filter(site %in% unique(taxon_save_comb$site)[s])
   taxon_at_site <- unique(taxon_site_comb$taxon)
   
   for(t in 1:length(taxon_at_site)){
-    site.climate.vars  <-  best.fit.dAICc.taxon(site.nm = unique(taxon_save_comb$site)[s], 
+    taxon.climate.vars[[t]]  <-  best.fit.dAICc.taxon(site.nm = unique(taxon_save_comb$site)[s], 
                                                 taxon.id = taxon_at_site[t])
     
   }
+  site.climate.vars[[s]] <- do.call(rbind, taxon.climate.vars)
+  
 }
 
 site.climates <- do.call(rbind, site.climate.vars)
