@@ -635,7 +635,8 @@ annual_vars = select(clim_agb, year, AGBI.mean, site,
                      yearly_meanT, PPT_total_tree, T_min_mean, T_max_mean)
 annual_vars_melt = melt(annual_vars, id.vars = c('model', 'year', 'AGBI.mean', 'site'))
 
-
+##################################################################################
+#separating climate variables into separate dataframes 
 ############PPT##################################################
 #ppt data with AGBI.mean at the site level
 ppt = select(clim_agb, year, AGBI.mean, site,
@@ -658,7 +659,7 @@ ppt_melt_taxon = melt(ppt_taxon, id.vars = c('model', 'year', 'AGBI.mean','AGBI.
 
 ##########VPD#########################################################
 vpd = select(clim_agb, year, AGBI.mean, site,
-             starts_with('Vpdmean'))
+             starts_with('Vpd'))
 colnames(vpd)[which(names(vpd) == "AGBI.mean")] <- "AGBI.mean.site"
 
 #vpd at the site level      
