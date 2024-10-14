@@ -110,7 +110,7 @@ runclimwin <- function(site.nm){
       cowplot::plot_grid(Ppt.heat, Tave.heat, 
                          Tmin.heat, Tmax.heat, 
                          VPDmax.heat, align = "hv", ncol = 3)
-      ggsave(height = 8.5, width = 12, units = "in", paste0("out/climwin/AGBI_tree_climwin_",site.nm,".png"))
+      ggsave(height = 8.5, width = 12, units = "in", paste0("out/climwin/AGBI_tree/AGBI_tree_climwin_",site.nm,".png"))
       
       # save all the outputs for model selection in systematic way:
       save(PPTOutput, 
@@ -118,7 +118,7 @@ runclimwin <- function(site.nm){
            TminOutput, 
            TmaxOutput, 
            VPDmaxOutput,
-           file = paste0("out/climwin/deltaAICc_AGBI_clim_",site.nm, ".Rdata"))
+           file = paste0("out/climwin/AGBI_tree/deltaAICc_AGBI_clim_",site.nm, ".Rdata"))
 }
 
 lapply(unique(save_comb$site),runclimwin)
@@ -129,7 +129,7 @@ lapply(unique(save_comb$site),runclimwin)
 # note that this only picks the single best fit model, not necessarily all possible windows that fit well
 # but this file might be useful to compare to Alyssa's climate correlations to converge on ideal climate ranges for each site
 best.fit.dAICc <- function(site.nm){
-  load(paste0("out/climwin/deltaAICc_AGBI_clim_", site.nm, ".Rdata"))
+  load(paste0("out/climwin/AGBI_tree/deltaAICc_AGBI_clim_", site.nm, ".Rdata"))
   
   # get the Ppt best filtresults
   
@@ -147,5 +147,9 @@ best.fit.dAICc <- function(site.nm){
 }
 site.climate.vars <- lapply(unique(save_comb$site), best.fit.dAICc)
 site.climates <- do.call(rbind, site.climate.vars)
-write.csv(site.climates, "out/climwin/climwin_summary.csv", row.names = FALSE)
+write.csv(site.climates, "out/climwin/AGBI_tree_level_climwin_summary.csv", row.names = FALSE)
+
+
+
+
 
