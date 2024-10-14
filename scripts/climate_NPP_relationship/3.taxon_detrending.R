@@ -1,4 +1,4 @@
-## Detrending for taxa and plots
+## Detrending for taxa
 
 rm(list = ls())
 
@@ -76,6 +76,8 @@ for(i in 1:length(site)){
                     site_name,
                     j,
                     (min(sub$year)-1):max(sub$year))
+      print('Assumed zero')
+      
     }else{
       fit <- lm(formula = current_step ~ last_step, data = combined)
       
@@ -110,25 +112,8 @@ box_test <- taxon_save_comb |>
 # Proportion of taxa demonstrating significant temporal autocorrelation
 length(which(box_test$box_test$p.value < 0.05)) / nrow(box_test)
 
-# Set seed to ensure reproducibility
-set.seed(1996)
-
-# Remove some years for OOS prediction
-unique_years <- unique(taxon_save_comb$year)
-n_oos <- length(unique_years) * 0.2
-oos_years <- sample(unique_years, size = n_oos,
-                    replace = FALSE)
-insample_years <- unique_years[!(unique_years %in% oos_years)]
-
-# OOS
-taxon_agbi_oos <- dplyr::filter(taxon_agbi, year %in% oos_years)
-taxon_save_comb_oos <- dplyr::filter(taxon_save_comb, year %in% oos_years)
-
-# in sample
-taxon_agbi <- dplyr::filter(taxon_agbi, year %in% insample_years)
-taxon_save_comb <- dplyr::filter(taxon_save_comb, year %in% insample_years)
-
-save(taxon_agbi, taxon_agbi_oos,
+# Save
+save(taxon_agbi,
      file = 'out/taxon_trended_AGBI.RData')
-save(taxon_save_comb, taxon_save_comb_oos,
+save(taxon_save_comb,
      file = 'out/taxon_detrended_AGBI.RData')
