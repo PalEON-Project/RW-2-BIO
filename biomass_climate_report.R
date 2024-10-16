@@ -142,7 +142,7 @@ for (site in sites) {
   for (var in clim_vars) {
     
     # Generate the plot for the current climate variable
-    cor_taxa_p = cor_clim_vars_taxon_t[which((cor_clim_vars_taxon_t$site == site )&(cor_clim_vars_taxon_t$type == var)),]
+    cor_taxa_p = cor_clim_taxon_pvalue[which((cor_clim_taxon_pvalue$site == site )&(cor_clim_taxon_pvalue$type == var)),]
     cor_taxa_p$sig = ifelse(cor_taxa_p$p_value<0.05, TRUE, NA)
     
     p = ggplot()+
@@ -734,7 +734,7 @@ tmean_melt_taxon = melt(tmean_taxon, id.vars = c('model', 'year', 'AGBI.mean', '
 ##############PLOTTING PPT WITH TAXON #################################################3333333
 
 
-#organizes sites on one page but generates a page for every taxon for EVERY variable
+#organizes sites on one page but generates a page for every taxon for EVERY variable ie. PPT
 unique_combinations <- ppt_melt_taxon %>%
   distinct(variable, taxon)
 
@@ -770,7 +770,7 @@ for (i in 1:nrow(unique_combinations)) {
 dev.off()
 
 
-#keeping taxa on one page....?
+#plotting AGBI.mean vs PPT for each taxa at a given site 
 unique_combinations <- ppt_melt_taxon %>%
   distinct(variable, site)
 
@@ -806,7 +806,8 @@ dev.off()
 
 
 
-#######all variables on one page.....
+##plotting AGBI.mean vs PPT for every taxon at a given site, where all variables 
+#of PPT are on page 
 unique_combinations <- ppt_melt_taxon %>%
   distinct(site, taxon)
 
@@ -879,7 +880,7 @@ dev.off()
 
 
 
-#keeping taxa on one page....?
+#plotting AGBI.mean vs VPD for each taxa at a given site 
 unique_combinations <- vpd_melt_taxon %>%
   distinct(variable, site)
 
@@ -1179,181 +1180,97 @@ clim_total = na.omit(clim_total)
 #correlation between AGBI and all climate variables
 cor_clim_AGBI <- clim_total %>%
   # Filter to keep only the relevant rows for correlation
-  filter(str_detect(variable, "^(PPT|Tmean|Tmax2|Tmin2|Vpdmin2|Vpdmax2)")) %>%
+  filter(str_detect(variable, "^(PPT|Tmean|Tmax|Tmin|Vpdmin|Vpdmax|Vpdmean)")) %>%
   # Group by site and variable
   group_by(site, variable) %>%
   # Summarize by calculating correlation between AGBI.mean and value
   summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"), .groups = 'drop')
 head(cor_clim_AGBI)
-write.csv(cor_clim_AGBI, file = "report/AGBI_clim_correlation.csv")
+write.csv(cor_clim_AGBI, file = "report/AGBI_clim_correlation_site.csv")
 
-cor_AGBI_PPT = filter(cor_clim_AGBI, substr(cor_clim_AGBI$variable,1,3) == 'PPT' )
-
-ggplot()+
-  geom_tile(data= cor_AGBI_PPT, aes(x=variable, y= site, fill = correlation))+
-  scale_fill_gradient2(limits = c(-0.4, 0.4), 
-                       low = "red", mid = "white", high = "purple", 
-                       midpoint = 0)
-
-
-cor_AGBI_TMIN = filter(cor_clim_AGBI, substr(cor_clim_AGBI$variable,1,4) == 'Tmin' )
-
-ggplot()+
-  geom_tile(data= cor_AGBI_TMIN, aes(x=variable, y= site, fill = correlation))+
-  scale_fill_gradient2(limits = c(-0.4, 0.4), 
-                       low = "red", mid = "white", high = 'purple', 
-                       midpoint = 0)
-
-cor_AGBI_TMAX = filter(cor_clim_AGBI, substr(cor_clim_AGBI$variable,1,4) == 'Tmax' )
-
-ggplot()+
-  geom_tile(data= cor_AGBI_TMAX, aes(x=variable, y= site, fill = correlation))+
-  scale_fill_gradient2(limits = c(-0.4, 0.4), 
-                       low = "red", mid = "white", high = "purple", 
-                       midpoint = 0)
-
-
-max_variable_cor = cor_clim_AGBI %>% 
-  group_by(variable) %>%
-  summarize(max_cor = max(correlation, na.rm = TRUE), 
-            site_with_max_cor = site[which.max(correlation)])
-                                           
-                                           
-
-
-
-
-cor_clim_vars_cor <- clim_total %>%
+cor_clim_AGBI_site_pvalue <- clim_total %>%
   # Filter to keep only the relevant rows for correlation
-  filter(str_detect(variable, "^(PPT|Tmean|Tmax2|Tmin2|Vpdmin2|Vpdmax2)")) %>%
+  filter(str_detect(variable, "^(PPT|Tmean|Tmax|Tmin|Vpdmin|Vpdmax|Vpdmean)")) %>%
   # Group by site and variable
   group_by(site, variable) %>%
   # Summarize by calculating correlation between AGBI.mean and value
   summarize(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
             p_value = cor.test(AGBI.mean, value, use = "complete.obs")$p.value, .groups = 'drop')
 
-# Plot faceted scatter plots with correlation values
-ggplot(cor_clim_vars_cor, aes(x = variable, y = correlation, fill = site)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  facet_wrap(~ site, ncol = 1) +
-  theme_minimal(18) +
-  ggtitle("Correlation between AGBI.mean and Climate Variables by Site") +
-  xlab("Climate Variable") +
-  ylab("Correlation") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-ggsave('figures1950/cor_bar_AGBI_climate_by_site.pdf', width=14, height=12)
-
-cor_clim_p_site_subset = subset(cor_clim_vars_cor, p_value < 0.05)
+cor_clim_p_site_subset = subset(cor_clim_AGBI_site_pvalue, p_value < 0.05)
 
 
-#plotting correlation o
-# Plot faceted scatter plots with correlation values
-ggplot(cor_clim_p_site_subset, aes(x = variable, y = correlation, fill = site)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  facet_wrap(~ site, ncol = 1) +
-  theme_minimal() +
-  ggtitle("Correlation between AGBI.mean and Climate Variables by Site") +
-  xlab("Climate Variable") +
-  ylab("Correlation") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 
-#########plotting the correlation for each climate variable vs. AGBI.mean
-# # Get the unique climate variables
-# climate_variables <- unique(cor_clim_vars$variable)
-# 
-# # Open a PDF device
-# pdf("AGBI_clim_correlation_by_variable.pdf", width = 10, height = 8)
-# 
-# # Loop through each climate variable
-# for (var in climate_variables) {
-#   
-#   # Filter the data for the current climate variable
-#   cor_clim_var <- cor_clim_vars %>%
-#     filter(variable == var)
-#   
-#   # Generate the plot for the current climate variable
-#   p <- ggplot(cor_clim_var, aes(x = site, y = correlation, fill = site)) +
-#     geom_bar(stat = "identity", position = "dodge") +
-#     theme_minimal() +
-#     ggtitle(paste("Correlation between AGBI.mean and", var)) +
-#     xlab("Site") +
-#     ylab("Correlation") +
-#     ylim(-1, 1) +  # Ensures the y-axis is consistent across plots
-#     theme(axis.text.x = element_text(angle = 45, hjust = 1))
-#   
-#   # Print the plot to the PDF
-#   print(p)
-# }
-# # Close the PDF device
-# dev.off()
+#for each climate variable at which site is it the highest
+max_variable_cor = cor_clim_AGBI %>% 
+  group_by(variable) %>%
+  summarize(max_cor = max(correlation, na.rm = TRUE), 
+            site_with_max_cor = site[which.max(correlation)])
+
+
 
 #calculating correlation between AGBI.mean and climate variables for each 
 #climate variable at each site
 cor_clim_vars_taxon <- clim_taxon %>%
   # Filter to keep only the relevant rows for correlation
-  filter(str_detect(variable, "^(PPT|Tmean|Tmax2|Tmin2|Vpdmin2|Vpdmax2)")) %>%
+  filter(str_detect(variable, "^(PPT|Tmean|Tmax|Tmin|Vpdmin|Vpdmax|Vpdmean)")) %>%
   # Group by site and variable
   group_by(site, taxon, variable) %>%
   # Summarize by calculating correlation between AGBI.mean and value
   summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"), .groups = 'drop')
 write.csv(cor_clim_vars_taxon, file = "report/AGBI_clim_taxon_correlation.csv")
 
-cor_GOOSE_taxa = filter(cor_clim_vars_taxon, (cor_clim_vars_taxon$site == "GOOSE")&(substr(cor_clim_vars_taxon$variable,1,3)=='Vpd'))
-
-ggplot()+
-  geom_tile(data= cor_GOOSE_taxa, aes(x=variable, y= taxon, fill = correlation))+
-  scale_fill_gradient2(limits = c(-0.4, 0.4), 
-                       low = "red", mid = "white", high = "purple", 
-                       midpoint = 0)
 
 #generating the pvalues of the correlation between AGBI.mean and climate variables 
-cor_clim_vars_taxon_t <- clim_taxon %>%
+cor_clim_taxon_pvalue <- clim_taxon %>%
   # Filter to keep only the relevant rows for correlation
-  filter(str_detect(variable, "^(PPT|Tmean|Tmax2|Tmin2|Vpdmin2|Vpdmax2)")) %>%
+  filter(str_detect(variable, "^(PPT|Tmean|Tmax|Tmin|Vpdmin|Vpdmax)")) %>%
   # Group by site and variable
   group_by(site, taxon, variable) %>%
   # Summarize by calculating correlation between AGBI.mean and value
   summarize(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
             p_value = cor.test(AGBI.mean, value, use = "complete.obs")$p.value, .groups = 'drop')
 
-cor_clim_vars_taxon_t$variable = as.character(cor_clim_vars_taxon_t$variable)
+cor_clim_taxon_pvalue$variable = as.character(cor_clim_taxon_pvalue$variable)
 
-cor_clim_vars_taxon_t$type = sapply(strsplit(cor_clim_vars_taxon_t$variable, split='_'), function(x) x[1])
+cor_clim_taxon_pvalue$type = sapply(strsplit(cor_clim_taxon_pvalue$variable, split='_'), function(x) x[1])
 
-cor_clim_vars_taxon_t$period = sapply(strsplit(cor_clim_vars_taxon_t$variable, split='_'), function(x) x[2])
+cor_clim_taxon_pvalue$period = sapply(strsplit(cor_clim_taxon_pvalue$variable, split='_'), function(x) x[2])
 
 
-periods = unique(cor_clim_vars_taxon_t$period)
+periods = unique(cor_clim_taxon_pvalue$period)
 period_names = c('jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 
                  'aug', 'sep', 'oct', 'nov', 'dec', 'total tree') 
 
-cor_clim_vars_taxon_t$period_names = period_names[match(cor_clim_vars_taxon_t$period, periods)]
-cor_clim_vars_taxon_t$period_names = factor(cor_clim_vars_taxon_t$period_names,
+cor_clim_taxon_pvalue$period_names = period_names[match(cor_clim_taxon_pvalue$period, periods)]
+cor_clim_taxon_pvalue$period_names = factor(cor_clim_taxon_pvalue$period_names,
                                             levels = period_names)
-  
-cor_clim_p_subset = subset(cor_clim_vars_taxon_t, p_value < 0.05)
+#subsetting data set to only have pvalues <0.05  
+cor_clim_p_subset = subset(cor_clim_taxon_pvalue, p_value < 0.05)
 head(cor_clim_p_subset)
 
 
 
-clim_vars = c("PPT", "Tmean", "Tmin2", "Tmax2", "Vpdmin2", "Vpdmax2")
+clim_vars = c("PPT", "Tmean", "Tmin", "Tmax", "Vpdmin", "Vpdmax")
 
 sites = c('GOOSE', 'ROOSTER', 'NRP', 'HARVARD', 'SYLVANIA')
 
-cor_max = max(cor_clim_vars_taxon_t$correlation)
-cor_min = min(cor_clim_vars_taxon_t$correlation)
+cor_max = max(cor_clim_taxon_pvalue$correlation)
+cor_min = min(cor_clim_taxon_pvalue$correlation)
+
+#generatting correlation plots for all taxa for all sites for all clim variables
+#with significance shown 
 # Open a PDF device
-pdf("figures/AGBI_clim_cor_sites.pdf", width = 10, height = 8)
+pdf("report/figures/AGBI_clim_cor_sites.pdf", width = 10, height = 8)
 
 for (site in sites) {
-
 
 # Loop through each climate variable
 for (var in clim_vars) {
   
   # Generate the plot for the current climate variable
-  cor_taxa_p = cor_clim_vars_taxon_t[which((cor_clim_vars_taxon_t$site == site )&(cor_clim_vars_taxon_t$type == var)),]
+  cor_taxa_p = cor_clim_taxon_pvalue[which((cor_clim_taxon_pvalue$site == site )&(cor_clim_taxon_pvalue$type == var)),]
   cor_taxa_p$sig = ifelse(cor_taxa_p$p_value<0.05, TRUE, NA)
   
  p = ggplot()+
@@ -1377,74 +1294,34 @@ for (var in clim_vars) {
 dev.off()
 
 
+#might not need this since it is in the pdf loop plotting all correlations 
+#except maybe because this is plotting strictly site correlations
+#change it to a loop maybe? 
+# cor_AGBI_PPT = filter(cor_clim_AGBI, substr(cor_clim_AGBI$variable,1,3) == 'PPT' )
+# 
+# ggplot()+
+#   geom_tile(data= cor_AGBI_PPT, aes(x=variable, y= site, fill = correlation))+
+#   scale_fill_gradient2(limits = c(-0.4, 0.4),
+#                        low = "red", mid = "white", high = "purple",
+#                        midpoint = 0)
+# 
+# 
+# cor_AGBI_TMIN = filter(cor_clim_AGBI, substr(cor_clim_AGBI$variable,1,4) == 'Tmin' )
+# 
+# ggplot()+
+#   geom_tile(data= cor_AGBI_TMIN, aes(x=variable, y= site, fill = correlation))+
+#   scale_fill_gradient2(limits = c(-0.4, 0.4), 
+#                        low = "red", mid = "white", high = 'purple', 
+#                        midpoint = 0)
+# 
+# cor_AGBI_TMAX = filter(cor_clim_AGBI, substr(cor_clim_AGBI$variable,1,4) == 'Tmax' )
+# 
+# ggplot()+
+#   geom_tile(data= cor_AGBI_TMAX, aes(x=variable, y= site, fill = correlation))+
+#   scale_fill_gradient2(limits = c(-0.4, 0.4), 
+#                        low = "red", mid = "white", high = "purple", 
+#                        midpoint = 0)
 
-
-
-
-cor_GOOSE_taxa_p = filter(cor_clim_vars_taxon_t, (cor_clim_vars_taxon_t$site == "GOOSE")&(cor_clim_vars_taxon_t$type =='Vpdmax'))
-cor_GOOSE_taxa_p$sig = ifelse(cor_GOOSE_taxa_p$p_value<0.05, TRUE, NA)
-
-ggplot()+
-  geom_tile(data= cor_GOOSE_taxa_p, aes(x=variable, y= taxon, fill = correlation))+
-  scale_fill_gradient2()+
-  geom_point(data = cor_GOOSE_taxa_p, aes(x=variable, y= taxon, shape = sig))
-
-
-ggplot()+
-  geom_point(data = cor_clim_p_subset, aes(x =correlation, y = p_value, color =site ))
-
-#very large figure of Correlation between AGBI.mean and Climate Variables by taxon
-#facet wrapped by site, colored by taxon
-# Plot faceted scatter plots with correlation values
-ggplot(cor_clim_vars_taxon, aes(x = variable, y = correlation, fill = taxon)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  facet_wrap(~ site, ncol = 1) +
-  theme_minimal() +
-  ggtitle("Correlation between AGBI.mean and Climate Variables by taxon") +
-  xlab("Climate Variable") +
-  ylab("Correlation") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-#for the loop
-climate_variables <- unique(cor_clim_vars_taxon$variable)
-# Open a PDF device
-pdf("AGBI_clim_taxon_correlation_by_variable.pdf", width = 10, height = 8)
-
-# loop generates a plot showing correlation of AGBI.mean v. climate variables
-#for each taxon at each site 
-#each pages is for a climate varible, colored by site 
-for (var in climate_variables) {
-  
-  # Filter the data for the current climate variable
-  cor_clim_var_taxon <- cor_clim_vars_taxon %>%
-    filter(variable == var)
-  
-  # Generate the plot for the current climate variable
-  p <- ggplot(cor_clim_var_taxon, aes(x = taxon, y = correlation, fill = site)) +
-    geom_bar(stat = "identity", position = "dodge") +
-    theme_minimal() +
-    ggtitle(paste("Correlation between AGBI.mean and", var, "by Taxon")) +
-    xlab("Taxon") +
-    ylab("Correlation") +
-    ylim(-1, 1) +  # Ensures the y-axis is consistent across plots
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
-  
-  # Print the plot to the PDF
-  print(p)
-}
-# Close the PDF device
-dev.off()
-
-
-
-#very messy figure showing, correlation of each climate variable v. AGBI.mean 
-#at each site
-ggplot(data=cor_clim_vars) +
-  geom_point(aes(x=correlation, y=variable, colour=site)) #+
-  # facet_grid(site~.)
-
-ggplot(data= subset(cor_clim_vars_taxon, variable == 'PPT_total_tree')) +
-  geom_point(aes(x=taxon, y=correlation, color=site))
 
 
 
