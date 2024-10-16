@@ -1232,6 +1232,10 @@ cor_clim_taxon_pvalue <- clim_taxon %>%
   summarize(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
             p_value = cor.test(AGBI.mean, value, use = "complete.obs")$p.value, .groups = 'drop')
 
+#subsetting data set to only have pvalues <0.05  
+cor_clim_p_subset = subset(cor_clim_taxon_pvalue, p_value < 0.05)
+head(cor_clim_p_subset)
+
 cor_clim_taxon_pvalue$variable = as.character(cor_clim_taxon_pvalue$variable)
 
 cor_clim_taxon_pvalue$type = sapply(strsplit(cor_clim_taxon_pvalue$variable, split='_'), function(x) x[1])
@@ -1246,9 +1250,7 @@ period_names = c('jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul',
 cor_clim_taxon_pvalue$period_names = period_names[match(cor_clim_taxon_pvalue$period, periods)]
 cor_clim_taxon_pvalue$period_names = factor(cor_clim_taxon_pvalue$period_names,
                                             levels = period_names)
-#subsetting data set to only have pvalues <0.05  
-cor_clim_p_subset = subset(cor_clim_taxon_pvalue, p_value < 0.05)
-head(cor_clim_p_subset)
+
 
 
 
@@ -1262,7 +1264,7 @@ cor_min = min(cor_clim_taxon_pvalue$correlation)
 #generatting correlation plots for all taxa for all sites for all clim variables
 #with significance shown 
 # Open a PDF device
-pdf("report/figures/AGBI_clim_cor_sites.pdf", width = 10, height = 8)
+pdf("report/figures/AGBI_clim_cor_taxon.pdf", width = 10, height = 8)
 
 for (site in sites) {
 
@@ -1292,6 +1294,9 @@ for (var in clim_vars) {
 }}
 # Close the PDF device
 dev.off()
+
+
+
 
 
 #might not need this since it is in the pdf loop plotting all correlations 
