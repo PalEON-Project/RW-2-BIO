@@ -10,19 +10,19 @@ rm(list = ls())
 load('out/taxon_detrended_AGBI.RData')
 
 # Rename trended dataframe
-if(exists('taxon_agbi')) taxon_taxon_save_comb <- taxon_agbi
+if(exists('taxon_agbi'))taxon_save_comb <- taxon_agbi
 # Rename response column
-if(exists('taxon_agbi')) taxon_taxon_save_comb <- dplyr::rename(taxon_taxon_save_comb, residual_AGBI = mean)
+if(exists('taxon_agbi')) taxon_save_comb <- dplyr::rename(taxon_save_comb, residual_AGBI = mean)
 
 # Indexing for loops
 site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD Model RW', 'HARVARD Model RW + Census')
 taxa <- c()
-taxa[1] <- length(unique(taxon_taxon_save_comb$taxon[which(taxon_taxon_save_comb$site == 'GOOSE')]))
-taxa[2] <- length(unique(taxon_taxon_save_comb$taxon[which(taxon_taxon_save_comb$site == 'NRP')]))
-taxa[3] <- length(unique(taxon_taxon_save_comb$taxon[which(taxon_taxon_save_comb$site == 'ROOSTER')]))
-taxa[4] <- length(unique(taxon_taxon_save_comb$taxon[which(taxon_taxon_save_comb$site == 'SYLVANIA')]))
-taxa[5] <- length(unique(taxon_taxon_save_comb$taxon[which(taxon_taxon_save_comb$site == 'HARVARD Model RW')]))
-taxa[6] <- length(unique(taxon_taxon_save_comb$taxon[which(taxon_taxon_save_comb$site == 'HARVARD Model RW + Census')]))
+taxa[1] <- length(unique(taxon_save_comb$taxon[which(taxon_save_comb$site == 'GOOSE')]))
+taxa[2] <- length(unique(taxon_save_comb$taxon[which(taxon_save_comb$site == 'NRP')]))
+taxa[3] <- length(unique(taxon_save_comb$taxon[which(taxon_save_comb$site == 'ROOSTER')]))
+taxa[4] <- length(unique(taxon_save_comb$taxon[which(taxon_save_comb$site == 'SYLVANIA')]))
+taxa[5] <- length(unique(taxon_save_comb$taxon[which(taxon_save_comb$site == 'HARVARD Model RW')]))
+taxa[6] <- length(unique(taxon_save_comb$taxon[which(taxon_save_comb$site == 'HARVARD Model RW + Census')]))
 
 # Load climate data
 load('climate/prism_clim.RData')
@@ -61,7 +61,7 @@ coeff_save_taxon <- matrix(, nrow = sum(taxa), ncol = 12)
 prism_long$Date <- paste0("23/", prism_long$month,"/", prism_long$year) # needs to be in dd/mm/yyyy
 
 # format dates for the tree AGBI 
-taxon_save_comb$Date <- paste0("23/12/", taxon_save_comb$year)
+taxon_save_comb$Date <- paste0("31/10/", taxon_save_comb$year)
 
 
 site.nm <- "ROOSTER"
@@ -83,9 +83,9 @@ runclimwin.taxon <- function(site.nm, taxon.id){
                       baseline = lm(residual_AGBI ~ 1  , data = comb_site),
                       cinterval = "month", 
                       #cmissing = "method1",
-                      range = c(12,0), 
+                      range = c(18,0), # go back to previous march
                       type = "absolute", 
-                      refday = c(23, 12), 
+                      refday = c(31, 10), # october 31st is the reference date 
                       stat = "mean", 
                       func = "lin") 
   PPTOutput <- ROwin[[1]]$Dataset
@@ -94,27 +94,27 @@ runclimwin.taxon <- function(site.nm, taxon.id){
   TmaxOutput <- ROwin[[4]]$Dataset
   VPDmaxOutput <- ROwin[[5]]$Dataset
   
-  # plot up the heat maps--note that x and y are months before december
-  Ppt.heat <- plotdelta(dataset = PPTOutput)+ylab("Window open \n (Months before December)")+
-    xlab("Window close \n (Months before December)")+
+  # plot up the heat maps--note that x and y are months before October
+  Ppt.heat <- plotdelta(dataset = PPTOutput)+ylab("Window open \n (Months before October)")+
+    xlab("Window close \n (Months before October)")+
     ggtitle(paste0("Delta AIC for Precipitation, \n", site.nm, ", ",  taxon.id))
   
-  Tave.heat <- plotdelta(dataset = TaveOutput)+ylab("Window open \n (Months before December)")+
-    xlab("Window close \n (Months before December)")+
+  Tave.heat <- plotdelta(dataset = TaveOutput)+ylab("Window open \n (Months before October)")+
+    xlab("Window close \n (Months before October)")+
     ggtitle(paste0("Delta AIC for Avg. Temperature, \n", site.nm, ", ",  taxon.id ))
   
   
-  Tmin.heat <- plotdelta(dataset = TminOutput)+ylab("Window open \n (Months before December)")+
-    xlab("Window close \n (Months before December)")+
+  Tmin.heat <- plotdelta(dataset = TminOutput)+ylab("Window open \n (Months before October)")+
+    xlab("Window close \n (Months before October)")+
     ggtitle(paste0("Delta AIC for Min. Temperature,\n", site.nm, ", ",  taxon.id ))
   
-  Tmax.heat <- plotdelta(dataset = TmaxOutput)+ylab("Window open \n (Months before December)")+
-    xlab("Window close \n (Months before December)")+
+  Tmax.heat <- plotdelta(dataset = TmaxOutput)+ylab("Window open \n (Months before October)")+
+    xlab("Window close \n (Months before October)")+
     ggtitle(paste0("Delta AIC for Max. Temperature,\n", site.nm, ", ",  taxon.id))
   
   
-  VPDmax.heat <- plotdelta(dataset = VPDmaxOutput)+ylab("Window open \n (Months before December)")+
-    xlab("Window close \n (Months before December)")+
+  VPDmax.heat <- plotdelta(dataset = VPDmaxOutput)+ylab("Window open \n (Months before October)")+
+    xlab("Window close \n (Months before October)")+
     ggtitle(paste0("Delta AIC for Max. VPD, \n", site.nm, ", ",  taxon.id ))
   
   cowplot::plot_grid(Ppt.heat, Tave.heat, 
@@ -162,8 +162,8 @@ best.fit.dAICc.taxon <- function(site.nm, taxon.id){
                                                TmaxOutput[1,]$WindowOpen, TminOutput[1,]$WindowOpen, VPDmaxOutput[1,]$WindowOpen), 
                                 WindowClose = c(PPTOutput[1,]$WindowClose, TaveOutput[1,]$WindowClose, 
                                                 TmaxOutput[1,]$WindowClose, TminOutput[1,]$WindowClose, VPDmaxOutput[1,]$WindowClose))
-  window.best.fit <- window.best.fit %>% mutate(Month.start = 13 -WindowOpen, 
-                                                Month.end = 13- WindowClose)
+  window.best.fit <- window.best.fit %>% mutate(Month.start = 19 - WindowOpen, 
+                                                Month.end = 19 - WindowClose)
   
   
   window.best.fit
