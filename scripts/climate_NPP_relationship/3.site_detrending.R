@@ -28,7 +28,7 @@ for(i in 1:length(site)){
   sub <- dplyr::filter(site_agbi, site == site_name)
   current_step <- ts(sub$site_agbi, start = min(sub$year), end = max(sub$year),
                      frequency = 1)
-  last_step <- lag(current_step, k = -1)
+  last_step <- stats::lag(current_step, k = -1)
   
   combined <- as.data.frame(cbind(current_step, last_step))
   
