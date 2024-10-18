@@ -1159,17 +1159,16 @@ agbi_cumsum = agbi_recent %>%
 agbi_cumsum_filter = agbi_cumsum %>% 
   filter(cum_sum < 0.95)
 
-# df = agbi_cumsum_filter %>% 
-#   left_join(clim_taxon, by = c('year', 'site', 'taxon', 'AGBI.mean'))
+
 
 df2 = inner_join(clim_taxon, agbi_cumsum_filter[,c('site', 'taxon', 'cum_sum')], by = c('site', 'taxon'))
 
 #generating the pvalues of the correlation between AGBI.mean and climate variables 
 cor_clim_vars_taxon_filter <- df2 %>%
   # Filter to keep only the relevant rows for correlation
-  filter(str_detect(variable, "^(PPT|Tmean|Tmax2|Tmin2|Vpdmin2|Vpdmax2)")) %>%
+  filter(str_detect(variable, "^(PPT|Tmean|Tmax|Tmin|Vpdmin|Vpdmax|Vpdmean)")) %>%
   # Group by site and variable
-  group_by(site, taxon, variable) %>%
+  group_by(site, taxon, variable,type, period, period_names) %>%
   # Summarize by calculating correlation between AGBI.mean and value
   summarize(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
             p_value = cor.test(AGBI.mean, value, use = "complete.obs")$p.value, .groups = 'drop')
@@ -1179,8 +1178,9 @@ cor_clim_vars_taxon_filter <- df2 %>%
 cor_clim_filter_subset = subset(cor_clim_vars_taxon_filter, p_value < 0.05)
 head(cor_clim_filter_subset)
 
+#plotting the correlation between taxa and AGBI only for cumsum<0.95  
 # Open a PDF device
-pdf("report/figures/AGBI_clim_cor_sites_filter.pdf", width = 10, height = 8)
+pdf("report/figures/AGBI_clim_cor_sites_cumsum.pdf", width = 10, height = 8)
 
 for (site in sites) {
   
@@ -1212,9 +1212,8 @@ for (site in sites) {
 # Close the PDF device
 dev.off()
 
-#
 
-
+#plotting the taxa that occur at the same sites 
 taxa_filtered = unique(cor_clim_vars_taxon_filter$taxon)
 
 pdf("report/figures/AGBI_clim_cor_taxa_filter.pdf", width = 10, height = 8)
@@ -1253,99 +1252,44 @@ dev.off()
 
 ################
 
-for (site in sites) {
-  
-  
-  # Loop through each climate variable
-  for (var in clim_vars) {
-    
-    # Generate the plot for the current climate variable
-    cor_taxa_p = cor_clim_taxon_pvalue[which((cor_clim_taxon_pvalue$site == site )&(cor_clim_taxon_pvalue$type == var)),]
-    cor_taxa_p$sig = ifelse(cor_taxa_p$p_value<0.05, TRUE, NA)
-    
-    p = ggplot()+
-      geom_tile(data= cor_taxa_p, aes(x=period_names, y= taxon, fill = correlation))+
-      scale_fill_gradient2(limits = c(-0.6, 0.6), 
-                           low = "red", mid = "white", high = "blue", 
-                           midpoint = 0)+
-      geom_point(data = cor_taxa_p, aes(x=period_names, y= taxon, shape = sig), size=3)+
-      scale_shape_manual(values=c(1, NA)) + 
-      xlab('Period') +
-      ylab('Species') + 
-      ggtitle(paste0(site, '; ', var)) + 
-      theme(plot.title = element_text(size=18))
-    
-    
-    
-    # Print the plot to the PDF
-    print(p)
-  }}
-# Close the PDF device
-dev.off()
 
-# Open the PDF device
-pdf("agb_species_correlation.pdf")
-
-# Loop through each site
-for (site in unique(df$site)) {
-  
-  # Loop through each model
-  for (model in unique(df$model.x)) {
-    
-    # Filter the data for the current site and model
-    cor_taxa_p = df %>% 
-      filter(site == site, model.x == model)
-    
-    # Add the significance column based on p_value (assuming it's part of your data)
-    cor_taxa_p$sig = ifelse(cor_taxa_p$p_value < 0.05, TRUE, NA)
-    
-    # Generate the plot
-    p = ggplot() +
-      geom_tile(data = cor_taxa_p, aes(x = year, y = taxon, fill = AGBI.mean)) +
-      scale_fill_gradient2(limits = c(min(df$AGBI.mean, na.rm = TRUE), max(df$AGBI.mean, na.rm = TRUE)),
-                           low = "red", mid = "white", high = "blue", midpoint = 0) +
-      geom_point(data = cor_taxa_p, aes(x = year, y = taxon, shape = sig), size = 3) +
-      scale_shape_manual(values = c(1, NA)) + 
-      xlab('Year') +
-      ylab('Species') + 
-      ggtitle(paste0("Site: ", site, "; Model: ", model)) + 
-      theme(plot.title = element_text(size = 18))
-    
-    # Print the plot to the PDF
-    print(p)
-  }
-}
-
-# Close the PDF device after all plots are done
-dev.off()
-
-
-
-
-
-# cor_clim_vars_taxon_filter$variable = as.character(cor_clim_vars_taxon_filter$variable)
+# # Open the PDF device
+# pdf("agb_species_correlation.pdf")
 # 
-# cor_clim_vars_taxon_filter$type = sapply(strsplit(cor_clim_vars_taxon_filter$variable, split='_'), function(x) x[1])
+# # Loop through each site
+# for (site in unique(df$site)) {
+#   
+#   # Loop through each model
+#   for (model in unique(df$model.x)) {
+#     
+#     # Filter the data for the current site and model
+#     cor_taxa_p = df %>% 
+#       filter(site == site, model.x == model)
+#     
+#     # Add the significance column based on p_value (assuming it's part of your data)
+#     cor_taxa_p$sig = ifelse(cor_taxa_p$p_value < 0.05, TRUE, NA)
+#     
+#     # Generate the plot
+#     p = ggplot() +
+#       geom_tile(data = cor_taxa_p, aes(x = year, y = taxon, fill = AGBI.mean)) +
+#       scale_fill_gradient2(limits = c(min(df$AGBI.mean, na.rm = TRUE), max(df$AGBI.mean, na.rm = TRUE)),
+#                            low = "red", mid = "white", high = "blue", midpoint = 0) +
+#       geom_point(data = cor_taxa_p, aes(x = year, y = taxon, shape = sig), size = 3) +
+#       scale_shape_manual(values = c(1, NA)) + 
+#       xlab('Year') +
+#       ylab('Species') + 
+#       ggtitle(paste0("Site: ", site, "; Model: ", model)) + 
+#       theme(plot.title = element_text(size = 18))
+#     
+#     # Print the plot to the PDF
+#     print(p)
+#   }
+# }
 # 
-# cor_clim_vars_taxon_filter$period = sapply(strsplit(cor_clim_vars_taxon_filter$variable, split='_'), function(x) x[2])
-
-
+# # Close the PDF device after all plots are done
+# dev.off()
 # 
-# # periods = unique(cor_clim_vars_taxon_filter$period)
-# period_names = c('jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 
-#                  'aug', 'sep', 'oct', 'nov', 'dec', 'total tree') 
 
-# cor_clim_vars_taxon_filter$period_names = period_names[match(cor_clim_vars_taxon_filter$period, periods)]
-# cor_clim_vars_taxon_filter$period_names = factor(cor_clim_vars_taxon_filter$period_names,
-#                                                  levels = period_names)
-
-# 
-# # clim_vars = c("PPT", "Tmean", "Tmin2", "Tmax2", "Vpdmin2", "Vpdmax2")
-# # 
-# # sites = c('GOOSE', 'ROOSTER', 'NRP', 'HARVARD', 'SYLVANIA')
-# 
-# cor_max = max(cor_clim_vars_taxon_filter$correlation)
-# cor_min = min(cor_clim_vars_taxon_filter$correlation)
 
 
 
