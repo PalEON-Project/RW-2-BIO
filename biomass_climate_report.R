@@ -1278,7 +1278,6 @@ cor_min = min(cor_clim_taxon_pvalue$correlation)
 pdf("report/figures/AGBI_clim_cor_taxon.pdf", width = 10, height = 8)
 
 for (site in sites) {
-
 # Loop through each climate variable
 for (var in clim_vars) {
   
@@ -1308,9 +1307,7 @@ dev.off()
 
 
 
-
 #plotting y=site x= period (jan, feb, etc..) where each page shows each climate variable
-
 pdf("report/figures/AGBI_clim_cor_sites.pdf", width = 10, height = 8)
   # Loop through each climate variable
 for (var in clim_vars) {
