@@ -367,15 +367,21 @@ clim_wide =  pivot_wider(data = clim_data,
 #PPT_mean is the mean of each month summed to get the mean of the year
 #yearly_meanT is the yearly temperature mean based on monthly means
 
+# clim_summary = clim_wide |>
+#   mutate(PPT_total = rowSums(dplyr::select(clim_wide, starts_with('PPT'))),
+#          PPT_total_prev_tree = rowSums(dplyr::pick('PPT_09', 'PPT_10', 'PPT_11', 'PPT_12')),
+#          PPT_total_current_tree = rowSums(dplyr::pick('PPT_01', 'PPT_02', 'PPT_03', 'PPT_04', 
+#                                                       'PPT_05', 'PPT_06', 'PPT_07', 'PPT_08')),
+#          yearly_meanT = rowMeans(dplyr::select(clim_wide, starts_with('Tmean'))),
+#          T_min_mean = rowMeans(dplyr::select(clim_wide, starts_with('Tmin'))),
+#          T_max_mean = rowMeans(dplyr::select(clim_wide, starts_with('Tmax'))),
+#   )
+
 clim_summary = clim_wide |>
   mutate(PPT_total = rowSums(dplyr::select(clim_wide, starts_with('PPT'))),
          PPT_total_prev_tree = rowSums(dplyr::pick('PPT_09', 'PPT_10', 'PPT_11', 'PPT_12')),
          PPT_total_current_tree = rowSums(dplyr::pick('PPT_01', 'PPT_02', 'PPT_03', 'PPT_04', 
-                                                      'PPT_05', 'PPT_06', 'PPT_07', 'PPT_08')),
-         yearly_meanT = rowMeans(dplyr::select(clim_wide, starts_with('Tmean'))),
-         T_min_mean = rowMeans(dplyr::select(clim_wide, starts_with('Tmin'))),
-         T_max_mean = rowMeans(dplyr::select(clim_wide, starts_with('Tmax'))),
-  )
+                                                      'PPT_05', 'PPT_06', 'PPT_07', 'PPT_08')))
 
 Vpd_sets = list(c("Vpdmin_01", "Vpdmax_01"), c("Vpdmin_02", "Vpdmax_02"),
                 c("Vpdmin_03", "Vpdmax_03"), c("Vpdmin_04", "Vpdmax_04"),
@@ -399,6 +405,8 @@ N_years = nrow(clim_summary)
 clim_summary$PPT_total_tree = NA
 clim_summary$PPT_total_tree[2:N_years] = clim_summary$PPT_total_prev_tree[1:(N_years-1)] +
   clim_summary$PPT_total_current_tree[2:N_years]
+
+clim_summary = clim_summary[, !(colnames(clim_summary) %in% c('PPT_total_prev_tree', 'PPT_total_current_tree', 'PPT_total'))]
 
 clim_summary$year <- as.numeric(clim_summary$year)
 
@@ -429,9 +437,9 @@ clim_taxon <- all_taxon_summary|>
 head(clim_taxon)
 summary(clim_melt)
 
-
-annual_vars = select(clim_agb, year, AGBI.mean, site,
-                     yearly_meanT, PPT_total_tree, T_min_mean, T_max_mean)
+#annual_vars = select(clim_agb, year, AGBI.mean, site,
+#                     yearly_meanT, PPT_total_tree, T_min_mean, T_max_mean)
+annual_vars = select(clim_agb, year, AGBI.mean, site, PPT_total_tree)
 annual_vars_melt = melt(annual_vars, id.vars = c('model', 'year', 'AGBI.mean', 'site'))
 
 ##################################################################################
@@ -971,6 +979,8 @@ dev.off()
 ######################################################################################################################
 #correlation between tree ring data and climate variables
 ######################################################################################################################
+# clim_total = clim_total
+
 clim_total = na.omit(clim_total)
 
 # clim_total = clim_total[which(clim_total$site != 'HARVARD'),]
@@ -1057,7 +1067,7 @@ cor_clim_taxon_pvalue <- clim_taxon %>%
 
 #subsetting data set to only have pvalues <0.05  
 cor_clim_p_taxon_subset = subset(cor_clim_taxon_pvalue, p_value < 0.05)
-head(cor_clim_p_subset)
+head(cor_clim_p_taxon_subset)
 
 
 
