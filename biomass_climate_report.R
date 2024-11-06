@@ -41,6 +41,8 @@ sylvania_total_agb <- readRDS('sites/SYLVANIA/runs/v3.1_082020/output/AGB_TAXA_S
 sylvania_total_agb_subset = subset(sylvania_total_agb, year>1950)
 harvard_total_agb <- readRDS('sites/HARVARD/runs/v3.1_102020/output/AGB_TAXA_STAN_HARVARD_v3.1_102020.RDS')
 harvard_total_agb_subset = subset(harvard_total_agb, year>1950)
+#hmc_total_agb <- readRDS('sites/HMC/runs/v3.1_082020/output/AGB_TAXA_STAN_HMC_v3.1_082020.RDS')
+
 
 #above ground biomass increment 
 goose_total_agbi <- readRDS('sites/GOOSE/runs/v3.1_012021/output/AGBI_TAXA_STAN_GOOSE_v3.1_012021.RDS')
@@ -54,6 +56,9 @@ sylvania_total_agbi <- readRDS('sites/SYLVANIA/runs/v3.1_082020/output/AGBI_TAXA
 sylvania_total_agbi_subset = subset(sylvania_total_agbi, year>1950)
 harvard_total_agbi <- readRDS('sites/HARVARD/runs/v3.1_102020/output/AGBI_TAXA_STAN_HARVARD_v3.1_102020.RDS')
 harvard_total_agbi_subset = subset(harvard_total_agbi, year>1950)
+#hmc_total_agbi <- readRDS('sites/HMC/runs/v3.1_082020/output/AGBI_TAXA_STAN_HMC_v3.1_082020.RDS')
+
+
 
 # Combining abgi and abg into one dataframe 
 goose_total <- goose_total_agb_subset |>
@@ -144,9 +149,13 @@ all_site_summary = all_site_by_iter %>%
             AGBI.mean = mean(AGBI.sum, na.rm = T),
             AGBI.sd = sd(AGBI.sum),
             AGBI.lo = quantile(AGBI.sum, c(0.025), na.rm=TRUE),
-            AGBI.hi = quantile(AGBI.sum, c(0.975), na.rm=TRUE), 
+            AGBI.hi = quantile(AGBI.sum, c(0.975), na.rm=TRUE),
             .groups='keep')
 head(all_site_summary)
+
+all_site_summary$period = NA
+all_site_summary$period[which(all_site_summary$year<1960)] = "past"
+all_site_summary$period[which(all_site_summary$year>2000)] = "present"
 
 #taxon_group takes the sum of all the trees in one taxon.
 #iterations for each taxon not individual trees 
@@ -209,6 +218,22 @@ all_site_summary_wide = pivot_wider(data = all_site_summary[,(colnames(all_site_
                                     values_from = AGBI.mean, 
                                     values_fill = 0 )
 
+ggplot()+
+  geom_histogram(data = all_site_summary, aes(x=AGBI.mean))+
+  facet_grid(site~.)
+
+ggplot()+
+  geom_histogram(data = all_taxon_summary, aes(x=AGBI.mean, fill =taxon))+
+  facet_grid(site~.)
+
+
+ggplot()+
+  geom_histogram(data = subset(all_taxon_summary, taxon %in% c('ACRU','QURU', 'PIST')), 
+                               aes(x=AGBI.mean))+
+  facet_grid(site~taxon, scales = "free_x")
+  
+ggplot()+
+  geom_point(data= all_site_summary_wide, aes(x= GOOSE, y=HARVARD))
 
 #AGBI over time starting at the year 1900
 ggplot(data=all_site_summary) +
