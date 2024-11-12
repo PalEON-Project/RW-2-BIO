@@ -261,10 +261,36 @@ ggplot()+
   geom_histogram(data = subset(all_taxon_summary, taxon %in% c('ACRU','QURU', 'PIST')), 
                                aes(x=AGBI.mean))+
   facet_grid(site~taxon, scales = "free_x")
-  
+
+
+#above ground biomass nrp vs harvard
 ggplot()+
-  geom_point(data= AGB_mean_wide, aes(x= NRP, y=HARVARD))
+  geom_point(data= AGB_mean_wide, aes(x= NRP, y=HARVARD))+
+  theme_light(14)
 ggsave("report/figures/AGB_NRP_HARVARD.jpg")
+
+######################################
+#plotting pairwise combinations of the different sites AGBI.mean
+########################3333
+# List of site columns
+sites <- c("GOOSE", "HARVARD", "NRP", "ROOSTER", "SYLVANIA")
+
+# Generate all unique pairs of sites
+site_pairs <- combn(sites, 2, simplify = FALSE)
+
+# Function to create a scatter plot for each pair
+plot_list <- map(site_pairs, ~{
+  ggplot(data = all_site_summary_wide) +
+    geom_point(aes_string(x = .x[1], y = .x[2])) +
+    labs(x = .x[1], y = .x[2], title = paste(.x[1], "vs", .x[2])) +
+    theme_light(base_size = 14)
+})
+
+# Display all plots in a single layout (optional)
+library(gridExtra)
+do.call(grid.arrange, plot_list)
+
+#####################################
 
 #AGBI over time starting at the year 1900
 ggplot(data=all_site_summary) +
@@ -318,7 +344,7 @@ ggsave("report/figures/AGBI_site_taxon_with_sd.jpg")
 
 
 #########################################################################################
-#CORRELATION AT THE SITE LEVEL ONLY WITH BIOMASS
+#CORRELATION AT THE SITE LEVEL 
 ################################################################################################
 
 #correlation between sites of AGBI
@@ -332,9 +358,6 @@ cor_site_AGB = data.frame(cor(AGB_mean_wide[, c('GOOSE', 'ROOSTER', 'SYLVANIA', 
                           use = "complete.obs"))
 ggcorrplot(cor_site_AGB, method = "circle", type = "lower", hc.order = FALSE)
 
-
-ggplot()+
-  geom_point(data = AGB_mean_wide, aes(x = HARVARD, y = NRP))
 
 #does this work?
 correlation_matrices_by_site <- all_taxon_summary_wide %>%
