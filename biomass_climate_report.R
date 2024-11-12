@@ -218,13 +218,43 @@ all_site_summary_wide = pivot_wider(data = all_site_summary[,(colnames(all_site_
                                     values_from = AGBI.mean, 
                                     values_fill = 0 )
 
+AGB_mean_wide = pivot_wider(data = all_site_summary[,(colnames(all_site_summary) %in% 
+                                                                c('year','AGB.mean', 'site'))],
+                                    id_cols = c(year),
+                                    names_from = site, 
+                                    values_from = AGB.mean, 
+                                    values_fill = 0 )
+
+#plotting histogram of AGBI for different time periods (past and present) 
+ggplot(data = all_site_summary %>% filter(!is.na(period))) +
+  geom_histogram(aes(x = AGBI.mean, fill = period)) +
+  facet_wrap(site ~ .)+
+  theme(legend.position = "bottom")
+ggsave('report/figures/AGBI_hist_past_present.jpg')
+
+#Plotting histogram of AGBI for the time period past, year<1960
+ggplot(data = all_site_summary %>% filter(period == "past")) +
+  geom_histogram(aes(x = AGBI.mean, fill = period)) +
+  facet_wrap(site ~ .)
+ggsave('report/figures/AGBI_hist_past.jpg')
+
+#plotting histogram of AGBI for the time period present, year>2000
+ggplot(data = all_site_summary %>% filter(period == "present")) +
+  geom_histogram(aes(x = AGBI.mean, fill = period)) +
+  facet_wrap(site ~ .)
+ggsave('report/figures/AGBI_hist_present.jpg')
+
+#plotting the overall AGBI over time on a histogram 
 ggplot()+
-  geom_histogram(data = all_site_summary, aes(x=AGBI.mean))+
-  facet_grid(site~.)
+  geom_histogram(data =all_site_summary, aes(x = AGBI.mean, fill = site))+
+  facet_grid(site~.)+
+  theme_light(14)
+ggsave("report/figures/AGBI_site_over_time_histogram.jpg")
 
 ggplot()+
   geom_histogram(data = all_taxon_summary, aes(x=AGBI.mean, fill =taxon))+
-  facet_grid(site~.)
+  facet_grid(site~.)+
+  theme(legend.position = "bottom")
 
 
 ggplot()+
@@ -233,13 +263,14 @@ ggplot()+
   facet_grid(site~taxon, scales = "free_x")
   
 ggplot()+
-  geom_point(data= all_site_summary_wide, aes(x= GOOSE, y=HARVARD))
+  geom_point(data= AGB_mean_wide, aes(x= NRP, y=HARVARD))
+ggsave("report/figures/AGB_NRP_HARVARD.jpg")
 
 #AGBI over time starting at the year 1900
 ggplot(data=all_site_summary) +
   geom_ribbon(aes(x=year, ymin=AGBI.lo, ymax=AGBI.hi, colour=site, fill=site)) +
   geom_line(aes(x=year, y=AGBI.mean, colour=site)) +
-  theme_bw(14) +
+  theme_classic(14) +
   labs( title = "AGBI over time", x = "Year", y = "AGBI (Mg/ha)")+
   facet_grid(model~.)
 ggsave("report/figures/AGBI_over_time.jpg")
@@ -248,10 +279,10 @@ ggsave("report/figures/AGBI_over_time.jpg")
 ggplot(data=all_site_summary) +
   geom_ribbon(aes(x=year, ymin=AGB.lo, ymax=AGB.hi, colour=site, fill=site)) +
   geom_line(aes(x=year, y=AGB.mean, colour=site)) +
-  theme_bw(14) +
+  theme_light(14) +
   labs( title = "Aboveground biomass over time", x = "Year", y = "AGBI (Mg/ha)")+
   facet_grid(model~.)
-ggsave("report/figures/AGB_over_time.jpg")
+ggsave("report/figures/AGB_over_time.png")
 
 
 #AGBI over time by taxon 
@@ -296,7 +327,14 @@ cor_site = data.frame(cor(all_site_summary_wide[, c('GOOSE', 'ROOSTER', 'SYLVANI
 ggcorrplot(cor_site, method = "circle", type = "lower", hc.order = FALSE)
 write.csv(cor_site, "correlation_AGBI_site.csv")  
 
+#correlation between sites AGB
+cor_site_AGB = data.frame(cor(AGB_mean_wide[, c('GOOSE', 'ROOSTER', 'SYLVANIA', 'NRP', 'HARVARD')], 
+                          use = "complete.obs"))
+ggcorrplot(cor_site_AGB, method = "circle", type = "lower", hc.order = FALSE)
 
+
+ggplot()+
+  geom_point(data = AGB_mean_wide, aes(x = HARVARD, y = NRP))
 
 #does this work?
 correlation_matrices_by_site <- all_taxon_summary_wide %>%
@@ -563,9 +601,596 @@ tmean_melt_taxon = melt(tmean_taxon, id.vars = c('model', 'year', 'AGBI.mean', '
                                                'AGBI.lo','AGBI.hi'))
 
 
-##############PLOTTING PPT WITH TAXON #################################################3333333
+######################################################################################################################
+#correlation between tree ring data and climate variables
+######################################################################################################################
+# clim_total = clim_total
+
+clim_total = na.omit(clim_total)
+
+# clim_total = clim_total[which(clim_total$site != 'HARVARD'),]
+# clim_taxon = clim_taxon[which(clim_taxon$site != 'HARVARD'),]
+clim_total$variable = as.character(clim_total$variable)
+clim_total$type = sapply(strsplit(clim_total$variable, split='_'), function(x) x[1])
+clim_total$period = sapply(strsplit(clim_total$variable, split='_'), function(x) x[2])
 
 
+periods = unique(clim_total$period)
+period_names = c('jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 
+                 'aug', 'sep', 'oct', 'nov', 'dec', 'total tree') 
+
+clim_total$period_names = period_names[match(clim_total$period, periods)]
+clim_total$period_names = factor(clim_total$period_names,
+                                            levels = period_names)
+
+
+clim_taxon$variable = as.character(clim_taxon$variable)
+clim_taxon$type = sapply(strsplit(clim_taxon$variable, split='_'), function(x) x[1])
+clim_taxon$period = sapply(strsplit(clim_taxon$variable, split='_'), function(x) x[2])
+
+periods = unique(clim_taxon$period)
+
+
+clim_taxon$period_names = period_names[match(clim_taxon$period, periods)]
+clim_taxon$period_names = factor(clim_taxon$period_names,
+                                            levels = period_names)
+
+
+#correlation between AGBI and all climate variables, site level
+cor_clim_AGBI <- clim_total %>%
+  # Filter to keep only the relevant rows for correlation
+  filter(str_detect(variable, "^(PPT|Tmean|Tmax|Tmin|Vpdmin|Vpdmax|Vpdmean)")) %>%
+  # Group by site and variable
+  group_by(site, variable, type, period, period_names) %>%
+  # Summarize by calculating correlation between AGBI.mean and value
+  summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"), .groups = 'drop')
+head(cor_clim_AGBI)
+write.csv(cor_clim_AGBI, file = "report/AGBI_clim_correlation_site.csv")
+
+#correlation between AGBI and clim with pvalues, only at the site level
+cor_clim_AGBI_site_pvalue <- clim_total %>%
+  # Filter to keep only the relevant rows for correlation
+  filter(str_detect(variable, "^(PPT|Tmean|Tmax|Tmin|Vpdmin|Vpdmax|Vpdmean)")) %>%
+  # Group by site and variable
+  group_by(site, variable, type, period, period_names) %>%
+  # Summarize by calculating correlation between AGBI.mean and value
+  summarize(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
+            p_value = cor.test(AGBI.mean, value, use = "complete.obs")$p.value, .groups = 'drop')
+
+cor_clim_p_site_subset = subset(cor_clim_AGBI_site_pvalue, p_value < 0.05)
+
+
+#for each climate variable at which site is it the highest
+max_variable_cor = cor_clim_AGBI %>% 
+  group_by(variable) %>%
+  summarize(max_cor = max(correlation, na.rm = TRUE), 
+            site_with_max_cor = site[which.max(correlation)])
+
+
+#calculating correlation between AGBI.mean and climate variables for each 
+#climate variable at each site, for each taxon
+cor_clim_vars_taxon <- clim_taxon %>%
+  # Filter to keep only the relevant rows for correlation
+  filter(str_detect(variable, "^(PPT|Tmean|Tmax|Tmin|Vpdmin|Vpdmax|Vpdmean)")) %>%
+  # Group by site and variable
+  group_by(site, taxon, variable, type, period, period_names) %>%
+  # Summarize by calculating correlation between AGBI.mean and value
+  summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"), .groups = 'drop')
+write.csv(cor_clim_vars_taxon, file = "report/AGBI_clim_taxon_correlation.csv")
+
+
+#generating the pvalues of the correlation between AGBI.mean and climate variables 
+#at the taxon level
+cor_clim_taxon_pvalue <- clim_taxon %>%
+  # Filter to keep only the relevant rows for correlation
+  filter(str_detect(variable, "^(PPT|Tmean|Tmax|Tmin|Vpdmin|Vpdmax|Vpdmean)")) %>%
+  # Group by site and variable
+  group_by(site, taxon, variable, type, period, period_names) %>%
+  # Summarize by calculating correlation between AGBI.mean and value
+  summarize(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
+            p_value = cor.test(AGBI.mean, value, use = "complete.obs")$p.value, .groups = 'drop')
+
+#subsetting data set to only have pvalues <0.05  
+cor_clim_p_taxon_subset = subset(cor_clim_taxon_pvalue, p_value < 0.05)
+head(cor_clim_p_taxon_subset)
+
+
+
+clim_vars = c("PPT", "Tmean", "Tmin", "Tmax", "Vpdmin", "Vpdmax", "Vpdmean")
+
+sites = c('GOOSE', 'ROOSTER', 'NRP', 'HARVARD', 'SYLVANIA')
+
+cor_max = max(cor_clim_taxon_pvalue$correlation)
+cor_min = min(cor_clim_taxon_pvalue$correlation)
+
+#generatting correlation plots for all taxa for all sites for all clim variables
+#with significance shown 
+# Open a PDF device
+pdf("report/figures/AGBI_clim_cor_taxon.pdf", width = 10, height = 8)
+
+for (site in sites) {
+# Loop through each climate variable
+for (var in clim_vars) {
+  
+  # Generate the plot for the current climate variable
+  cor_taxa_p = cor_clim_taxon_pvalue[which((cor_clim_taxon_pvalue$site == site )&(cor_clim_taxon_pvalue$type == var)),]
+  cor_taxa_p$sig = ifelse(cor_taxa_p$p_value<0.05, TRUE, NA)
+  
+ p = ggplot()+
+    geom_tile(data= cor_taxa_p, aes(x=period_names, y= taxon, fill = correlation))+
+    scale_fill_gradient2(limits = c(-0.6, 0.6), 
+                         low = "red", mid = "white", high = "blue", 
+                         midpoint = 0)+
+    geom_point(data = cor_taxa_p, aes(x=period_names, y= taxon, shape = sig), size=3)+
+    scale_shape_manual(values=c(1, NA)) + 
+   xlab('Period') +
+   ylab('Species') + 
+   ggtitle(paste0(site, '; ', var)) + 
+   theme(plot.title = element_text(size=18))
+
+  
+  
+  # Print the plot to the PDF
+  print(p)
+}}
+# Close the PDF device
+dev.off()
+
+
+
+#plotting y=site x= period (jan, feb, etc..) where each page shows each climate variable
+#correlation of each site between the different climate variables 
+pdf("report/figures/AGBI_clim_cor_sites.pdf", width = 10, height = 8)
+  # Loop through each climate variable
+for (var in clim_vars) {
+  
+  # Filter data for the current climate variable
+  cor_var_p <- cor_clim_AGBI_site_pvalue[which(cor_clim_AGBI_site_pvalue$type == var), ]
+  cor_var_p$sig = ifelse(cor_var_p$p_value<0.05, TRUE, NA)
+  
+  # Generate the plot for the current climate variable
+  p <- ggplot() +
+    geom_tile(data = cor_var_p, aes(x = period_names, y = site, fill = correlation)) +
+    scale_fill_gradient2(limits = c(-0.6, 0.6),
+                         low = "red", mid = "white", high = "purple",
+                         midpoint = 0) +
+    geom_point(data = cor_var_p, aes(x= period_names, y= site, shape = sig), size=3)+
+    scale_shape_manual(values=c(1, NA)) + 
+    xlab("Period") +
+    ylab('Site') +
+    ggtitle(paste0("Climate Variable: ", var)) +
+    theme(plot.title = element_text(size = 18))
+  
+  # Print the plot (one plot per climate variable per page)
+  print(p)
+    
+  }
+dev.off()
+
+
+
+# all_taxon_summary %>% 
+#   group_by(site) %>%
+#   summarize(year_max = max(year)) 
+# 
+# agbi_recent = all_taxon_summary %>% 
+#   group_by(site, taxon) %>%
+#   filter(year == max(year)) 
+
+#pulling data from the year 2010
+#making sure there is data for all sites at this time 
+agbi_recent = all_taxon_summary %>% 
+  group_by(site, taxon) %>%
+  filter(year == 2010) 
+
+#calculating the cumulative sum of the taxon at each site
+agbi_cumsum = agbi_recent %>% 
+  #group_by(site, model) %>%
+  dplyr::arrange(site, desc(AGBI.mean)) %>%
+  group_by(site) %>%
+  mutate(cum_sum = cumsum(AGBI.mean) / sum(AGBI.mean)) %>% 
+  ungroup()
+
+
+agbi_cumsum_filter = agbi_cumsum %>% 
+  filter(cum_sum < 0.95)
+
+
+
+df2 = inner_join(clim_taxon, agbi_cumsum_filter[,c('site', 'taxon', 'cum_sum')], by = c('site', 'taxon'))
+
+#generating the pvalues of the correlation between AGBI.mean and climate variables 
+cor_clim_vars_taxon_filter <- df2 %>%
+  # Filter to keep only the relevant rows for correlation
+  filter(str_detect(variable, "^(PPT|Tmean|Tmax|Tmin|Vpdmin|Vpdmax|Vpdmean)")) %>%
+  # Group by site and variable
+  group_by(site, taxon, variable,type, period, period_names) %>%
+  # Summarize by calculating correlation between AGBI.mean and value
+  summarize(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
+            p_value = cor.test(AGBI.mean, value, use = "complete.obs")$p.value, .groups = 'drop')
+
+
+
+cor_clim_filter_subset = subset(cor_clim_vars_taxon_filter, p_value < 0.05)
+head(cor_clim_filter_subset)
+
+#plotting the correlation between taxa and AGBI only for cumsum<0.95  
+# Open a PDF device
+pdf("report/figures/AGBI_clim_cor_sites_cumsum.pdf", width = 10, height = 8)
+
+for (site in sites) {
+  
+  
+  # Loop through each climate variable
+  for (var in clim_vars) {
+    
+    # Generate the plot for the current climate variable
+    cor_taxa_p = cor_clim_vars_taxon_filter[which((cor_clim_vars_taxon_filter$site == site )&(cor_clim_vars_taxon_filter$type == var)),]
+    cor_taxa_p$sig = ifelse(cor_taxa_p$p_value<0.05, TRUE, NA)
+    
+    p = ggplot()+
+      geom_tile(data= cor_taxa_p, aes(x=period_names, y= taxon, fill = correlation))+
+      scale_fill_gradient2(limits = c(-0.6, 0.6), 
+                           low = "red", mid = "white", high = "blue", 
+                           midpoint = 0)+
+      geom_point(data = cor_taxa_p, aes(x=period_names, y= taxon, shape = sig), size=3)+
+      scale_shape_manual(values=c(1, NA)) + 
+      xlab('Period') +
+      ylab('Species') + 
+      ggtitle(paste0(site, '; ', var)) + 
+      theme(plot.title = element_text(size=18))
+    
+    
+    
+    # Print the plot to the PDF
+    print(p)
+  }}
+# Close the PDF device
+dev.off()
+
+
+#plotting the taxa that occur at the same sites 
+taxa_filtered = unique(cor_clim_vars_taxon_filter$taxon)
+
+pdf("report/figures/AGBI_clim_cor_taxa_filter.pdf", width = 10, height = 8)
+
+for (taxon in taxa_filtered) {
+  
+  
+  # Loop through each climate variable
+  for (var in clim_vars) {
+    
+    # Generate the plot for the current climate variable
+    cor_taxa_p = cor_clim_vars_taxon_filter[which((cor_clim_vars_taxon_filter$taxon == taxon)&(cor_clim_vars_taxon_filter$type == var)),]
+    cor_taxa_p$sig = ifelse(cor_taxa_p$p_value<0.05, TRUE, NA)
+    
+    p = ggplot()+
+      geom_tile(data= cor_taxa_p, aes(x=period_names, y= site, fill = correlation))+
+      scale_fill_gradient2(limits = c(-0.6, 0.6), 
+                           low = "red", mid = "white", high = "blue", 
+                           midpoint = 0)+
+      geom_point(data = cor_taxa_p, aes(x=period_names, y= site, shape = sig), size=3)+
+      scale_shape_manual(values=c(1, NA)) + 
+      xlab('Period') +
+      ylab('site') + 
+      ggtitle(paste0(taxon, '; ', var)) + 
+      theme(plot.title = element_text(size=18))
+    
+    
+    
+    # Print the plot to the PDF
+    print(p)
+  }}
+# Close the PDF device
+dev.off()
+
+
+
+
+##################################################################################################
+#plotting climate variables over time 
+###################################################################################################
+
+###################plotting AGBI.mean vs ppt
+var_names = unique(ppt_melt_taxon$variable)
+N_vars = length(var_names)
+#open a pdf device 
+pdf("ppt_output_plots.pdf")
+# Loop through each variable
+for (i in 1:N_vars) {
+  
+  # Filter the data for the current variable
+  ppt_melt_taxon_variable <- ppt_melt_taxon[which(ppt_melt_taxon$variable == var_names[i]),]
+  
+  # Generate the plot
+  p <- ggplot(data = ppt_melt_taxon_variable) +
+    geom_point(aes(x = value, y = AGBI.mean, color = site)) +
+    geom_smooth(aes(x = value, y = AGBI.mean, color = site), method = 'lm', formula = y ~ x) +
+    facet_wrap(~taxon, scales = 'free')+
+    ggtitle(paste("Variable:", var_names[i]))
+  
+  # Print the plot to the PDF
+  print(p)
+}
+# Close the PDF device
+dev.off()
+
+################### AGBI.mean vs. vpd 
+var_names = unique(vpd_melt_taxon$variable)
+N_vars = length(var_names)
+#open a pdf device 
+pdf("vpd_output_plots.pdf")
+# Loop through each variable
+for (i in 1:N_vars) {
+  
+  # Filter the data for the current variable
+  vpd_melt_taxon_variable <- vpd_melt_taxon[which(vpd_melt_taxon$variable == var_names[i]),]
+  
+  # Generate the plot
+  p <- ggplot(data = vpd_melt_taxon_variable) +
+    geom_point(aes(x = value, y = AGBI.mean, color = site)) +
+    geom_smooth(aes(x = value, y = AGBI.mean, color = site), method = 'lm', formula = y ~ x) +
+    facet_wrap(~taxon, scales = 'free')+
+    ggtitle(paste("Variable:", var_names[i]))
+  
+  # Print the plot to the PDF
+  print(p)
+}
+# Close the PDF device
+dev.off()
+
+
+
+ggplot(data = ppt_melt)+
+  geom_line(aes(x = year, y = value, color = site))+
+  facet_wrap(~variable, scales = "free_y")
+ggsave("figures1950/PPT_over_time.jpg")
+
+#correlation between PPT and AGBI
+cor_PPT = ppt_melt %>%
+  # Filter to keep only the relevant rows for correlation
+  filter(variable == "PPT_total_tree") %>%
+  # Group by site
+  group_by(site) %>%
+  # Summarize by calculating correlation between AGBI.mean and value (assuming 'value' holds the PPT_total_tree data)
+  summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"))
+head(cor_PPT)
+
+#ggcorrplot(cor_PPT, method = "square", type = "lower", hc.order = FALSE)
+
+ppt_melt  %>% 
+  group_by(variable) %>%
+  correlation(method = "spearman")
+
+
+
+#without taxon
+ggplot(data = clim_agb) +
+  geom_point(aes(x = yearly_meanT, y = AGBI.mean)) +
+  geom_smooth(aes(x = yearly_meanT, y = AGBI.mean), method='lm', formula= y~x)+
+  # facet_wrap(~site, scales = 'free')+
+  xlab('Mean annual temperature') + 
+  ylab('Aboveground biomass increment')
+ggsave("figures1950/AGBI_vs_meantemp.jpg")
+
+
+ggplot(data = clim_agb) +
+  geom_point(aes(x = yearly_meanT, y = AGBI.mean)) +
+  geom_smooth(aes(x = yearly_meanT, y = AGBI.mean), method='lm', formula= y~x)+
+  facet_wrap(~site, scales = 'free')+
+  xlab('Mean annual temperature') + 
+  ylab('Aboveground biomass increment')
+ggsave("figures1950/AGBI_temp_site.jpg")
+
+ggplot(data = clim_agb) +
+  geom_point(aes(x = PPT_total, y = AGBI.mean)) +
+  geom_smooth(aes(x = PPT_total, y = AGBI.mean), method='lm', formula= y~x)+
+  xlab('Mean annual precipitation') + ylab('Aboveground biomass increment')
+ggsave("figures1950/AGBI_meanprecip.png")
+
+ggplot(data = clim_agb) +
+  geom_point(aes(x = PPT_total, y = AGBI.mean)) +
+  geom_smooth(aes(x = PPT_total, y = AGBI.mean), method='lm', formula= y~x)+
+  facet_wrap(~site, scales = "free")+
+  xlab('Mean annual precipitation') + 
+  ylab('Aboveground biomass increment')
+ggsave("figures1950/AGBI_meanprecip_site.png")
+
+
+# by month
+ggplot(data = clim_agb) +
+  geom_point(aes(x = PPT_total_tree, y = AGBI.mean)) +
+  geom_smooth(aes(x = PPT_total_tree, y = AGBI.mean), method='lm', formula= y~x)+
+  xlab('PPT_total_tree') +
+  ylab('Aboveground biomass increment')
+ggsave("figures1950/AGBI_ppt_total_tree.png")
+# 
+ggplot(data = clim_agb) +
+  geom_point(aes(x = PPT_total_tree, y = AGBI.mean)) +
+  geom_smooth(aes(x = PPT_total_tree, y = AGBI.mean), method='lm', formula= y~x) +
+  facet_wrap(~site, scales = "free") +
+  xlab('PPT_total_tree') +
+  ylab('Aboveground biomass increment')
+ggsave("figures1950/AGBI_ppt_total_tree_site.png")
+
+
+#PPT
+ggplot(data = ppt_melt) +
+  geom_point(aes(x = value, y = AGBI.mean)) +
+  geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
+  facet_wrap(~variable, scales = "free") +
+  xlab('PPT') + 
+  ylab('Aboveground biomass increment')
+ggsave("figures1950/AGBI_PPT_monthly.jpg")
+
+ggplot(data = ppt_melt) +
+  geom_point(aes(x = value, y = AGBI.mean, color = site)) +
+  geom_smooth(aes(x = value, y = AGBI.mean, color = site), method='lm', formula= y~x) +  
+  facet_wrap(~variable, scales = "free") +
+  xlab('PPT') + 
+  ylab('Aboveground biomass increment')
+ggsave("figures1950/AGBI_PPT_monthly_site.jpg")
+
+## VPD by month
+ggplot(data = vpd_melt) +
+  geom_point(aes(x = value, y = AGBI.mean)) +
+  geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
+  facet_wrap(~variable, scales = "free") +
+  xlab('VPD') + 
+  ylab('Aboveground biomass increment')
+ggsave("figures1950/AGBI_VPD_monthly.jpg")
+
+ggplot(data = vpd_melt) +
+  geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
+  geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
+  facet_wrap(~variable, scales = "free") +
+  xlab('VPD') + 
+  ylab('Aboveground biomass increment')
+ggsave("figures1950/AGBI_PPT_monthly_site.jpg")
+
+ggplot(data = vpd_melt) +
+  geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
+  geom_smooth(aes(x = value, y = AGBI.mean, colour = site), method='lm', formula= y~x) +  
+  facet_wrap(~variable, scales = "free") +
+  xlab('VPD') + 
+  ylab('Aboveground biomass increment')
+ggsave("figures1950/AGBI_PPT_monthly_site.jpg")
+
+#not a great figure
+# ggplot(data = vpd_melt) +
+#   geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
+#   geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
+#   facet_grid(variable~site, scales = "free") +
+#   xlab('VPD') + 
+#   ylab('Aboveground biomass increment')
+
+
+## TMIN by month
+ggplot(data = tmin_melt) +
+  geom_point(aes(x = value, y = AGBI.mean)) +
+  geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
+  facet_wrap(~variable, scales = "free") +
+  xlab('TMIN') + 
+  ylab('Aboveground biomass increment')
+ggsave("figures1950/AGBI_Tmin_monthly.jpg")
+
+
+ggplot(data = tmin_melt) +
+  geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
+  geom_smooth(aes(x = value, y = AGBI.mean, colour=site), method='lm', formula= y~x) +  
+  facet_wrap(~variable, scales = "free") +
+  xlab('TMIN') + 
+  ylab('Aboveground biomass increment')
+ggsave("figures1950/AGBI_Tmin_monthly_site.jpg")
+
+
+#not a great figure
+#site vs ABGI separted by month
+# ggplot(data = tmin_melt) +
+#   geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
+#   geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
+#   facet_grid(variable~site, scales = "free") +
+#   xlab('TMIN') + 
+#   ylab('Aboveground biomass increment')
+
+
+## TMAX by month
+ggplot(data = tmax_melt) +
+  geom_point(aes(x = value, y = AGBI.mean)) +
+  geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
+  facet_wrap(~variable, scales = "free") +
+  xlab('TMAX') + 
+  ylab('Aboveground biomass increment')
+ggsave("figures1950/AGBI_Tmax_monthly.jpg")
+
+
+# ggplot(data = tmax_melt) +
+#   geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
+#   geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
+#   facet_wrap(~variable, scales = "free") +
+#   xlab('TMAX') + 
+#   ylab('Aboveground biomass increment')
+
+ggplot(data = tmax_melt) +
+  geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
+  geom_smooth(aes(x = value, y = AGBI.mean, colour=site), method='lm', formula= y~x) +  
+  facet_wrap(~variable, scales = "free") +
+  xlab('TMAX') + 
+  ylab('Aboveground biomass increment')
+ggsave("figures1950/AGBI_Tmax_monthly_site.jpg")
+
+
+#not great figure
+# ggplot(data = tmax_melt) +
+#   geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
+#   geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
+#   facet_grid(variable~site, scales = "free") +
+#   xlab('TMAX') + 
+#   ylab('Aboveground biomass increment')
+
+## TMEAN by month
+ggplot(data = tmean_melt) +
+  geom_point(aes(x = value, y = AGBI.mean)) +
+  geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
+  facet_wrap(~variable, scales = "free") +
+  xlab('TMEAN') + 
+  ylab('Aboveground biomass increment')
+ggsave("figures1950/AGBI_Tmean_monthly.jpg")
+
+
+ggplot(data = tmean_melt) +
+  geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
+  geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
+  facet_wrap(~variable, scales = "free") +
+  xlab('TMEAN') + 
+  ylab('Aboveground biomass increment')
+ggsave("figures1950/AGBI_Tmean_monthly_site.jpg")
+
+ggplot(data = tmean_melt) +
+  geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
+  geom_smooth(aes(x = value, y = AGBI.mean, colour=site), method='lm', formula= y~x) +  
+  facet_wrap(~variable, scales = "free") +
+  xlab('TMEAN') + 
+  ylab('Aboveground biomass increment')
+ggsave("figures1950/AGBI_Tmean_monthly_site.jpg")
+
+#not a great figure
+# ggplot(data = tmean_melt) +
+#   geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
+#   geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
+#   facet_grid(variable~site, scales = "free") +
+#   xlab('TMEAN') + 
+#   ylab('Aboveground biomass increment')
+
+
+## ANNUAL vars by month
+ggplot(data = annual_vars_melt) +
+  geom_point(aes(x = value, y = AGBI.mean)) +
+  geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
+  facet_wrap(~variable, scales = "free") +
+  xlab('temp or precip') + 
+  ylab('Aboveground biomass increment')
+ggsave("figures1950/AGBI_annual_vars.jpg")
+
+#same as figure below only one y=x line vs one for each site
+# ggplot(data = annual_vars_melt) +
+#   geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
+#   geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
+#   facet_wrap(~variable, scales = "free") +
+#   xlab('temp or precip') + 
+#   ylab('Aboveground biomass increment')
+
+ggplot(data = annual_vars_melt) +
+  geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
+  geom_smooth(aes(x = value, y = AGBI.mean, colour=site), method='lm', formula= y~x) +  
+  facet_wrap(~variable, scales = "free") +
+  xlab('temp or precip') + 
+  ylab('Aboveground biomass increment')
+ggsave("figures1950/AGBI_annual_vars_site.jpg")
+
+
+
+##############PLOTTING PPT WITH TAXON ##############################################################
 #organizes sites on one page but generates a page for every taxon for EVERY variable ie. PPT
 unique_combinations <- ppt_melt_taxon %>%
   distinct(variable, taxon)
@@ -1001,634 +1626,6 @@ for (i in 1:nrow(unique_combinations)) {
 dev.off()
 
 
-######################################################################################################################
-#correlation between tree ring data and climate variables
-######################################################################################################################
-# clim_total = clim_total
-
-clim_total = na.omit(clim_total)
-
-# clim_total = clim_total[which(clim_total$site != 'HARVARD'),]
-# clim_taxon = clim_taxon[which(clim_taxon$site != 'HARVARD'),]
-clim_total$variable = as.character(clim_total$variable)
-clim_total$type = sapply(strsplit(clim_total$variable, split='_'), function(x) x[1])
-clim_total$period = sapply(strsplit(clim_total$variable, split='_'), function(x) x[2])
-
-
-periods = unique(clim_total$period)
-period_names = c('jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 
-                 'aug', 'sep', 'oct', 'nov', 'dec', 'total tree') 
-
-clim_total$period_names = period_names[match(clim_total$period, periods)]
-clim_total$period_names = factor(clim_total$period_names,
-                                            levels = period_names)
-
-
-clim_taxon$variable = as.character(clim_taxon$variable)
-clim_taxon$type = sapply(strsplit(clim_taxon$variable, split='_'), function(x) x[1])
-clim_taxon$period = sapply(strsplit(clim_taxon$variable, split='_'), function(x) x[2])
-
-periods = unique(clim_taxon$period)
-
-
-clim_taxon$period_names = period_names[match(clim_taxon$period, periods)]
-clim_taxon$period_names = factor(clim_taxon$period_names,
-                                            levels = period_names)
-
-
-#correlation between AGBI and all climate variables, site level
-cor_clim_AGBI <- clim_total %>%
-  # Filter to keep only the relevant rows for correlation
-  filter(str_detect(variable, "^(PPT|Tmean|Tmax|Tmin|Vpdmin|Vpdmax|Vpdmean)")) %>%
-  # Group by site and variable
-  group_by(site, variable, type, period, period_names) %>%
-  # Summarize by calculating correlation between AGBI.mean and value
-  summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"), .groups = 'drop')
-head(cor_clim_AGBI)
-write.csv(cor_clim_AGBI, file = "report/AGBI_clim_correlation_site.csv")
-
-#correlation between AGBI and clim with pvalues, only at the site level
-cor_clim_AGBI_site_pvalue <- clim_total %>%
-  # Filter to keep only the relevant rows for correlation
-  filter(str_detect(variable, "^(PPT|Tmean|Tmax|Tmin|Vpdmin|Vpdmax|Vpdmean)")) %>%
-  # Group by site and variable
-  group_by(site, variable, type, period, period_names) %>%
-  # Summarize by calculating correlation between AGBI.mean and value
-  summarize(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
-            p_value = cor.test(AGBI.mean, value, use = "complete.obs")$p.value, .groups = 'drop')
-
-cor_clim_p_site_subset = subset(cor_clim_AGBI_site_pvalue, p_value < 0.05)
-
-
-#for each climate variable at which site is it the highest
-max_variable_cor = cor_clim_AGBI %>% 
-  group_by(variable) %>%
-  summarize(max_cor = max(correlation, na.rm = TRUE), 
-            site_with_max_cor = site[which.max(correlation)])
-
-
-#calculating correlation between AGBI.mean and climate variables for each 
-#climate variable at each site, for each taxon
-cor_clim_vars_taxon <- clim_taxon %>%
-  # Filter to keep only the relevant rows for correlation
-  filter(str_detect(variable, "^(PPT|Tmean|Tmax|Tmin|Vpdmin|Vpdmax|Vpdmean)")) %>%
-  # Group by site and variable
-  group_by(site, taxon, variable, type, period, period_names) %>%
-  # Summarize by calculating correlation between AGBI.mean and value
-  summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"), .groups = 'drop')
-write.csv(cor_clim_vars_taxon, file = "report/AGBI_clim_taxon_correlation.csv")
-
-
-#generating the pvalues of the correlation between AGBI.mean and climate variables 
-#at the taxon level
-cor_clim_taxon_pvalue <- clim_taxon %>%
-  # Filter to keep only the relevant rows for correlation
-  filter(str_detect(variable, "^(PPT|Tmean|Tmax|Tmin|Vpdmin|Vpdmax|Vpdmean)")) %>%
-  # Group by site and variable
-  group_by(site, taxon, variable, type, period, period_names) %>%
-  # Summarize by calculating correlation between AGBI.mean and value
-  summarize(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
-            p_value = cor.test(AGBI.mean, value, use = "complete.obs")$p.value, .groups = 'drop')
-
-#subsetting data set to only have pvalues <0.05  
-cor_clim_p_taxon_subset = subset(cor_clim_taxon_pvalue, p_value < 0.05)
-head(cor_clim_p_taxon_subset)
-
-
-
-clim_vars = c("PPT", "Tmean", "Tmin", "Tmax", "Vpdmin", "Vpdmax", "Vpdmean")
-
-sites = c('GOOSE', 'ROOSTER', 'NRP', 'HARVARD', 'SYLVANIA')
-
-cor_max = max(cor_clim_taxon_pvalue$correlation)
-cor_min = min(cor_clim_taxon_pvalue$correlation)
-
-#generatting correlation plots for all taxa for all sites for all clim variables
-#with significance shown 
-# Open a PDF device
-pdf("report/figures/AGBI_clim_cor_taxon.pdf", width = 10, height = 8)
-
-for (site in sites) {
-# Loop through each climate variable
-for (var in clim_vars) {
-  
-  # Generate the plot for the current climate variable
-  cor_taxa_p = cor_clim_taxon_pvalue[which((cor_clim_taxon_pvalue$site == site )&(cor_clim_taxon_pvalue$type == var)),]
-  cor_taxa_p$sig = ifelse(cor_taxa_p$p_value<0.05, TRUE, NA)
-  
- p = ggplot()+
-    geom_tile(data= cor_taxa_p, aes(x=period_names, y= taxon, fill = correlation))+
-    scale_fill_gradient2(limits = c(-0.6, 0.6), 
-                         low = "red", mid = "white", high = "blue", 
-                         midpoint = 0)+
-    geom_point(data = cor_taxa_p, aes(x=period_names, y= taxon, shape = sig), size=3)+
-    scale_shape_manual(values=c(1, NA)) + 
-   xlab('Period') +
-   ylab('Species') + 
-   ggtitle(paste0(site, '; ', var)) + 
-   theme(plot.title = element_text(size=18))
-
-  
-  
-  # Print the plot to the PDF
-  print(p)
-}}
-# Close the PDF device
-dev.off()
-
-
-
-#plotting y=site x= period (jan, feb, etc..) where each page shows each climate variable
-pdf("report/figures/AGBI_clim_cor_sites.pdf", width = 10, height = 8)
-  # Loop through each climate variable
-for (var in clim_vars) {
-  
-  # Filter data for the current climate variable
-  cor_var_p <- cor_clim_AGBI_site_pvalue[which(cor_clim_AGBI_site_pvalue$type == var), ]
-  cor_var_p$sig = ifelse(cor_var_p$p_value<0.05, TRUE, NA)
-  
-  # Generate the plot for the current climate variable
-  p <- ggplot() +
-    geom_tile(data = cor_var_p, aes(x = period_names, y = site, fill = correlation)) +
-    scale_fill_gradient2(limits = c(-0.6, 0.6),
-                         low = "red", mid = "white", high = "purple",
-                         midpoint = 0) +
-    geom_point(data = cor_var_p, aes(x= period_names, y= site, shape = sig), size=3)+
-    scale_shape_manual(values=c(1, NA)) + 
-    xlab("Period") +
-    ylab('Site') +
-    ggtitle(paste0("Climate Variable: ", var)) +
-    theme(plot.title = element_text(size = 18))
-  
-  # Print the plot (one plot per climate variable per page)
-  print(p)
-    
-  }
-dev.off()
-
-
-
-# all_taxon_summary %>% 
-#   group_by(site) %>%
-#   summarize(year_max = max(year)) 
-# 
-# agbi_recent = all_taxon_summary %>% 
-#   group_by(site, taxon) %>%
-#   filter(year == max(year)) 
-
-#pulling data from the year 2010
-#making sure there is data for all sites at this time 
-agbi_recent = all_taxon_summary %>% 
-  group_by(site, taxon) %>%
-  filter(year == 2010) 
-
-#calculating the cumulatie sum of the taxon at each site
-agbi_cumsum = agbi_recent %>% 
-  #group_by(site, model) %>%
-  dplyr::arrange(site, desc(AGBI.mean)) %>%
-  group_by(site) %>%
-  mutate(cum_sum = cumsum(AGBI.mean) / sum(AGBI.mean)) %>% 
-  ungroup()
-
-
-agbi_cumsum_filter = agbi_cumsum %>% 
-  filter(cum_sum < 0.95)
-
-
-
-df2 = inner_join(clim_taxon, agbi_cumsum_filter[,c('site', 'taxon', 'cum_sum')], by = c('site', 'taxon'))
-
-#generating the pvalues of the correlation between AGBI.mean and climate variables 
-cor_clim_vars_taxon_filter <- df2 %>%
-  # Filter to keep only the relevant rows for correlation
-  filter(str_detect(variable, "^(PPT|Tmean|Tmax|Tmin|Vpdmin|Vpdmax|Vpdmean)")) %>%
-  # Group by site and variable
-  group_by(site, taxon, variable,type, period, period_names) %>%
-  # Summarize by calculating correlation between AGBI.mean and value
-  summarize(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
-            p_value = cor.test(AGBI.mean, value, use = "complete.obs")$p.value, .groups = 'drop')
-
-
-
-cor_clim_filter_subset = subset(cor_clim_vars_taxon_filter, p_value < 0.05)
-head(cor_clim_filter_subset)
-
-#plotting the correlation between taxa and AGBI only for cumsum<0.95  
-# Open a PDF device
-pdf("report/figures/AGBI_clim_cor_sites_cumsum.pdf", width = 10, height = 8)
-
-for (site in sites) {
-  
-  
-  # Loop through each climate variable
-  for (var in clim_vars) {
-    
-    # Generate the plot for the current climate variable
-    cor_taxa_p = cor_clim_vars_taxon_filter[which((cor_clim_vars_taxon_filter$site == site )&(cor_clim_vars_taxon_filter$type == var)),]
-    cor_taxa_p$sig = ifelse(cor_taxa_p$p_value<0.05, TRUE, NA)
-    
-    p = ggplot()+
-      geom_tile(data= cor_taxa_p, aes(x=period_names, y= taxon, fill = correlation))+
-      scale_fill_gradient2(limits = c(-0.6, 0.6), 
-                           low = "red", mid = "white", high = "blue", 
-                           midpoint = 0)+
-      geom_point(data = cor_taxa_p, aes(x=period_names, y= taxon, shape = sig), size=3)+
-      scale_shape_manual(values=c(1, NA)) + 
-      xlab('Period') +
-      ylab('Species') + 
-      ggtitle(paste0(site, '; ', var)) + 
-      theme(plot.title = element_text(size=18))
-    
-    
-    
-    # Print the plot to the PDF
-    print(p)
-  }}
-# Close the PDF device
-dev.off()
-
-
-#plotting the taxa that occur at the same sites 
-taxa_filtered = unique(cor_clim_vars_taxon_filter$taxon)
-
-pdf("report/figures/AGBI_clim_cor_taxa_filter.pdf", width = 10, height = 8)
-
-for (taxon in taxa_filtered) {
-  
-  
-  # Loop through each climate variable
-  for (var in clim_vars) {
-    
-    # Generate the plot for the current climate variable
-    cor_taxa_p = cor_clim_vars_taxon_filter[which((cor_clim_vars_taxon_filter$taxon == taxon)&(cor_clim_vars_taxon_filter$type == var)),]
-    cor_taxa_p$sig = ifelse(cor_taxa_p$p_value<0.05, TRUE, NA)
-    
-    p = ggplot()+
-      geom_tile(data= cor_taxa_p, aes(x=period_names, y= site, fill = correlation))+
-      scale_fill_gradient2(limits = c(-0.6, 0.6), 
-                           low = "red", mid = "white", high = "blue", 
-                           midpoint = 0)+
-      geom_point(data = cor_taxa_p, aes(x=period_names, y= site, shape = sig), size=3)+
-      scale_shape_manual(values=c(1, NA)) + 
-      xlab('Period') +
-      ylab('site') + 
-      ggtitle(paste0(taxon, '; ', var)) + 
-      theme(plot.title = element_text(size=18))
-    
-    
-    
-    # Print the plot to the PDF
-    print(p)
-  }}
-# Close the PDF device
-dev.off()
-
-
-
-################
-#dont know wtf this is 
-
-# # Open the PDF device
-# pdf("agb_species_correlation.pdf")
-# 
-# # Loop through each site
-# for (site in unique(df$site)) {
-#   
-#   # Loop through each model
-#   for (model in unique(df$model.x)) {
-#     
-#     # Filter the data for the current site and model
-#     cor_taxa_p = df %>% 
-#       filter(site == site, model.x == model)
-#     
-#     # Add the significance column based on p_value (assuming it's part of your data)
-#     cor_taxa_p$sig = ifelse(cor_taxa_p$p_value < 0.05, TRUE, NA)
-#     
-#     # Generate the plot
-#     p = ggplot() +
-#       geom_tile(data = cor_taxa_p, aes(x = year, y = taxon, fill = AGBI.mean)) +
-#       scale_fill_gradient2(limits = c(min(df$AGBI.mean, na.rm = TRUE), max(df$AGBI.mean, na.rm = TRUE)),
-#                            low = "red", mid = "white", high = "blue", midpoint = 0) +
-#       geom_point(data = cor_taxa_p, aes(x = year, y = taxon, shape = sig), size = 3) +
-#       scale_shape_manual(values = c(1, NA)) + 
-#       xlab('Year') +
-#       ylab('Species') + 
-#       ggtitle(paste0("Site: ", site, "; Model: ", model)) + 
-#       theme(plot.title = element_text(size = 18))
-#     
-#     # Print the plot to the PDF
-#     print(p)
-#   }
-# }
-# 
-# # Close the PDF device after all plots are done
-# dev.off()
-# 
-
-
-
-
-
-##################################################################################################
-#plotting climate variables over time 
-###################################################################################################
-
-###################plotting AGBI.mean vs ppt
-var_names = unique(ppt_melt_taxon$variable)
-N_vars = length(var_names)
-#open a pdf device 
-pdf("ppt_output_plots.pdf")
-# Loop through each variable
-for (i in 1:N_vars) {
-  
-  # Filter the data for the current variable
-  ppt_melt_taxon_variable <- ppt_melt_taxon[which(ppt_melt_taxon$variable == var_names[i]),]
-  
-  # Generate the plot
-  p <- ggplot(data = ppt_melt_taxon_variable) +
-    geom_point(aes(x = value, y = AGBI.mean, color = site)) +
-    geom_smooth(aes(x = value, y = AGBI.mean, color = site), method = 'lm', formula = y ~ x) +
-    facet_wrap(~taxon, scales = 'free')+
-    ggtitle(paste("Variable:", var_names[i]))
-  
-  # Print the plot to the PDF
-  print(p)
-}
-# Close the PDF device
-dev.off()
-
-################### AGBI.mean vs. vpd 
-var_names = unique(vpd_melt_taxon$variable)
-N_vars = length(var_names)
-#open a pdf device 
-pdf("vpd_output_plots.pdf")
-# Loop through each variable
-for (i in 1:N_vars) {
-  
-  # Filter the data for the current variable
-  vpd_melt_taxon_variable <- vpd_melt_taxon[which(vpd_melt_taxon$variable == var_names[i]),]
-  
-  # Generate the plot
-  p <- ggplot(data = vpd_melt_taxon_variable) +
-    geom_point(aes(x = value, y = AGBI.mean, color = site)) +
-    geom_smooth(aes(x = value, y = AGBI.mean, color = site), method = 'lm', formula = y ~ x) +
-    facet_wrap(~taxon, scales = 'free')+
-    ggtitle(paste("Variable:", var_names[i]))
-  
-  # Print the plot to the PDF
-  print(p)
-}
-# Close the PDF device
-dev.off()
-
-
-
-ggplot(data = ppt_melt)+
-  geom_line(aes(x = year, y = value, color = site))+
-  facet_wrap(~variable, scales = "free_y")
-ggsave("figures1950/PPT_over_time.jpg")
-
-#correlation between PPT and AGBI
-cor_PPT = ppt_melt %>%
-  # Filter to keep only the relevant rows for correlation
-  filter(variable == "PPT_total_tree") %>%
-  # Group by site
-  group_by(site) %>%
-  # Summarize by calculating correlation between AGBI.mean and value (assuming 'value' holds the PPT_total_tree data)
-  summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"))
-head(cor_PPT)
-
-#ggcorrplot(cor_PPT, method = "square", type = "lower", hc.order = FALSE)
-
-ppt_melt  %>% 
-  group_by(variable) %>%
-  correlation(method = "spearman")
-
-
-
-#without taxon
-ggplot(data = clim_agb) +
-  geom_point(aes(x = yearly_meanT, y = AGBI.mean)) +
-  geom_smooth(aes(x = yearly_meanT, y = AGBI.mean), method='lm', formula= y~x)+
-  # facet_wrap(~site, scales = 'free')+
-  xlab('Mean annual temperature') + 
-  ylab('Aboveground biomass increment')
-ggsave("figures1950/AGBI_vs_meantemp.jpg")
-
-
-ggplot(data = clim_agb) +
-  geom_point(aes(x = yearly_meanT, y = AGBI.mean)) +
-  geom_smooth(aes(x = yearly_meanT, y = AGBI.mean), method='lm', formula= y~x)+
-  facet_wrap(~site, scales = 'free')+
-  xlab('Mean annual temperature') + 
-  ylab('Aboveground biomass increment')
-ggsave("figures1950/AGBI_temp_site.jpg")
-
-ggplot(data = clim_agb) +
-  geom_point(aes(x = PPT_total, y = AGBI.mean)) +
-  geom_smooth(aes(x = PPT_total, y = AGBI.mean), method='lm', formula= y~x)+
-  xlab('Mean annual precipitation') + ylab('Aboveground biomass increment')
-ggsave("figures1950/AGBI_meanprecip.png")
-
-ggplot(data = clim_agb) +
-  geom_point(aes(x = PPT_total, y = AGBI.mean)) +
-  geom_smooth(aes(x = PPT_total, y = AGBI.mean), method='lm', formula= y~x)+
-  facet_wrap(~site, scales = "free")+
-  xlab('Mean annual precipitation') + 
-  ylab('Aboveground biomass increment')
-ggsave("figures1950/AGBI_meanprecip_site.png")
-
-
-# by month
-ggplot(data = clim_agb) +
-  geom_point(aes(x = PPT_total_tree, y = AGBI.mean)) +
-  geom_smooth(aes(x = PPT_total_tree, y = AGBI.mean), method='lm', formula= y~x)+
-  xlab('PPT_total_tree') +
-  ylab('Aboveground biomass increment')
-ggsave("figures1950/AGBI_ppt_total_tree.png")
-# 
-ggplot(data = clim_agb) +
-  geom_point(aes(x = PPT_total_tree, y = AGBI.mean)) +
-  geom_smooth(aes(x = PPT_total_tree, y = AGBI.mean), method='lm', formula= y~x) +
-  facet_wrap(~site, scales = "free") +
-  xlab('PPT_total_tree') +
-  ylab('Aboveground biomass increment')
-ggsave("figures1950/AGBI_ppt_total_tree_site.png")
-
-
-#PPT
-ggplot(data = ppt_melt) +
-  geom_point(aes(x = value, y = AGBI.mean)) +
-  geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
-  facet_wrap(~variable, scales = "free") +
-  xlab('PPT') + 
-  ylab('Aboveground biomass increment')
-ggsave("figures1950/AGBI_PPT_monthly.jpg")
-
-ggplot(data = ppt_melt) +
-  geom_point(aes(x = value, y = AGBI.mean, color = site)) +
-  geom_smooth(aes(x = value, y = AGBI.mean, color = site), method='lm', formula= y~x) +  
-  facet_wrap(~variable, scales = "free") +
-  xlab('PPT') + 
-  ylab('Aboveground biomass increment')
-ggsave("figures1950/AGBI_PPT_monthly_site.jpg")
-
-## VPD by month
-ggplot(data = vpd_melt) +
-  geom_point(aes(x = value, y = AGBI.mean)) +
-  geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
-  facet_wrap(~variable, scales = "free") +
-  xlab('VPD') + 
-  ylab('Aboveground biomass increment')
-ggsave("figures1950/AGBI_VPD_monthly.jpg")
-
-ggplot(data = vpd_melt) +
-  geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
-  geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
-  facet_wrap(~variable, scales = "free") +
-  xlab('VPD') + 
-  ylab('Aboveground biomass increment')
-ggsave("figures1950/AGBI_PPT_monthly_site.jpg")
-
-ggplot(data = vpd_melt) +
-  geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
-  geom_smooth(aes(x = value, y = AGBI.mean, colour = site), method='lm', formula= y~x) +  
-  facet_wrap(~variable, scales = "free") +
-  xlab('VPD') + 
-  ylab('Aboveground biomass increment')
-ggsave("figures1950/AGBI_PPT_monthly_site.jpg")
-
-#not a great figure
-# ggplot(data = vpd_melt) +
-#   geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
-#   geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
-#   facet_grid(variable~site, scales = "free") +
-#   xlab('VPD') + 
-#   ylab('Aboveground biomass increment')
-
-
-## TMIN by month
-ggplot(data = tmin_melt) +
-  geom_point(aes(x = value, y = AGBI.mean)) +
-  geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
-  facet_wrap(~variable, scales = "free") +
-  xlab('TMIN') + 
-  ylab('Aboveground biomass increment')
-ggsave("figures1950/AGBI_Tmin_monthly.jpg")
-
-
-ggplot(data = tmin_melt) +
-  geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
-  geom_smooth(aes(x = value, y = AGBI.mean, colour=site), method='lm', formula= y~x) +  
-  facet_wrap(~variable, scales = "free") +
-  xlab('TMIN') + 
-  ylab('Aboveground biomass increment')
-ggsave("figures1950/AGBI_Tmin_monthly_site.jpg")
-
-
-#not a great figure
-#site vs ABGI separted by month
-# ggplot(data = tmin_melt) +
-#   geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
-#   geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
-#   facet_grid(variable~site, scales = "free") +
-#   xlab('TMIN') + 
-#   ylab('Aboveground biomass increment')
-
-
-## TMAX by month
-ggplot(data = tmax_melt) +
-  geom_point(aes(x = value, y = AGBI.mean)) +
-  geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
-  facet_wrap(~variable, scales = "free") +
-  xlab('TMAX') + 
-  ylab('Aboveground biomass increment')
-ggsave("figures1950/AGBI_Tmax_monthly.jpg")
-
-
-# ggplot(data = tmax_melt) +
-#   geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
-#   geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
-#   facet_wrap(~variable, scales = "free") +
-#   xlab('TMAX') + 
-#   ylab('Aboveground biomass increment')
-
-ggplot(data = tmax_melt) +
-  geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
-  geom_smooth(aes(x = value, y = AGBI.mean, colour=site), method='lm', formula= y~x) +  
-  facet_wrap(~variable, scales = "free") +
-  xlab('TMAX') + 
-  ylab('Aboveground biomass increment')
-ggsave("figures1950/AGBI_Tmax_monthly_site.jpg")
-
-
-#not great figure
-# ggplot(data = tmax_melt) +
-#   geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
-#   geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
-#   facet_grid(variable~site, scales = "free") +
-#   xlab('TMAX') + 
-#   ylab('Aboveground biomass increment')
-
-## TMEAN by month
-ggplot(data = tmean_melt) +
-  geom_point(aes(x = value, y = AGBI.mean)) +
-  geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
-  facet_wrap(~variable, scales = "free") +
-  xlab('TMEAN') + 
-  ylab('Aboveground biomass increment')
-ggsave("figures1950/AGBI_Tmean_monthly.jpg")
-
-
-ggplot(data = tmean_melt) +
-  geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
-  geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
-  facet_wrap(~variable, scales = "free") +
-  xlab('TMEAN') + 
-  ylab('Aboveground biomass increment')
-ggsave("figures1950/AGBI_Tmean_monthly_site.jpg")
-
-ggplot(data = tmean_melt) +
-  geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
-  geom_smooth(aes(x = value, y = AGBI.mean, colour=site), method='lm', formula= y~x) +  
-  facet_wrap(~variable, scales = "free") +
-  xlab('TMEAN') + 
-  ylab('Aboveground biomass increment')
-ggsave("figures1950/AGBI_Tmean_monthly_site.jpg")
-
-#not a great figure
-# ggplot(data = tmean_melt) +
-#   geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
-#   geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
-#   facet_grid(variable~site, scales = "free") +
-#   xlab('TMEAN') + 
-#   ylab('Aboveground biomass increment')
-
-
-## ANNUAL vars by month
-ggplot(data = annual_vars_melt) +
-  geom_point(aes(x = value, y = AGBI.mean)) +
-  geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
-  facet_wrap(~variable, scales = "free") +
-  xlab('temp or precip') + 
-  ylab('Aboveground biomass increment')
-ggsave("figures1950/AGBI_annual_vars.jpg")
-
-#same as figure below only one y=x line vs one for each site
-# ggplot(data = annual_vars_melt) +
-#   geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
-#   geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
-#   facet_wrap(~variable, scales = "free") +
-#   xlab('temp or precip') + 
-#   ylab('Aboveground biomass increment')
-
-ggplot(data = annual_vars_melt) +
-  geom_point(aes(x = value, y = AGBI.mean, colour=site)) +
-  geom_smooth(aes(x = value, y = AGBI.mean, colour=site), method='lm', formula= y~x) +  
-  facet_wrap(~variable, scales = "free") +
-  xlab('temp or precip') + 
-  ylab('Aboveground biomass increment')
-ggsave("figures1950/AGBI_annual_vars_site.jpg")
 
 
 #################################################################################
