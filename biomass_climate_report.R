@@ -27,6 +27,7 @@ library(correlation)
 #library(RColorBrewer)
 library(stringr)
 library(corrplot)
+library(purrr)
 
 
 #above ground biomass
@@ -209,7 +210,7 @@ all_taxon_summary_wide = pivot_wider(data = all_taxon_summary[,(colnames(all_tax
                                      id_cols = c(year, site),
                                      names_from = taxon, 
                                      values_from = AGBI.mean, 
-                                     values_fill = 0 )
+                                     values_fill = NA )
 
 #wide format of site data with AGBI as value
 all_site_summary_wide = pivot_wider(data = all_site_summary[,(colnames(all_site_summary) %in% 
@@ -217,14 +218,14 @@ all_site_summary_wide = pivot_wider(data = all_site_summary[,(colnames(all_site_
                                     id_cols = c(year),
                                     names_from = site, 
                                     values_from = AGBI.mean, 
-                                    values_fill = 0 )
+                                    values_fill = NA )
 
 AGB_mean_wide = pivot_wider(data = all_site_summary[,(colnames(all_site_summary) %in% 
                                                                 c('year','AGB.mean', 'site'))],
                                     id_cols = c(year),
                                     names_from = site, 
                                     values_from = AGB.mean, 
-                                    values_fill = 0 )
+                                    values_fill = NA)
 
 #plotting histogram of AGBI for different time periods (past and present) 
 ggplot(data = all_site_summary %>% filter(!is.na(period))) +
@@ -283,6 +284,8 @@ site_pairs <- combn(sites, 2, simplify = FALSE)
 plot_list <- map(site_pairs, ~{
   ggplot(data = all_site_summary_wide) +
     geom_point(aes_string(x = .x[1], y = .x[2])) +
+    # geom_smooth(aes_string(x = .x[1], y = .x[2]))+
+    # geom_smooth(method=lm,fill="blue", color="blue", ...) +
     labs(x = .x[1], y = .x[2], title = paste(.x[1], "vs", .x[2])) +
     theme_light(base_size = 14)
 })
@@ -290,6 +293,13 @@ plot_list <- map(site_pairs, ~{
 # Display all plots in a single layout (optional)
 library(gridExtra)
 do.call(grid.arrange, plot_list)
+
+
+pairs(all_site_summary_wide[,2:6])
+
+library(GGally)
+ggpairs(all_site_summary_wide[,2:6], lower=list(continuous="smooth"))
+
 
 #####################################
 
@@ -362,8 +372,8 @@ ggcorrplot(cor_site_AGB, method = "circle", type = "lower", hc.order = FALSE)
 
 #does this work?
 correlation_matrices_by_site <- all_taxon_summary_wide %>%
-  group_by(site) %>%
-  summarise(cor_matrix = list(
+  dplyr::group_by(site) %>%
+  dplyr::summarise(cor_matrix = list(
     cor(select(cur_data() %>% drop_na(), where(is.numeric),
                -c(year)), use = "pairwise.complete.obs")))
 
@@ -819,6 +829,8 @@ agbi_cumsum = agbi_recent %>%
 agbi_cumsum_filter = agbi_cumsum %>% 
   filter(cum_sum < 0.95)
 
+agbi_cumsum_filter %>% 
+  pivot_wider(names_from = 'site', values_from = 'AGBI.mean')
 
 
 df2 = inner_join(clim_taxon, agbi_cumsum_filter[,c('site', 'taxon', 'cum_sum')], by = c('site', 'taxon'))
