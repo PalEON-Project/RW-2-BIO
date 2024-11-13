@@ -157,6 +157,7 @@ all_site_summary$period = NA
 all_site_summary$period[which(all_site_summary$year<1960)] = "past"
 all_site_summary$period[which(all_site_summary$year>2000)] = "present"
 
+
 #taxon_group takes the sum of all the trees in one taxon.
 #iterations for each taxon not individual trees 
 all_taxon_plot_by_iter <- all_data |>
@@ -1844,9 +1845,11 @@ fractional_biomass = all_taxon_summed %>%
   mutate(taxon_fractions = total_AGBI_mean/AGBI.mean)
 
 #calculating the overall mean increment over the entire time for each taxon
-fractional_mean = fractional_biomass %>% 
+fractional_mean_taxon = fractional_biomass %>% 
   group_by(taxon, site) %>% 
   summarize(taxon_mean = mean(taxon_fractions, na.rm = TRUE))
+
+
 
 ggplot(data = fractional_biomass) +
   geom_line(aes(x =year, y = taxon_fractions, color = taxon))+ 
