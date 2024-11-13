@@ -348,10 +348,10 @@ ggsave("report/figures/AGBI_site_taxon_with_sd.jpg")
 ################################################################################################
 
 #correlation between sites of AGBI
-cor_site = data.frame(cor(all_site_summary_wide[, c('GOOSE', 'ROOSTER', 'SYLVANIA', 'NRP', 'HARVARD')], 
+cor_site_AGBI = data.frame(cor(all_site_summary_wide[, c('GOOSE', 'ROOSTER', 'SYLVANIA', 'NRP', 'HARVARD')], 
                           use = "complete.obs"))
-ggcorrplot(cor_site, method = "circle", type = "lower", hc.order = FALSE)
-write.csv(cor_site, "correlation_AGBI_site.csv")  
+ggcorrplot(cor_site_AGBI, method = "circle", type = "lower", hc.order = FALSE)
+write.csv(cor_site_AGBI, "correlation_AGBI_site.csv")  
 
 #correlation between sites AGB
 cor_site_AGB = data.frame(cor(AGB_mean_wide[, c('GOOSE', 'ROOSTER', 'SYLVANIA', 'NRP', 'HARVARD')], 
@@ -1843,7 +1843,10 @@ all_taxon_summed = taxon_summed %>%
 fractional_biomass = all_taxon_summed %>% 
   mutate(taxon_fractions = total_AGBI_mean/AGBI.mean)
 
-
+#calculating the overall mean increment over the entire time for each taxon
+fractional_mean = fractional_biomass %>% 
+  group_by(taxon, site) %>% 
+  summarize(taxon_mean = mean(taxon_fractions, na.rm = TRUE))
 
 ggplot(data = fractional_biomass) +
   geom_line(aes(x =year, y = taxon_fractions, color = taxon))+ 
