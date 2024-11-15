@@ -205,12 +205,12 @@ head(all_taxon_summary)
 #changing to wide format with taxons as column names and values = ABGI.mean 
 #values_fill=0 does not work 
 #wide format of taxon data with AGBI as value data
-all_taxon_summary_wide = pivot_wider(data = all_taxon_summary[,(colnames(all_taxon_summary) %in% 
-                                                                  c('year', 'taxon', 'AGBI.mean', 'site'))],
-                                     id_cols = c(year, site),
-                                     names_from = taxon, 
-                                     values_from = AGBI.mean, 
-                                     values_fill = NA )
+# all_taxon_summary_wide = pivot_wider(data = all_taxon_summary[,(colnames(all_taxon_summary) %in% 
+#                                                                   c('year', 'taxon', 'AGBI.mean', 'site'))],
+#                                      id_cols = c(year, site),
+#                                      names_from = taxon, 
+#                                      values_from = AGBI.mean, 
+#                                      values_fill = NA )
 
 goose_taxa <- all_taxon_summary %>%
   filter(site == "GOOSE") %>%
@@ -296,9 +296,8 @@ ggsave("report/figures/AGBI_site_over_time_histogram.jpg")
 
 ggplot()+
   geom_histogram(data = all_taxon_summary, aes(x=AGBI.mean, fill =taxon))+
-  facet_grid(site~.)+
+  facet_wrap(site~., scales = "free_x")+
   theme(legend.position = "bottom")
-
 
 ggplot()+
   geom_histogram(data = subset(all_taxon_summary, taxon %in% c('ACRU','QURU', 'PIST')), 
@@ -402,13 +401,15 @@ ggsave("report/figures/AGBI_site_taxon_with_sd.jpg")
 #correlation between sites of AGBI
 cor_site_AGBI = data.frame(cor(all_site_summary_wide[, c('GOOSE', 'ROOSTER', 'SYLVANIA', 'NRP', 'HARVARD')], 
                           use = "complete.obs"))
-ggcorrplot(cor_site_AGBI, method = "circle", type = "lower", hc.order = FALSE)
+ggcorrplot(cor_site_AGBI, method = "square", type = "lower",show.diag = TRUE, hc.order = FALSE)+
+  ggtitle("AGBI correlation")
 write.csv(cor_site_AGBI, "correlation_AGBI_site.csv")  
 
 #correlation between sites AGB
 cor_site_AGB = data.frame(cor(AGB_mean_wide[, c('GOOSE', 'ROOSTER', 'SYLVANIA', 'NRP', 'HARVARD')], 
                           use = "complete.obs"))
-ggcorrplot(cor_site_AGB, method = "circle", type = "lower", hc.order = FALSE)
+ggcorrplot(cor_site_AGB, method = "square", type = "lower", show.diag = TRUE, hc.order = FALSE)+
+  ggtitle("AGB correlation")
 
 #goose correlation
 #complete.obs excludes any rows with NA values 
@@ -448,7 +449,7 @@ clim_data = clim_data %>%
 clim_wide =  pivot_wider(data = clim_data,
                          names_from = month, 
                          values_from = c(PPT, Tmean, Tmin, Tmax, Vpdmin, Vpdmax))
-# clim_melt = melt(clim_data, 
+ # clim_melt = melt(clim_data, 
 #                 id.vars = c('year', 'month', 'site'))
 # 
 # clim_melt$year = as.integer(clim_melt$year)
@@ -795,15 +796,6 @@ for (var in clim_vars) {
 dev.off()
 
 
-
-# all_taxon_summary %>% 
-#   group_by(site) %>%
-#   summarize(year_max = max(year)) 
-# 
-# agbi_recent = all_taxon_summary %>% 
-#   group_by(site, taxon) %>%
-#   filter(year == max(year)) 
-
 #pulling data from the year 2010
 #making sure there is data for all sites at this time 
 agbi_recent = all_taxon_summary %>% 
@@ -818,14 +810,15 @@ agbi_cumsum = agbi_recent %>%
   mutate(cum_sum = cumsum(AGBI.mean) / sum(AGBI.mean)) %>% 
   ungroup()
 
-
+#filtering data for those that make up 95% of the total biomass
 agbi_cumsum_filter = agbi_cumsum %>% 
   filter(cum_sum < 0.95)
 
+#wide format of filtered data
 agbi_cumsum_filter %>% 
   pivot_wider(names_from = 'site', values_from = 'AGBI.mean')
 
-
+#joining filtered data with taxon data
 df2 = inner_join(clim_taxon, agbi_cumsum_filter[,c('site', 'taxon', 'cum_sum')], by = c('site', 'taxon'))
 
 #generating the pvalues of the correlation between AGBI.mean and climate variables 
