@@ -913,53 +913,53 @@ dev.off()
 #plotting climate variables over time 
 ###################################################################################################
 
-###################plotting AGBI.mean vs ppt
-var_names = unique(ppt_melt_taxon$variable)
-N_vars = length(var_names)
-#open a pdf device 
-pdf("ppt_output_plots.pdf")
-# Loop through each variable
-for (i in 1:N_vars) {
-  
-  # Filter the data for the current variable
-  ppt_melt_taxon_variable <- ppt_melt_taxon[which(ppt_melt_taxon$variable == var_names[i]),]
-  
-  # Generate the plot
-  p <- ggplot(data = ppt_melt_taxon_variable) +
-    geom_point(aes(x = value, y = AGBI.mean, color = site)) +
-    geom_smooth(aes(x = value, y = AGBI.mean, color = site), method = 'lm', formula = y ~ x) +
-    facet_wrap(~taxon, scales = 'free')+
-    ggtitle(paste("Variable:", var_names[i]))
-  
-  # Print the plot to the PDF
-  print(p)
-}
-# Close the PDF device
-dev.off()
-
-################### AGBI.mean vs. vpd 
-var_names = unique(vpd_melt_taxon$variable)
-N_vars = length(var_names)
-#open a pdf device 
-pdf("vpd_output_plots.pdf")
-# Loop through each variable
-for (i in 1:N_vars) {
-  
-  # Filter the data for the current variable
-  vpd_melt_taxon_variable <- vpd_melt_taxon[which(vpd_melt_taxon$variable == var_names[i]),]
-  
-  # Generate the plot
-  p <- ggplot(data = vpd_melt_taxon_variable) +
-    geom_point(aes(x = value, y = AGBI.mean, color = site)) +
-    geom_smooth(aes(x = value, y = AGBI.mean, color = site), method = 'lm', formula = y ~ x) +
-    facet_wrap(~taxon, scales = 'free')+
-    ggtitle(paste("Variable:", var_names[i]))
-  
-  # Print the plot to the PDF
-  print(p)
-}
-# Close the PDF device
-dev.off()
+# ###################plotting AGBI.mean vs ppt
+# var_names = unique(ppt_melt_taxon$variable)
+# N_vars = length(var_names)
+# #open a pdf device 
+# pdf("ppt_output_plots.pdf")
+# # Loop through each variable
+# for (i in 1:N_vars) {
+#   
+#   # Filter the data for the current variable
+#   ppt_melt_taxon_variable <- ppt_melt_taxon[which(ppt_melt_taxon$variable == var_names[i]),]
+#   
+#   # Generate the plot
+#   p <- ggplot(data = ppt_melt_taxon_variable) +
+#     geom_point(aes(x = value, y = AGBI.mean, color = site)) +
+#     geom_smooth(aes(x = value, y = AGBI.mean, color = site), method = 'lm', formula = y ~ x) +
+#     facet_wrap(~taxon, scales = 'free')+
+#     ggtitle(paste("Variable:", var_names[i]))
+#   
+#   # Print the plot to the PDF
+#   print(p)
+# }
+# # Close the PDF device
+# dev.off()
+# 
+# ################### AGBI.mean vs. vpd 
+# var_names = unique(vpd_melt_taxon$variable)
+# N_vars = length(var_names)
+# #open a pdf device 
+# pdf("vpd_output_plots.pdf")
+# # Loop through each variable
+# for (i in 1:N_vars) {
+#   
+#   # Filter the data for the current variable
+#   vpd_melt_taxon_variable <- vpd_melt_taxon[which(vpd_melt_taxon$variable == var_names[i]),]
+#   
+#   # Generate the plot
+#   p <- ggplot(data = vpd_melt_taxon_variable) +
+#     geom_point(aes(x = value, y = AGBI.mean, color = site)) +
+#     geom_smooth(aes(x = value, y = AGBI.mean, color = site), method = 'lm', formula = y ~ x) +
+#     facet_wrap(~taxon, scales = 'free')+
+#     ggtitle(paste("Variable:", var_names[i]))
+#   
+#   # Print the plot to the PDF
+#   print(p)
+# }
+# # Close the PDF device
+# dev.off()
 
 
 
@@ -968,86 +968,38 @@ ggplot(data = ppt_melt)+
   facet_wrap(~variable, scales = "free_y")
 ggsave("figures1950/PPT_over_time.jpg")
 
-#correlation between PPT and AGBI
-cor_PPT = ppt_melt %>%
-  # Filter to keep only the relevant rows for correlation
-  filter(variable == "PPT_total_tree") %>%
-  # Group by site
-  group_by(site) %>%
-  # Summarize by calculating correlation between AGBI.mean and value (assuming 'value' holds the PPT_total_tree data)
-  summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"))
-head(cor_PPT)
-
-#ggcorrplot(cor_PPT, method = "square", type = "lower", hc.order = FALSE)
-
-ppt_melt  %>% 
-  group_by(variable) %>%
-  correlation(method = "spearman")
 
 
-
-#without taxon
-ggplot(data = clim_agb) +
-  geom_point(aes(x = yearly_meanT, y = AGBI.mean)) +
-  geom_smooth(aes(x = yearly_meanT, y = AGBI.mean), method='lm', formula= y~x)+
-  # facet_wrap(~site, scales = 'free')+
-  xlab('Mean annual temperature') + 
-  ylab('Aboveground biomass increment')
-ggsave("figures1950/AGBI_vs_meantemp.jpg")
-
-
-ggplot(data = clim_agb) +
-  geom_point(aes(x = yearly_meanT, y = AGBI.mean)) +
-  geom_smooth(aes(x = yearly_meanT, y = AGBI.mean), method='lm', formula= y~x)+
-  facet_wrap(~site, scales = 'free')+
-  xlab('Mean annual temperature') + 
-  ylab('Aboveground biomass increment')
-ggsave("figures1950/AGBI_temp_site.jpg")
-
-ggplot(data = clim_agb) +
-  geom_point(aes(x = PPT_total, y = AGBI.mean)) +
-  geom_smooth(aes(x = PPT_total, y = AGBI.mean), method='lm', formula= y~x)+
-  xlab('Mean annual precipitation') + ylab('Aboveground biomass increment')
-ggsave("figures1950/AGBI_meanprecip.png")
-
-ggplot(data = clim_agb) +
-  geom_point(aes(x = PPT_total, y = AGBI.mean)) +
-  geom_smooth(aes(x = PPT_total, y = AGBI.mean), method='lm', formula= y~x)+
-  facet_wrap(~site, scales = "free")+
-  xlab('Mean annual precipitation') + 
-  ylab('Aboveground biomass increment')
-ggsave("figures1950/AGBI_meanprecip_site.png")
-
-
-# by month
+#mean precipitation over time 
 ggplot(data = clim_agb) +
   geom_point(aes(x = PPT_total_tree, y = AGBI.mean)) +
   geom_smooth(aes(x = PPT_total_tree, y = AGBI.mean), method='lm', formula= y~x)+
-  xlab('PPT_total_tree') +
-  ylab('Aboveground biomass increment')
-ggsave("figures1950/AGBI_ppt_total_tree.png")
-# 
+  xlab('Mean annual precipitation') + ylab('Aboveground biomass increment')
+ggsave("report/figures/AGBI_meanprecip_site.png")
+
+#mean precipitation over time at each site
 ggplot(data = clim_agb) +
   geom_point(aes(x = PPT_total_tree, y = AGBI.mean)) +
-  geom_smooth(aes(x = PPT_total_tree, y = AGBI.mean), method='lm', formula= y~x) +
-  facet_wrap(~site, scales = "free") +
-  xlab('PPT_total_tree') +
+  geom_smooth(aes(x = PPT_total_tree, y = AGBI.mean), method='lm', formula= y~x)+
+  facet_wrap(~site, scales = "free")+
+  xlab('Mean annual precipitation') + 
   ylab('Aboveground biomass increment')
-ggsave("figures1950/AGBI_ppt_total_tree_site.png")
+ggsave("report/figures/AGBI_meanprecip_site.png")
+
 
 
 #PPT
 ggplot(data = ppt_melt) +
-  geom_point(aes(x = value, y = AGBI.mean)) +
-  geom_smooth(aes(x = value, y = AGBI.mean), method='lm', formula= y~x) +  
+  geom_point(aes(x = value, y = AGBI.mean.site)) +
+  geom_smooth(aes(x = value, y = AGBI.mean.site), method='lm', formula= y~x) +  
   facet_wrap(~variable, scales = "free") +
   xlab('PPT') + 
   ylab('Aboveground biomass increment')
 ggsave("figures1950/AGBI_PPT_monthly.jpg")
 
 ggplot(data = ppt_melt) +
-  geom_point(aes(x = value, y = AGBI.mean, color = site)) +
-  geom_smooth(aes(x = value, y = AGBI.mean, color = site), method='lm', formula= y~x) +  
+  geom_point(aes(x = value, y = AGBI.mean.site, color = site)) +
+  geom_smooth(aes(x = value, y = AGBI.mean.site, color = site), method='lm', formula= y~x) +  
   facet_wrap(~variable, scales = "free") +
   xlab('PPT') + 
   ylab('Aboveground biomass increment')
