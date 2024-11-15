@@ -212,10 +212,8 @@ all_taxon_summary_wide = pivot_wider(data = all_taxon_summary[,(colnames(all_tax
                                      values_from = AGBI.mean, 
                                      values_fill = NA )
 
-goose_correlations <- all_taxon_summary %>%
+goose_taxa <- all_taxon_summary %>%
   filter(site == "GOOSE") %>%
-  summarize(correlation = cor(AGBI.mean))
-
   select(year, taxon, AGBI.mean, site) %>%
   pivot_wider(
     names_from = taxon,
