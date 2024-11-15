@@ -212,6 +212,49 @@ all_taxon_summary_wide = pivot_wider(data = all_taxon_summary[,(colnames(all_tax
                                      values_from = AGBI.mean, 
                                      values_fill = NA )
 
+goose_correlations <- all_taxon_summary %>%
+  filter(site == "GOOSE") %>%
+  summarize(correlation = cor(AGBI.mean))
+
+  select(year, taxon, AGBI.mean, site) %>%
+  pivot_wider(
+    names_from = taxon,
+    values_from = AGBI.mean,
+    values_fill = list(AGBI.mean = NA))
+
+
+harvard_taxa <- all_taxon_summary %>%
+  filter(site == "HARVARD") %>%
+  select(year, taxon, AGBI.mean, site) %>%
+  pivot_wider(
+    names_from = taxon,
+    values_from = AGBI.mean,
+    values_fill = list(AGBI.mean = NA))
+
+NRP_taxa <- all_taxon_summary %>%
+  filter(site == "NRP") %>%
+  select(year, taxon, AGBI.mean, site) %>%
+  pivot_wider(
+    names_from = taxon,
+    values_from = AGBI.mean,
+    values_fill = list(AGBI.mean = NA))
+
+rooster_taxa <- all_taxon_summary %>%
+  filter(site == "ROOSTER") %>%
+  select(year, taxon, AGBI.mean, site) %>%
+  pivot_wider(
+    names_from = taxon,
+    values_from = AGBI.mean,
+    values_fill = list(AGBI.mean = NA))
+
+sylvania_taxa <- all_taxon_summary %>%
+  filter(site == "SYLVANIA") %>%
+  select(year, taxon, AGBI.mean, site) %>%
+  pivot_wider(
+    names_from = taxon,
+    values_from = AGBI.mean,
+    values_fill = list(AGBI.mean = NA))
+
 #wide format of site data with AGBI as value
 all_site_summary_wide = pivot_wider(data = all_site_summary[,(colnames(all_site_summary) %in% 
                                                                 c('year','AGBI.mean', 'site'))],
@@ -369,75 +412,27 @@ cor_site_AGB = data.frame(cor(AGB_mean_wide[, c('GOOSE', 'ROOSTER', 'SYLVANIA', 
                           use = "complete.obs"))
 ggcorrplot(cor_site_AGB, method = "circle", type = "lower", hc.order = FALSE)
 
+#goose correlation
+#complete.obs excludes any rows with NA values 
+goose_correlations = data.frame( cor(goose_taxa [,c(4:length(goose_taxa))], use = "complete.obs"))
+harvard_correlations = data.frame( cor(harvard_taxa [,c(4:length(harvard_taxa))], use = "complete.obs"))
+NRP_correlations = data.frame( cor(NRP_taxa [,c(4:length(NRP_taxa))], use = "complete.obs"))
+rooster_correlations = data.frame( cor(rooster_taxa [,c(4:length(rooster_taxa))], use = "complete.obs"))
+sylvania_correlations = data.frame( cor(sylvania_taxa [,c(4:length(sylvania_taxa))], use = "complete.obs"))
 
-#does this work?
-correlation_matrices_by_site <- all_taxon_summary_wide %>%
-  dplyr::group_by(site) %>%
-  dplyr::summarise(cor_matrix = list(
-    cor(select(cur_data() %>% drop_na(), where(is.numeric),
-               -c(year)), use = "pairwise.complete.obs")))
+#plotting correlation plots for each site between each taxa
+pdf('report/figures/site_taxa_cor.pdf')
 
-
-correlation_matrices_by_site[[2]][1]
-
-goose_correlations <- correlation_matrices_by_site %>%
-  filter(site == "GOOSE") %>%
-  pull(cor_matrix)
-
-NRP_correlations <- correlation_matrices_by_site %>%
-  filter(site == "NRP") %>%
-  pull(cor_matrix)
-
-rooster_correlations <- correlation_matrices_by_site %>%
-  filter(site == "ROOSTER") %>%
-  pull(cor_matrix)
-
-sylvania_correlations <- correlation_matrices_by_site %>%
-  filter(site == "SYLVANIA") %>%
-  pull(cor_matrix)
-write.csv(sylvania_correlations, "sylvania_correlations.csv")
-
-harvard_correlations <- correlation_matrices_by_site %>%
-  filter(site == "HARVARD") %>%
-  pull(cor_matrix)
-
-# returns a list
-# first list element is a vector of site names
-correlation_matrices_by_site[[1]]
-# [1] "GOOSE"  "HARVARD"  "NRP"      "ROOSTER"  "SYLVANIA"
-
-# second list element is a list of correlation matrices
-# > correlation_matrices_by_site[[2]]
-#to get correlation matrix for GOOSE, we do:
-# > correlation_matrices_by_site[[2]][[1]]
-pdf('figures/AGBI_corr_taxa.pdf')
-#goose correlation plot
-ggcorrplot(correlation_matrices_by_site[[2]][[1]], 
-           method = "square", 
-           type = "lower", 
-           show.diag = TRUE, 
-           title = 'Goose')
-
-#harvard correlation plot
-ggcorrplot(correlation_matrices_by_site[[2]][[2]], 
-           method = "square", 
-           type = "lower", 
-           show.diag = TRUE, 
-           title = 'Harvard')
-
-#NRP correlation plot
-ggcorrplot(correlation_matrices_by_site[[2]][[3]], method = "square", type = "lower", 
-           show.diag = TRUE, 
-           title = 'North Round Pond')
-
-#rooster correlation plot
-ggcorrplot(correlation_matrices_by_site[[2]][[4]], method = "square", type = "lower", 
-           show.diag = TRUE, 
-           title = 'Rooster')
-#sylvania
-ggcorrplot(correlation_matrices_by_site[[2]][[5]], method = "square", type = "lower", 
-           show.diag = TRUE, 
-           title = 'Sylvania')
+ggcorrplot(goose_correlations, method = "square", type = "lower", hc.order = FALSE, show.diag = TRUE) +
+  ggtitle("Goose Correlation")
+ggcorrplot(harvard_correlations, method = "square", type = "lower", hc.order = FALSE, show.diag = TRUE) +
+  ggtitle("Harvard Correlation")
+ggcorrplot(NRP_correlations, method = "square", type = "lower", hc.order = FALSE, show.diag = TRUE) +
+  ggtitle("NRP Correlation")
+ggcorrplot(rooster_correlations, method = "square", type = "lower", hc.order = FALSE, show.diag = TRUE) +
+  ggtitle("Rooster Correlation")
+ggcorrplot(sylvania_correlations, method = "square", type = "lower", hc.order = FALSE, show.diag = TRUE) +
+  ggtitle("Sylvania Correlation")
 
 dev.off()
 
