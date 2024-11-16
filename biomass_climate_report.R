@@ -1015,6 +1015,18 @@ ggplot(data = clim_agb) +
   xlab('Mean annual precipitation') + ylab('Aboveground biomass increment')
 ggsave("report/figures/AGBI_meanprecip_site.png")
 
+#plotting filtered data AGBI.mean with PPT_Total_tree
+ggplot(data = cor_clim_vars_taxon_filter %>% filter(period == "total"))+ 
+  geom_point(aes(x= value, y =AGBI.mean, color = taxon))+
+  geom_smooth(aes(x= value, y =AGBI.mean, color = taxon), method = 'lm', formula = y~x)+
+  facet_wrap(~site, scales = "free")+
+  theme_light(14)
+
+ggplot(data = clim_taxon %>% filter(period == "total"))+ 
+  geom_point(aes(x= value, y =AGBI.mean, color = taxon))+
+  facet_wrap(~site, scales = "free")+
+  theme_light(14)
+
 #mean precipitation over time at each site
 ggplot(data = clim_agb) +
   geom_point(aes(x = PPT_total_tree, y = AGBI.mean)) +
