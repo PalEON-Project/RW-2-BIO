@@ -357,7 +357,7 @@ ggplot(data=all_site_summary) +
   geom_ribbon(aes(x=year, ymin=AGB.lo, ymax=AGB.hi, colour=site, fill=site)) +
   geom_line(aes(x=year, y=AGB.mean, colour=site)) +
   theme_light(14) +
-  labs( title = "Aboveground biomass over time", x = "Year", y = "AGBI (Mg/ha)")+
+  labs( title = "Aboveground biomass over time", x = "Year", y = "AGB (Mg/ha)")+
   facet_grid(model~.)
 ggsave("report/figures/AGB_over_time.png")
 
