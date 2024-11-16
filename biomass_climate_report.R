@@ -423,14 +423,34 @@ sylvania_correlations = data.frame( cor(sylvania_taxa [,c(4:length(sylvania_taxa
 pdf('report/figures/site_taxa_cor.pdf')
 
 ggcorrplot(goose_correlations, method = "square", type = "lower", hc.order = FALSE, show.diag = TRUE) +
+  scale_fill_distiller(
+    palette = "PuOr", na.value = "white",
+    direction = 1, limits = c(-1, 1),
+    name = "Pearson\nCorrelation:") +
   ggtitle("Goose Correlation")
 ggcorrplot(harvard_correlations, method = "square", type = "lower", hc.order = FALSE, show.diag = TRUE) +
+  scale_fill_distiller(
+    palette = "PuOr", na.value = "white",
+    direction = 1, limits = c(-1, 1),
+    name = "Pearson\nCorrelation:") +
   ggtitle("Harvard Correlation")
 ggcorrplot(NRP_correlations, method = "square", type = "lower", hc.order = FALSE, show.diag = TRUE) +
+  scale_fill_distiller(
+    palette = "PuOr", na.value = "white",
+    direction = 1, limits = c(-1, 1),
+    name = "Pearson\nCorrelation:") +
   ggtitle("NRP Correlation")
 ggcorrplot(rooster_correlations, method = "square", type = "lower", hc.order = FALSE, show.diag = TRUE) +
+  scale_fill_distiller(
+    palette = "PuOr", na.value = "white",
+    direction = 1, limits = c(-1, 1),
+    name = "Pearson\nCorrelation:") +
   ggtitle("Rooster Correlation")
 ggcorrplot(sylvania_correlations, method = "square", type = "lower", hc.order = FALSE, show.diag = TRUE) +
+  scale_fill_distiller(
+    palette = "PuOr", na.value = "white",
+    direction = 1, limits = c(-1, 1),
+    name = "Pearson\nCorrelation:") +
   ggtitle("Sylvania Correlation")
 
 dev.off()
