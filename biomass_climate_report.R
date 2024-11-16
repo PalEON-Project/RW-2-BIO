@@ -401,9 +401,27 @@ ggsave("report/figures/AGBI_site_taxon_with_sd.jpg")
 #correlation between sites of AGBI
 cor_site_AGBI = data.frame(cor(all_site_summary_wide[, c('GOOSE', 'ROOSTER', 'SYLVANIA', 'NRP', 'HARVARD')], 
                           use = "complete.obs"))
+write.csv(cor_site_AGBI, "correlation_AGBI_site.csv")
+#plotting correlaiton data
 ggcorrplot(cor_site_AGBI, method = "square", type = "lower",show.diag = TRUE, hc.order = FALSE)+
   ggtitle("AGBI correlation")
-write.csv(cor_site_AGBI, "correlation_AGBI_site.csv")  
+
+#calculating correlation and pvalues for AGBI between sites
+cor_results <- rcorr(as.matrix(all_site_summary_wide
+                    [, c('GOOSE', 'ROOSTER', 'SYLVANIA', 'NRP', 'HARVARD')]))
+# Extract correlation coefficients and p-values
+cor_coefficients <- cor_results$r
+p_values <- cor_results$P
+
+# Convert to data frame
+cor_site_AGBI_p <- data.frame(
+  Variable1 = rep(colnames(cor_coefficients), each = ncol(cor_coefficients)),
+  Variable2 = rep(colnames(cor_coefficients), times = ncol(cor_coefficients)),
+  Correlation = as.vector(cor_coefficients),
+  P_Value = as.vector(p_values))
+
+# Filter for unique pairs (optional, to avoid duplicates)
+cor_site_AGBI_p <- cor_site_AGBI_p[upper.tri(cor_coefficients, diag = FALSE), ]
 
 #correlation between sites AGB
 cor_site_AGB = data.frame(cor(AGB_mean_wide[, c('GOOSE', 'ROOSTER', 'SYLVANIA', 'NRP', 'HARVARD')], 
