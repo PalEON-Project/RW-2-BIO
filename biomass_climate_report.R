@@ -709,7 +709,7 @@ cor_clim_AGBI <- clim_total %>%
   # Group by site and variable
   group_by(site, variable, type, period, period_names) %>%
   # Summarize by calculating correlation between AGBI.mean and value
-  summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"), .groups = 'drop')
+  mutate(correlation = cor(AGBI.mean, value, use = "complete.obs"), .groups = 'drop')
 head(cor_clim_AGBI)
 write.csv(cor_clim_AGBI, file = "report/AGBI_clim_correlation_site.csv")
 
@@ -720,7 +720,7 @@ cor_clim_AGBI_site_pvalue <- clim_total %>%
   # Group by site and variable
   group_by(site, variable, type, period, period_names) %>%
   # Summarize by calculating correlation between AGBI.mean and value
-  summarize(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
+  mutate(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
             p_value = cor.test(AGBI.mean, value, use = "complete.obs")$p.value, .groups = 'drop')
 
 cor_clim_p_site_subset = subset(cor_clim_AGBI_site_pvalue, p_value < 0.05)
@@ -729,7 +729,7 @@ cor_clim_p_site_subset = subset(cor_clim_AGBI_site_pvalue, p_value < 0.05)
 #for each climate variable at which site is it the highest
 max_variable_cor = cor_clim_AGBI %>% 
   group_by(variable) %>%
-  summarize(max_cor = max(correlation, na.rm = TRUE), 
+  mutate(max_cor = max(correlation, na.rm = TRUE), 
             site_with_max_cor = site[which.max(correlation)])
 
 
@@ -741,7 +741,7 @@ cor_clim_vars_taxon <- clim_taxon %>%
   # Group by site and variable
   group_by(site, taxon, variable, type, period, period_names) %>%
   # Summarize by calculating correlation between AGBI.mean and value
-  summarize(correlation = cor(AGBI.mean, value, use = "complete.obs"), .groups = 'drop')
+  mutate(correlation = cor(AGBI.mean, value, use = "complete.obs"), .groups = 'drop')
 write.csv(cor_clim_vars_taxon, file = "report/AGBI_clim_taxon_correlation.csv")
 
 
@@ -753,7 +753,7 @@ cor_clim_taxon_pvalue <- clim_taxon %>%
   # Group by site and variable
   group_by(site, taxon, variable, type, period, period_names) %>%
   # Summarize by calculating correlation between AGBI.mean and value
-  summarize(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
+  mutate(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
             p_value = cor.test(AGBI.mean, value, use = "complete.obs")$p.value, .groups = 'drop')
 
 #subsetting data set to only have pvalues <0.05  
@@ -866,7 +866,7 @@ cor_clim_vars_taxon_filter <- df2 %>%
   # Group by site and variable
   group_by(site, taxon, variable,type, period, period_names) %>%
   # Summarize by calculating correlation between AGBI.mean and value
-  summarize(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
+  mutate(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
             p_value = cor.test(AGBI.mean, value, use = "complete.obs")$p.value, .groups = 'drop')
 
 
