@@ -511,7 +511,7 @@ dev.off()
 load('climate/prism_clim.RData')
 clim_data = prism_long
 clim_data = clim_data %>% 
-  rename(site = loc, PPT = PPT2, Tmean = Tmean2, Tmin = Tmin2, Tmax = Tmax2, 
+  dplyr::rename(site = loc, PPT = PPT2, Tmean = Tmean2, Tmin = Tmin2, Tmax = Tmax2, 
          Vpdmin = Vpdmin2, Vpdmax = Vpdmax2)
 
 #putting the climat variables in wide format
@@ -538,7 +538,7 @@ clim_wide =  pivot_wider(data = clim_data,
 #   )
 
 clim_summary = clim_wide |>
-  mutate(PPT_total = rowSums(dplyr::select(clim_wide, starts_with('PPT'))),
+  dplyr::mutate(PPT_total = rowSums(dplyr::select(clim_wide, starts_with('PPT'))),
          PPT_total_prev_tree = rowSums(dplyr::pick('PPT_09', 'PPT_10', 'PPT_11', 'PPT_12')),
          PPT_total_current_tree = rowSums(dplyr::pick('PPT_01', 'PPT_02', 'PPT_03', 'PPT_04', 
                                                       'PPT_05', 'PPT_06', 'PPT_07', 'PPT_08')))
@@ -556,7 +556,7 @@ for (i in seq_along(Vpd_sets)) {
   set <- Vpd_sets[[i]]
   # Add a leading 0 for 1-9, otherwise just use i as is
   clim_summary <- clim_summary %>%
-    mutate(!!paste0("Vpdmean_", ifelse(i < 10, paste0("0", i), i)) := rowMeans(select(., all_of(set))))
+    dplyr::mutate(!!paste0("Vpdmean_", ifelse(i < 10, paste0("0", i), i)) := rowMeans(select(., all_of(set))))
 }
 
 
@@ -612,7 +612,7 @@ colnames(ppt)[which(names(ppt) == "AGBI.mean")] <- "AGBI.mean.site"
 
 #melt at the site level
 ppt_melt = melt(ppt, id.vars = c('model', 'year', 'AGBI.mean.site', 'site'))
-ppt_melt$site = factor(ppt_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD'))
+ppt_melt$site = factor(ppt_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD', 'HMC'))
 
 #ppt at the taxon level 
 ppt_taxon = all_taxon_summary %>% 
@@ -632,7 +632,7 @@ colnames(vpd)[which(names(vpd) == "AGBI.mean")] <- "AGBI.mean.site"
 #vpd at the site level      
 vpd_melt = melt(vpd, 
                 id.vars = c('model', 'year', 'AGBI.mean.site', 'site'))
-vpd_melt$site = factor(vpd_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD'))
+vpd_melt$site = factor(vpd_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD', 'HMC'))
 
 vpd_taxon = all_taxon_summary %>% 
   left_join(vpd, by = c('year', 'site', 'model'))
@@ -653,7 +653,7 @@ colnames(tmin)[which(names(tmin) == "AGBI.mean")] <- "AGBI.mean.site"
 
 tmin_melt = melt(tmin,
                  id.vars = c('model', 'year', 'AGBI.mean.site', 'site'))
-tmin_melt$site = factor(tmin_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD'))
+tmin_melt$site = factor(tmin_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD', 'HMC'))
 
 tmin_taxon = all_taxon_summary %>% 
   left_join(tmin, by = c('year', 'site', 'model'))
@@ -670,7 +670,7 @@ colnames(tmax)[which(names(tmax) == "AGBI.mean")] <- "AGBI.mean.site"
 
 tmax_melt = melt(tmax, 
                  id.vars = c('model', 'year', 'AGBI.mean.site', 'site'))
-tmax_melt$site = factor(tmax_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD'))
+tmax_melt$site = factor(tmax_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD', 'HMC'))
 
 tmax_taxon = all_taxon_summary %>% 
   left_join(tmax, by = c('year', 'site', 'model'))
@@ -688,7 +688,7 @@ colnames(tmean)[which(names(tmean) == "AGBI.mean")] <- "AGBI.mean.site"
 tmean_melt = melt(tmean, 
                   id.vars = c('model', 'year', 'AGBI.mean.site', 'site'))
 
-tmean_melt$site = factor(tmean_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD'))
+tmean_melt$site = factor(tmean_melt$site, levels = c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD', 'HMC'))
 
 tmean_taxon = all_taxon_summary %>% 
   left_join(tmean, by = c('year', 'site', 'model'))
@@ -751,7 +751,7 @@ cor_clim_AGBI_site_pvalue <- clim_total %>%
   # Group by site and variable
   group_by(site, variable, type, period, period_names) %>%
   # Summarize by calculating correlation between AGBI.mean and value
-  mutate(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
+  dplyr::mutate(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
             p_value = cor.test(AGBI.mean, value, use = "complete.obs")$p.value, .groups = 'drop')
 
 cor_clim_p_site_subset = subset(cor_clim_AGBI_site_pvalue, p_value < 0.05)
@@ -760,7 +760,7 @@ cor_clim_p_site_subset = subset(cor_clim_AGBI_site_pvalue, p_value < 0.05)
 #for each climate variable at which site is it the highest
 max_variable_cor = cor_clim_AGBI %>% 
   group_by(variable) %>%
-  mutate(max_cor = max(correlation, na.rm = TRUE), 
+  dplyr::mutate(max_cor = max(correlation, na.rm = TRUE), 
             site_with_max_cor = site[which.max(correlation)])
 
 
@@ -795,7 +795,7 @@ head(cor_clim_p_taxon_subset)
 
 clim_vars = c("PPT", "Tmean", "Tmin", "Tmax", "Vpdmin", "Vpdmax", "Vpdmean")
 
-sites = c('GOOSE', 'ROOSTER', 'NRP', 'HARVARD', 'SYLVANIA')
+sites = c('GOOSE', 'ROOSTER', 'NRP', 'HARVARD', 'SYLVANIA', 'HMC')
 
 cor_max = max(cor_clim_taxon_pvalue$correlation)
 cor_min = min(cor_clim_taxon_pvalue$correlation)
@@ -882,6 +882,7 @@ agbi_cumsum = agbi_recent %>%
 #filtering data for those that make up 95% of the total biomass
 agbi_cumsum_filter = agbi_cumsum %>% 
   filter(cum_sum < 0.95)
+agbi_cumsum_filter = rbind(agbi_cumsum_filter, agbi_cumsum[which((agbi_cumsum$site=='SYLVANIA')&(agbi_cumsum$cum_sum<0.997)),])
 
 #wide format of filtered data
 agbi_cumsum_filter %>% 
@@ -895,9 +896,9 @@ cor_clim_vars_taxon_filter <- df2 %>%
   # Filter to keep only the relevant rows for correlation
   filter(str_detect(variable, "^(PPT|Tmean|Tmax|Tmin|Vpdmin|Vpdmax|Vpdmean)")) %>%
   # Group by site and variable
-  group_by(site, taxon, variable,type, period, period_names) %>%
+  dplyr::group_by(site, taxon, variable,type, period, period_names) %>%
   # Summarize by calculating correlation between AGBI.mean and value
-  mutate(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
+  dplyr::mutate(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
             p_value = cor.test(AGBI.mean, value, use = "complete.obs")$p.value, .groups = 'drop')
 
 
