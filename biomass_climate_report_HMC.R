@@ -784,7 +784,7 @@ cor_clim_taxon_pvalue <- clim_taxon %>%
   # Group by site and variable
   group_by(site, taxon, variable, type, period, period_names) %>%
   # Summarize by calculating correlation between AGBI.mean and value
-  mutate(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
+  dplyr::mutate(correlation = cor.test(AGBI.mean, value, use = "complete.obs")$estimate,
             p_value = cor.test(AGBI.mean, value, use = "complete.obs")$p.value, .groups = 'drop')
 
 #subsetting data set to only have pvalues <0.05  
@@ -876,13 +876,13 @@ agbi_cumsum = agbi_recent %>%
   #group_by(site, model) %>%
   dplyr::arrange(site, desc(AGBI.mean)) %>%
   group_by(site) %>%
-  mutate(cum_sum = cumsum(AGBI.mean) / sum(AGBI.mean)) %>% 
+  dplyr::mutate(cum_sum = cumsum(AGBI.mean) / sum(AGBI.mean)) %>% 
   ungroup()
 
 #filtering data for those that make up 95% of the total biomass
 agbi_cumsum_filter = agbi_cumsum %>% 
   filter(cum_sum < 0.95)
-agbi_cumsum_filter = rbind(agbi_cumsum_filter, agbi_cumsum[which((agbi_cumsum$site=='SYLVANIA')&(agbi_cumsum$cum_sum<0.997)),])
+# agbi_cumsum_filter = rbind(agbi_cumsum_filter, agbi_cumsum[which((agbi_cumsum$site=='SYLVANIA')&(agbi_cumsum$cum_sum<0.997)),])
 
 #wide format of filtered data
 agbi_cumsum_filter %>% 
