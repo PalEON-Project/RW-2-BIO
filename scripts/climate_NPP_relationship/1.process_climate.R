@@ -3,18 +3,18 @@
 rm(list = ls())
 
 # List all files that we want to read in ('bil' files)
-ppt_historical_files <- list.files(path='/Volumes/FileBackup/PRISM_for_RW2BIO/PRISM_ppt_stable_4kmM2_189501_198012_bil/',pattern=paste(".*_",".*\\.bil$", sep = ""),full.names=TRUE)
-tmean_historical_files <- list.files(path = '/Volumes/FileBackup/PRISM_for_RW2BIO/PRISM_tmean_stable_4kmM3_189501_198012_bil/', pattern = paste('.*_','.*\\.bil$', sep = ''), full.names = TRUE)
-tmax_historical_files <- list.files(path = '/Volumes/FileBackup/PRISM_for_RW2BIO/PRISM_tmax_stable_4kmM3_189501_198012_bil/', pattern = paste('.*_','.*\\.bil$', sep = ''), full.names = TRUE)
-tmin_historical_files <- list.files(path = '/Volumes/FileBackup/PRISM_for_RW2BIO/PRISM_tmin_stable_4kmM3_189501_198012_bil/', pattern = paste('.*_','.*\\.bil$', sep = ''), full.names = TRUE)
-vpdmax_historical_files <- list.files(path = '/Volumes/FileBackup/PRISM_for_RW2BIO/PRISM_vpdmax_stable_4kmM3_189501_198012_bil/', pattern = paste('.*_', '.*\\.bil$', sep = ''), full.names = TRUE)
-vpdmin_historical_files <- list.files(path = '/Volumes/FileBackup/PRISM_for_RW2BIO/PRISM_vpdmin_stable_4kmM3_189501_198012_bil/', pattern = paste('.*_', '.*\\.bil$', sep = ''), full.names = TRUE)
-ppt_recent_files <- list.files(path = '/Volumes/FileBackup/PRISM_for_RW2BIO/PRISM_ppt_stable_4kmM3_198101_202303_bil/', pattern = paste0('.*_', '.*\\.bil$', sep = ''), full.names = T)
-tmean_recent_files <- list.files(path = '/Volumes/FileBackup/PRISM_for_RW2BIO/PRISM_tmean_stable_4kmM3_198101_202303_bil/', pattern = paste0('.*_', '.*\\.bil$', sep = ''), full.names = T) 
-tmax_recent_files <- list.files(path = '/Volumes/FileBackup/PRISM_for_RW2BIO/PRISM_tmax_stable_4kmM3_198101_202306_bil/', pattern = paste0('.*_','.*\\.bil$', sep = ''), full.names = TRUE)
-tmin_recent_files <- list.files(path = '/Volumes/FileBackup/PRISM_for_RW2BIO/PRISM_tmin_stable_4kmM3_198101_202306_bil/', pattern = paste0('.*_', '.*\\.bil$', sep = ''), full.names = TRUE)
-vpdmax_recent_files <- list.files(path = '/Volumes/FileBackup/PRISM_for_RW2BIO/PRISM_vpdmax_stable_4kmM3_198101_202306_bil/', pattern = paste0('.*_', '.*\\.bil$', sep = ''), full.names = TRUE)
-vpdmin_recent_files <- list.files(path = '/Volumes/FileBackup/PRISM_for_RW2BIO/PRISM_vpdmin_stable_4kmM3_198101_202306_bil/', pattern = paste0('.*_', '.*\\.bil$', sep = ''), full.names = TRUE)
+ppt_historical_files <- list.files(path='data/PRISM/PRISM_ppt_stable_4kmM2_189501_198012_bil/',pattern=paste(".*_",".*\\.bil$", sep = ""),full.names=TRUE)
+tmean_historical_files <- list.files(path = 'data/PRISM//PRISM_tmean_stable_4kmM3_189501_198012_bil/', pattern = paste('.*_','.*\\.bil$', sep = ''), full.names = TRUE)
+tmax_historical_files <- list.files(path = 'data/PRISM/PRISM_tmax_stable_4kmM3_189501_198012_bil/', pattern = paste('.*_','.*\\.bil$', sep = ''), full.names = TRUE)
+tmin_historical_files <- list.files(path = 'data/PRISM/PRISM_tmin_stable_4kmM3_189501_198012_bil/', pattern = paste('.*_','.*\\.bil$', sep = ''), full.names = TRUE)
+vpdmax_historical_files <- list.files(path = 'data/PRISM/PRISM_vpdmax_stable_4kmM3_189501_198012_bil/', pattern = paste('.*_', '.*\\.bil$', sep = ''), full.names = TRUE)
+vpdmin_historical_files <- list.files(path = 'data/PRISM/PRISM_vpdmin_stable_4kmM3_189501_198012_bil/', pattern = paste('.*_', '.*\\.bil$', sep = ''), full.names = TRUE)
+ppt_recent_files <- list.files(path = 'data/PRISM/PRISM_ppt_stable_4kmM3_198101_202404_bil/', pattern = paste0('.*_', '.*\\.bil$', sep = ''), full.names = T)
+tmean_recent_files <- list.files(path = 'data/PRISM/PRISM_tmean_stable_4kmM3_198101_202404_bil/', pattern = paste0('.*_', '.*\\.bil$', sep = ''), full.names = T) 
+tmax_recent_files <- list.files(path = 'data/PRISM/PRISM_tmax_stable_4kmM3_198101_202404_bil/', pattern = paste0('.*_','.*\\.bil$', sep = ''), full.names = TRUE)
+tmin_recent_files <- list.files(path = 'data/PRISM/PRISM_tmin_stable_4kmM3_198101_202404_bil/', pattern = paste0('.*_', '.*\\.bil$', sep = ''), full.names = TRUE)
+vpdmax_recent_files <- list.files(path = 'data/PRISM/PRISM_vpdmax_stable_4kmM3_198101_202404_bil/', pattern = paste0('.*_', '.*\\.bil$', sep = ''), full.names = TRUE)
+vpdmin_recent_files <- list.files(path = 'data/PRISM/PRISM_vpdmin_stable_4kmM3_198101_202404_bil/', pattern = paste0('.*_', '.*\\.bil$', sep = ''), full.names = TRUE)
 
 # Stack the files
 ppt_historical <- raster::stack(ppt_historical_files)
@@ -103,10 +103,10 @@ vpdmax_recent <- rbind(vpdmax_recent_NE, vpdmax_recent_UMW)
 # Save all points
 save(ppt_historical, tmean_historical, tmin_historical, tmax_historical, vpdmin_historical, vpdmax_historical,
      ppt_recent, tmean_recent, tmin_recent, tmax_recent, vpdmin_recent, vpdmax_recent, 
-     file = '/Volumes/FileBackup/PRISM_for_RW2BIO/climate_matrix.RData')
+     file = 'data/PRISM/climate_matrix.RData')
 
 # Re-load saved data
-load('/Volumes/FileBackup/PRISM_for_RW2BIO/climate_matrix.RData')
+load('data/PRISM/climate_matrix.RData')
 
 # Reformat
 ppt_historical <- as.data.frame(ppt_historical)
@@ -195,10 +195,11 @@ site_coords <- matrix(c(43.068496,	-73.297425,
                         43.2309,	-74.5267,
                         42.84514,	-72.4473,
                         46.241944,	-89.347778,
-                        42.53, -72.18), 
+                        42.53, -72.18,
+                        46.87988, -87.93482), 
                       byrow = T, ncol = 2)
 site_coords <- cbind(site_coords,
-                     c('GOOSE', 'ROOSTER', 'NRP', 'SYLVANIA', 'HARVARD'))
+                     c('GOOSE', 'ROOSTER', 'NRP', 'SYLVANIA', 'HARVARD', 'HMC'))
 
 # Find distance between each prism-site pair
 dists <- fields::rdist(prism_coords, site_coords[,1:2])
@@ -566,21 +567,35 @@ vpdmax_long <- vpdmax_long_total |>
   dplyr::mutate(year = substr(var, 27, 30),
                 month = substr(var, 31, 32))
 
+# site_coords <- matrix(c(43.068496,	-73.297425,
+#                         43.2309,	-74.5267,
+#                         42.84514,	-72.4473,
+#                         46.241944,	-89.347778,
+#                         42.53, -72.18,
+#                         46.87988, -87.93482), 
+#                       byrow = T, ncol = 2)
+# site_coords <- cbind(site_coords,
+#                      c('GOOSE', 'ROOSTER', 'NRP', 'SYLVANIA', 'HARVARD', 'HMC'))
+
+
+
 # Add site names
 ppt_long <- ppt_long |>
-  dplyr::mutate(loc = dplyr::if_else(Longitude == unique(ppt_long$Longitude)[2], 'GOOSE', NA),
-                loc = dplyr::if_else(Longitude == unique(ppt_long$Longitude)[1], 'ROOSTER', loc),
+  dplyr::mutate(loc = dplyr::if_else(Longitude == unique(ppt_long$Longitude)[1], 'ROOSTER', NA),
+                loc = dplyr::if_else(Longitude == unique(ppt_long$Longitude)[2], 'GOOSE', loc),
                 loc = dplyr::if_else(Longitude == unique(ppt_long$Longitude)[3], 'NRP', loc),
-                loc = dplyr::if_else(Longitude == unique(ppt_long$Longitude)[5], 'SYLVANIA', loc),
-                loc = dplyr::if_else(Longitude == unique(ppt_long$Longitude)[4], 'HARVARD', loc)) |>
+                loc = dplyr::if_else(Longitude == unique(ppt_long$Longitude)[4], 'HARVARD', loc),
+                loc = dplyr::if_else(Longitude == unique(ppt_long$Longitude)[5], 'HMC', loc),
+                loc = dplyr::if_else(Longitude == unique(ppt_long$Longitude)[6], 'SYLVANIA', loc)) |>
   dplyr::select(-c(var, Longitude, Latitude))
 
 tmean_long <- tmean_long |>
-  dplyr::mutate(loc = dplyr::if_else(Longitude == unique(tmean_long$Longitude)[2], 'GOOSE', NA),
-                loc = dplyr::if_else(Longitude == unique(tmean_long$Longitude)[1], 'ROOSTER', loc),
+  dplyr::mutate(loc = dplyr::if_else(Longitude == unique(tmean_long$Longitude)[1], 'ROOSTER', NA),
+                loc = dplyr::if_else(Longitude == unique(tmean_long$Longitude)[2], 'GOOSE', loc),
                 loc = dplyr::if_else(Longitude == unique(tmean_long$Longitude)[3], 'NRP', loc),
-                loc = dplyr::if_else(Longitude == unique(tmean_long$Longitude)[5], 'SYLVANIA', loc),
-                loc = dplyr::if_else(Longitude == unique(tmean_long$Longitude)[4], 'HARVARD', loc)) |>
+                loc = dplyr::if_else(Longitude == unique(tmean_long$Longitude)[4], 'HARVARD', loc),
+                loc = dplyr::if_else(Longitude == unique(tmean_long$Longitude)[5], 'HMC', loc),
+                loc = dplyr::if_else(Longitude == unique(tmean_long$Longitude)[6], 'SYLVANIA', loc)) |>
   dplyr::select(-c(var, Longitude, Latitude))
 
 tmin_long <- tmin_long |>
@@ -588,28 +603,55 @@ tmin_long <- tmin_long |>
                 loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[2], 'GOOSE', loc),
                 loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[3], 'NRP', loc),
                 loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[4], 'HARVARD', loc),
-                loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[5], 'SYLVANIA', loc),
-                loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[6], 'ROOSTER', loc),
-                loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[7], 'GOOSE', loc),
-                loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[8], 'NRP', loc),
-                loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[9], 'HARVARD', loc),
-                loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[10], 'SYLVANIA', loc)) |>
+                loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[5], 'HMC', loc),
+                loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[6], 'SYLVANIA', loc),
+                loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[7], 'ROOSTER', loc),
+                loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[8], 'GOOSE', loc),
+                loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[9], 'NRP', loc),
+                loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[10], 'HARVARD', loc),
+                loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[11], 'HMC', loc),
+                loc = dplyr::if_else(Longitude == unique(tmin_long$Longitude)[12], 'SYLVANIA', loc)) |>
   dplyr::select(-c(var, Longitude, Latitude))
+
+
+# site_coords <- matrix(c(43.068496,	-73.297425,
+#                         43.2309,	-74.5267,
+#                         42.84514,	-72.4473,
+#                         46.241944,	-89.347778,
+#                         42.53, -72.18,
+#                         46.87988, -87.93482), 
+#                       byrow = T, ncol = 2)
+# site_coords <- cbind(site_coords,
+#                      c('GOOSE', 'ROOSTER', 'NRP', 'SYLVANIA', 'HARVARD', 'HMC'))
+
 
 tmax_long <- tmax_long |>
   dplyr::mutate(loc = dplyr::if_else(Longitude == unique(tmax_long$Longitude)[1], 'ROOSTER', NA),
                 loc = dplyr::if_else(Longitude == unique(tmax_long$Longitude)[2], 'GOOSE', loc),
                 loc = dplyr::if_else(Longitude == unique(tmax_long$Longitude)[3], 'NRP', loc),
                 loc = dplyr::if_else(Longitude == unique(tmax_long$Longitude)[4], 'HARVARD', loc),
-                loc = dplyr::if_else(Longitude == unique(tmax_long$Longitude)[5], 'SYLVANIA', loc)) |>
+                loc = dplyr::if_else(Longitude == unique(tmax_long$Longitude)[5], 'HMC', loc),
+                loc = dplyr::if_else(Longitude == unique(tmax_long$Longitude)[6], 'SYLVANIA', loc)) |>
   dplyr::select(-c(var, Longitude, Latitude))
+
+
+# site_coords <- matrix(c(43.068496,	-73.297425,
+#                         43.2309,	-74.5267,
+#                         42.84514,	-72.4473,
+#                         46.241944,	-89.347778,
+#                         42.53, -72.18,
+#                         46.87988, -87.93482), 
+#                       byrow = T, ncol = 2)
+# site_coords <- cbind(site_coords,
+#                      c('GOOSE', 'ROOSTER', 'NRP', 'SYLVANIA', 'HARVARD', 'HMC'))
 
 vpdmin_long <- vpdmin_long |>
   dplyr::mutate(loc = dplyr::if_else(Longitude == unique(vpdmin_long$Longitude)[1], 'ROOSTER', NA),
                 loc = dplyr::if_else(Longitude == unique(vpdmin_long$Longitude)[2], 'GOOSE', loc),
                 loc = dplyr::if_else(Longitude == unique(vpdmin_long$Longitude)[3], 'NRP', loc),
                 loc = dplyr::if_else(Longitude == unique(vpdmin_long$Longitude)[4], 'HARVARD', loc),
-                loc = dplyr::if_else(Longitude == unique(vpdmin_long$Longitude)[5], 'SYLVANIA', loc)) |>
+                loc = dplyr::if_else(Longitude == unique(vpdmin_long$Longitude)[5], 'HMC', loc),
+                loc = dplyr::if_else(Longitude == unique(vpdmin_long$Longitude)[6], 'SYLVANIA', loc)) |>
   dplyr::select(-c(var, Longitude, Latitude))
 
 vpdmax_long <- vpdmax_long |>
@@ -617,7 +659,8 @@ vpdmax_long <- vpdmax_long |>
                 loc = dplyr::if_else(Longitude == unique(vpdmax_long$Longitude)[2], 'GOOSE', loc),
                 loc = dplyr::if_else(Longitude == unique(vpdmax_long$Longitude)[3], 'NRP', loc),
                 loc = dplyr::if_else(Longitude == unique(vpdmax_long$Longitude)[4], 'HARVARD', loc),
-                loc = dplyr::if_else(Longitude == unique(vpdmax_long$Longitude)[5], 'SYLVANIA', loc)) |>
+                loc = dplyr::if_else(Longitude == unique(vpdmax_long$Longitude)[5], 'HMC', loc),
+                loc = dplyr::if_else(Longitude == unique(vpdmax_long$Longitude)[6], 'SYLVANIA', loc)) |>
   dplyr::select(-c(var, Longitude, Latitude))
 
 # Combine
@@ -629,5 +672,5 @@ prism_long <- ppt_long |>
   dplyr::left_join(vpdmax_long, by = c('year', 'month', 'loc'))
 
 # Save
-save(prism_long, file = '/Volumes/FileBackup/PRISM_for_RW2BIO/prism_clim.RData')
+save(prism_long, file = 'data/PRISM/prism_clim.RData')
 save(prism_long, file = 'climate/prism_clim.RData')
