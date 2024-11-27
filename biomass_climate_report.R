@@ -61,7 +61,7 @@ harvard_total_agbi <- readRDS('sites/HARVARD/runs/v3.1_102020/output/AGBI_TAXA_S
 harvard_total_agbi_subset = subset(harvard_total_agbi, year>1950)
 hmc_total_agbi <- readRDS('sites/HMC/runs/v3.1_082020/output/AGBI_TAXA_STAN_HMC_v3.1_082020.RDS')
 hmc_total_agbi$year = hmc_total_agbi$year + 1900 - 1
-hmc_total_agb_subset = subset(hmc_total_agb, year>1950)
+hmc_total_agbi_subset = subset(hmc_total_agbi, year>1950)
 
 
 # Combining abgi and abg into one dataframe 
@@ -100,7 +100,7 @@ sylvania_total <- sylvania_total_agb_subset |>
   mutate(site = 'SYLVANIA')
 
 harvard_total <- harvard_total_agb_subset |>
-  left_join(harvard_total_agbi, by = c('year', 'iter', 'taxon',
+  left_join(harvard_total_agbi_subset, by = c('year', 'iter', 'taxon',
                                        'model', 'plot')) |>
   dplyr::rename(AGB = ab,
          AGBI = abi) |>
@@ -110,7 +110,7 @@ harvard_total <- harvard_total_agb_subset |>
 harvard_total <- subset(harvard_total, model == 'Model RW')
 
 hmc_total <- hmc_total_agb_subset |>
-  left_join(hmc_total_agbi, by = c('year', 'iter', 'taxon',
+  left_join(hmc_total_agbi_subset, by = c('year', 'iter', 'taxon',
                                        'model', 'plot')) |>
   dplyr::rename(AGB = ab,
                 AGBI = abi) |>
@@ -126,6 +126,8 @@ hmc_total <- subset(hmc_total, model == 'Model RW')
 all_data <- rbind(goose_total, nrp_total, rooster_total, sylvania_total, harvard_total, hmc_total)
 # all_data <- rbind(goose_total, nrp_total, rooster_total, sylvania_total)
 
+ggplot(data=all_data) + geom_histogram(aes(x=AGB)) + facet_wrap(~site)
+
 
 # Create summaries by site
 # I am not sure that we are interested in average agb per tree
@@ -135,6 +137,8 @@ all_site_plot_by_iter <- all_data |>
   dplyr::summarize(AGB.sum = sum(AGB),
             AGBI.sum = sum(AGBI),
             .groups = 'keep') 
+
+ggplot(data=all_site_plot_by_iter) + geom_histogram(aes(x=AGB.sum)) + facet_wrap(~site)
 
 #plot summary data 
 all_site_plot_summary = all_site_plot_by_iter %>%
@@ -150,29 +154,83 @@ all_site_plot_summary = all_site_plot_by_iter %>%
             .groups='keep')
 head(all_site_plot_summary)
 
-all_site_by_iter <- all_data |>
-  group_by(year, iter, model, site) |>
-  dplyr::summarize(AGB.sum = sum(AGB),
-            AGBI.sum = sum(AGBI),
-            .groups = 'keep') 
+ggplot(data=all_site_plot_summary) + geom_histogram(aes(x=AGB.mean)) + facet_wrap(~site)
 
-#site summary data 
+all_site_by_iter <- all_site_plot_by_iter |>
+  group_by(year, iter, model, site) |>
+  dplyr::summarize(AGB.iter = mean(AGB.sum),
+                   AGBI.iter = mean(AGBI.sum),
+                   .groups = 'keep') 
+
+ggplot(data=all_site_by_iter) + geom_histogram(aes(x=AGB.iter)) + facet_wrap(~site)
+
+#plot summary data
 all_site_summary = all_site_by_iter %>%
-  group_by(year, model, site) %>% 
-  dplyr::summarize(AGB.mean = mean(AGB.sum, na.rm = T),
-            AGB.sd = sd(AGB.sum),
-            AGB.lo = quantile(AGB.sum, c(0.025), na.rm=TRUE),
-            AGB.hi = quantile(AGB.sum, c(0.975), na.rm=TRUE), 
-            AGBI.mean = mean(AGBI.sum, na.rm = T),
-            AGBI.sd = sd(AGBI.sum),
-            AGBI.lo = quantile(AGBI.sum, c(0.025), na.rm=TRUE),
-            AGBI.hi = quantile(AGBI.sum, c(0.975), na.rm=TRUE),
-            .groups='keep')
+  group_by(year, model, site) %>%
+  dplyr::summarize(AGB.mean = mean(AGB.iter, na.rm = T),
+                   AGB.sd = sd(AGB.iter),
+                   AGB.lo = quantile(AGB.iter, c(0.025), na.rm=TRUE),
+                   AGB.hi = quantile(AGB.iter, c(0.975), na.rm=TRUE),
+                   AGBI.mean = mean(AGBI.iter, na.rm = T),
+                   AGBI.sd = sd(AGBI.iter),
+                   AGBI.lo = quantile(AGBI.iter, c(0.025), na.rm=TRUE),
+                   AGBI.hi = quantile(AGBI.iter, c(0.975), na.rm=TRUE),
+                   .groups='keep')
 head(all_site_summary)
+ggplot(data=all_site_summary) + geom_histogram(aes(x=AGB.mean)) + facet_wrap(~site)
+
+
+# all_site_by_iter <- all_data |>
+#   group_by(year, iter, model, site) |>
+#   dplyr::summarize(AGB.sum = sum(AGB),
+#             AGBI.sum = sum(AGBI),
+#             .groups = 'keep') 
+# ggplot(data=all_site_by_iter) + geom_histogram(aes(x=AGB.sum)) + facet_wrap(~site)
+
+# #plot summary data 
+# all_site_summary = all_site_by_iter %>%
+#   group_by(year, model, site) %>% 
+#   dplyr::summarize(AGB.mean = mean(AGB.sum, na.rm = T),
+#                    AGB.sd = sd(AGB.sum),
+#                    AGB.lo = quantile(AGB.sum, c(0.025), na.rm=TRUE),
+#                    AGB.hi = quantile(AGB.sum, c(0.975), na.rm=TRUE), 
+#                    AGBI.mean = mean(AGBI.sum, na.rm = T),
+#                    AGBI.sd = sd(AGBI.sum),
+#                    AGBI.lo = quantile(AGBI.sum, c(0.025), na.rm=TRUE),
+#                    AGBI.hi = quantile(AGBI.sum, c(0.975), na.rm=TRUE), 
+#                    .groups='keep')
+# head(all_site_plot_summary)
+# 
+# 
+# #site summary data 
+# all_site_summary = all_site_by_iter %>%
+#   group_by(year, model, site) %>% 
+#   dplyr::summarize(AGB.mean = mean(AGB.sum, na.rm = T),
+#             AGB.sd = sd(AGB.sum),
+#             AGB.lo = quantile(AGB.sum, c(0.025), na.rm=TRUE),
+#             AGB.hi = quantile(AGB.sum, c(0.975), na.rm=TRUE), 
+#             AGBI.mean = mean(AGBI.sum, na.rm = T),
+#             AGBI.sd = sd(AGBI.sum),
+#             AGBI.lo = quantile(AGBI.sum, c(0.025), na.rm=TRUE),
+#             AGBI.hi = quantile(AGBI.sum, c(0.975), na.rm=TRUE),
+#             .groups='keep')
+# head(all_site_summary)
 
 all_site_summary$period = NA
 all_site_summary$period[which(all_site_summary$year<1960)] = "past"
 all_site_summary$period[which(all_site_summary$year>2000)] = "present"
+
+
+
+#AGB ovetime
+ggplot(data=all_site_summary) +
+  geom_ribbon(aes(x=year, ymin=AGB.lo, ymax=AGB.hi, colour=site, fill=site)) +
+  geom_line(aes(x=year, y=AGB.mean, colour=site)) +
+  theme_light(14) +
+  labs( title = "Aboveground biomass over time", x = "Year", y = "AGB (Mg/ha)")+
+  facet_grid(model~.)
+ggsave("report/figures/AGB_over_time.png")
+
 
 
 #taxon_group takes the sum of all the trees in one taxon.
