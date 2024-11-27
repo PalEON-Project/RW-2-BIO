@@ -129,9 +129,7 @@ all_data <- rbind(goose_total, nrp_total, rooster_total, sylvania_total, harvard
 ggplot(data=all_data) + geom_histogram(aes(x=AGB)) + facet_wrap(~site)
 
 
-# Create summaries by site
-# I am not sure that we are interested in average agb per tree
-# This is defined as agb_persite: mean total site biomass divided by the number of trees
+# sum AGB and AGBI across species for a given site, plot, year, and iter
 all_site_plot_by_iter <- all_data |>
   group_by(year, iter, plot, model, site) |>
   dplyr::summarize(AGB.sum = sum(AGB),
@@ -140,22 +138,23 @@ all_site_plot_by_iter <- all_data |>
 
 ggplot(data=all_site_plot_by_iter) + geom_histogram(aes(x=AGB.sum)) + facet_wrap(~site)
 
-#plot summary data 
-all_site_plot_summary = all_site_plot_by_iter %>%
-  group_by(year, plot, model, site) %>% 
-  dplyr::summarize(AGB.mean = mean(AGB.sum, na.rm = T),
-            AGB.sd = sd(AGB.sum),
-            AGB.lo = quantile(AGB.sum, c(0.025), na.rm=TRUE),
-            AGB.hi = quantile(AGB.sum, c(0.975), na.rm=TRUE), 
-            AGBI.mean = mean(AGBI.sum, na.rm = T),
-            AGBI.sd = sd(AGBI.sum),
-            AGBI.lo = quantile(AGBI.sum, c(0.025), na.rm=TRUE),
-            AGBI.hi = quantile(AGBI.sum, c(0.975), na.rm=TRUE), 
-            .groups='keep')
-head(all_site_plot_summary)
+# #plot summary data 
+# all_site_plot_summary = all_site_plot_by_iter %>%
+#   group_by(year, plot, model, site) %>% 
+#   dplyr::summarize(AGB.mean = mean(AGB.sum, na.rm = T),
+#             AGB.sd = sd(AGB.sum),
+#             AGB.lo = quantile(AGB.sum, c(0.025), na.rm=TRUE),
+#             AGB.hi = quantile(AGB.sum, c(0.975), na.rm=TRUE), 
+#             AGBI.mean = mean(AGBI.sum, na.rm = T),
+#             AGBI.sd = sd(AGBI.sum),
+#             AGBI.lo = quantile(AGBI.sum, c(0.025), na.rm=TRUE),
+#             AGBI.hi = quantile(AGBI.sum, c(0.975), na.rm=TRUE), 
+#             .groups='keep')
+# head(all_site_plot_summary)
+# 
+# ggplot(data=all_site_plot_summary) + geom_histogram(aes(x=AGB.mean)) + facet_wrap(~site)
 
-ggplot(data=all_site_plot_summary) + geom_histogram(aes(x=AGB.mean)) + facet_wrap(~site)
-
+# take mean AGB and AGBI across plots for a given site, year, and iter
 all_site_by_iter <- all_site_plot_by_iter |>
   group_by(year, iter, model, site) |>
   dplyr::summarize(AGB.iter = mean(AGB.sum),
@@ -164,7 +163,7 @@ all_site_by_iter <- all_site_plot_by_iter |>
 
 ggplot(data=all_site_by_iter) + geom_histogram(aes(x=AGB.iter)) + facet_wrap(~site)
 
-#plot summary data
+# summarize mean AGB and AGBI across plots for a given site and year
 all_site_summary = all_site_by_iter %>%
   group_by(year, model, site) %>%
   dplyr::summarize(AGB.mean = mean(AGB.iter, na.rm = T),
