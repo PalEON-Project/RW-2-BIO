@@ -240,40 +240,46 @@ all_taxon_plot_by_iter <- all_data |>
             AGBI.sum = sum(AGBI),
             .groups = 'keep') 
 
-#taxon plot summary with plot data
-all_taxon_plot_summary = all_taxon_plot_by_iter %>%
-  group_by(year, taxon, plot, model, site) %>% 
-  dplyr::summarize(AGB.mean = mean(AGB.sum, na.rm = T),
-            AGB.sd = sd(AGB.sum),
-            AGB.lo = quantile(AGB.sum, c(0.025), na.rm=TRUE),
-            AGB.hi = quantile(AGB.sum, c(0.975), na.rm=TRUE), 
-            AGBI.mean = mean(AGBI.sum, na.rm = T),
-            AGBI.sd = sd(AGBI.sum),
-            AGBI.lo = quantile(AGBI.sum, c(0.025), na.rm=TRUE),
-            AGBI.hi = quantile(AGBI.sum, c(0.975), na.rm=TRUE), 
-            .groups='keep')
-head(all_taxon_plot_summary)
-
-#no plot
-all_taxon_by_iter <- all_data |>
+all_taxon_by_iter <- all_taxon_plot_by_iter |>
   group_by(year, iter, taxon, model, site) |>
-  dplyr::summarize(AGB.sum = sum(AGB),
-            AGBI.sum = sum(AGBI),
-            .groups = 'keep') 
+  dplyr::summarize(AGB.iter = mean(AGB.sum, na.rm=TRUE),
+                   AGBI.iter = mean(AGBI.sum, na.rm=TRUE),
+                   .groups = 'keep') 
 
-#taxon summary data without plot 
+#taxon plot summary with plot data
 all_taxon_summary = all_taxon_by_iter %>%
   group_by(year, taxon, model, site) %>% 
-  dplyr::summarize(AGB.mean = mean(AGB.sum, na.rm = T),
-            AGB.sd = sd(AGB.sum),
-            AGB.lo = quantile(AGB.sum, c(0.025), na.rm=TRUE),
-            AGB.hi = quantile(AGB.sum, c(0.975), na.rm=TRUE), 
-            AGBI.mean = mean(AGBI.sum, na.rm = TRUE),
-            AGBI.sd = sd(AGBI.sum, na.rm = TRUE),
-            AGBI.lo = quantile(AGBI.sum, c(0.025), na.rm=TRUE),
-            AGBI.hi = quantile(AGBI.sum, c(0.975), na.rm=TRUE), 
+  dplyr::summarize(AGB.mean = mean(AGB.iter, na.rm = TRUE),
+            AGB.sd = sd(AGB.iter, na.rm=TRUE),
+            AGB.lo = quantile(AGB.iter, c(0.025), na.rm=TRUE),
+            AGB.hi = quantile(AGB.iter, c(0.975), na.rm=TRUE), 
+            AGBI.mean = mean(AGBI.iter, na.rm = T),
+            AGBI.sd = sd(AGBI.iter, na.rm=TRUE),
+            AGBI.lo = quantile(AGBI.iter, c(0.025), na.rm=TRUE),
+            AGBI.hi = quantile(AGBI.iter, c(0.975), na.rm=TRUE), 
             .groups='keep')
 head(all_taxon_summary)
+
+# #no plot
+# all_taxon_by_iter <- all_data |>
+#   group_by(year, iter, taxon, model, site) |>
+#   dplyr::summarize(AGB.sum = sum(AGB),
+#             AGBI.sum = sum(AGBI),
+#             .groups = 'keep') 
+# 
+# #taxon summary data without plot 
+# all_taxon_summary = all_taxon_by_iter %>%
+#   group_by(year, taxon, model, site) %>% 
+#   dplyr::summarize(AGB.mean = mean(AGB.sum, na.rm = T),
+#             AGB.sd = sd(AGB.sum),
+#             AGB.lo = quantile(AGB.sum, c(0.025), na.rm=TRUE),
+#             AGB.hi = quantile(AGB.sum, c(0.975), na.rm=TRUE), 
+#             AGBI.mean = mean(AGBI.sum, na.rm = TRUE),
+#             AGBI.sd = sd(AGBI.sum, na.rm = TRUE),
+#             AGBI.lo = quantile(AGBI.sum, c(0.025), na.rm=TRUE),
+#             AGBI.hi = quantile(AGBI.sum, c(0.975), na.rm=TRUE), 
+#             .groups='keep')
+# head(all_taxon_summary)
 
 #changing to wide format with taxons as column names and values = ABGI.mean 
 #values_fill=0 does not work 
