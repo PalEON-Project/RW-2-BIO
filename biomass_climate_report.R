@@ -240,6 +240,79 @@ all_taxon_plot_by_iter <- all_data |>
             AGBI.sum = sum(AGBI),
             .groups = 'keep') 
 
+#taxon summary data across plots
+all_taxon_site_by_iter = all_taxon_plot_by_iter %>%
+  group_by(year, iter, taxon, model, site) %>% 
+  dplyr::summarize(AGB.iter.mean = mean(AGB.sum, na.rm = TRUE),
+                   AGBI.iter.mean = mean(AGBI.sum, na.rm = TRUE),
+                   .groups='keep')
+head(all_taxon_site_by_iter)
+
+#taxon summary data without plot 
+all_taxon_site_summary = all_taxon_site_by_iter %>%
+  group_by(year, taxon, model, site) %>% 
+  dplyr::summarize(AGB.mean = mean(AGB.iter.mean, na.rm = TRUE),
+                   AGB.sd = sd(AGB.iter.mean, na.rm=TRUE),
+                   AGB.lo = quantile(AGB.iter.mean, c(0.025), na.rm=TRUE),
+                   AGB.hi = quantile(AGB.iter.mean, c(0.975), na.rm=TRUE), 
+                   AGBI.mean = mean(AGBI.iter.mean, na.rm = TRUE),
+                   AGBI.sd = sd(AGBI.iter.mean, na.rm = TRUE),
+                   AGBI.lo = quantile(AGBI.iter.mean, c(0.025), na.rm=TRUE),
+                   AGBI.hi = quantile(AGBI.iter.mean, c(0.975), na.rm=TRUE), 
+                   .groups='keep')
+head(all_taxon_site_summary)
+
+# #taxon summary data without plot 
+# all_taxon_site_summary = all_taxon_site_by_iter %>%
+#   group_by(year, taxon, model, site) %>% 
+#   dplyr::summarize(AGB.mean = mean(AGB.mean, na.rm = TRUE),
+#                    AGB.sd = sd(AGB.mean, na.rm=TRUE),
+#                    AGB.lo = quantile(AGB.mean, c(0.025), na.rm=TRUE),
+#                    AGB.hi = quantile(AGB.mean, c(0.975), na.rm=TRUE), 
+#                    AGBI.mean = mean(AGBI.mean, na.rm = TRUE),
+#                    AGBI.sd = sd(AGBI.mean, na.rm = TRUE),
+#                    AGBI.lo = quantile(AGBI.mean, c(0.025), na.rm=TRUE),
+#                    AGBI.hi = quantile(AGBI.mean, c(0.975), na.rm=TRUE), 
+#                    .groups='keep')
+# head(all_taxon_site_summary)
+# 
+# 
+# 
+# #taxon plot summary with plot data
+# all_taxon_plot_summary = all_taxon_plot_by_iter %>%
+#   group_by(year, taxon, plot, model, site) %>% 
+#   dplyr::summarize(AGB.mean = mean(AGB.sum, na.rm = T),
+#             AGB.sd = sd(AGB.sum),
+#             AGB.lo = quantile(AGB.sum, c(0.025), na.rm=TRUE),
+#             AGB.hi = quantile(AGB.sum, c(0.975), na.rm=TRUE), 
+#             AGBI.mean = mean(AGBI.sum, na.rm = T),
+#             AGBI.sd = sd(AGBI.sum),
+#             AGBI.lo = quantile(AGBI.sum, c(0.025), na.rm=TRUE),
+#             AGBI.hi = quantile(AGBI.sum, c(0.975), na.rm=TRUE), 
+#             .groups='keep')
+# head(all_taxon_plot_summary)
+# 
+# #no plot
+# all_taxon_by_iter <- all_data |>
+#   group_by(year, iter, taxon, model, site) |>
+#   dplyr::summarize(AGB.sum = sum(AGB),
+#             AGBI.sum = sum(AGBI),
+#             .groups = 'keep') 
+# 
+# #taxon summary data without plot 
+# all_taxon_summary = all_taxon_by_iter %>%
+#   group_by(year, taxon, model, site) %>% 
+#   dplyr::summarize(AGB.mean = mean(AGB.sum, na.rm = T),
+#             AGB.sd = sd(AGB.sum),
+#             AGB.lo = quantile(AGB.sum, c(0.025), na.rm=TRUE),
+#             AGB.hi = quantile(AGB.sum, c(0.975), na.rm=TRUE), 
+#             AGBI.mean = mean(AGBI.sum, na.rm = TRUE),
+#             AGBI.sd = sd(AGBI.sum, na.rm = TRUE),
+#             AGBI.lo = quantile(AGBI.sum, c(0.025), na.rm=TRUE),
+#             AGBI.hi = quantile(AGBI.sum, c(0.975), na.rm=TRUE), 
+#             .groups='keep')
+# head(all_taxon_summary)
+=======
 all_taxon_by_iter <- all_taxon_plot_by_iter |>
   group_by(year, iter, taxon, model, site) |>
   dplyr::summarize(AGB.iter = mean(AGB.sum, na.rm=TRUE),
@@ -290,6 +363,8 @@ head(all_taxon_summary)
 #                                      names_from = taxon, 
 #                                      values_from = AGBI.mean, 
 #                                      values_fill = NA )
+
+all_taxon_summary = all_taxon_site_summary
 
 goose_taxa <- all_taxon_summary %>%
   filter(site == "GOOSE") %>%
