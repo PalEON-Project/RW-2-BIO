@@ -225,9 +225,8 @@ all_site_summary$period[which(all_site_summary$year>2000)] = "present"
 ggplot(data=all_site_summary) +
   geom_ribbon(aes(x=year, ymin=AGB.lo, ymax=AGB.hi, colour=site, fill=site)) +
   geom_line(aes(x=year, y=AGB.mean, colour=site)) +
-  theme_light(14) +
-  labs( title = "Aboveground biomass over time", x = "Year", y = "AGB (Mg/ha)")+
-  facet_grid(model~.)
+  theme_light(14) 
+  #labs( title = "Aboveground biomass over time", x = "Year", y = "AGB (Mg/ha)")
 ggsave("report/figures/AGB_over_time.png")
 
 
@@ -312,7 +311,7 @@ head(all_taxon_site_summary)
 #             AGBI.hi = quantile(AGBI.sum, c(0.975), na.rm=TRUE), 
 #             .groups='keep')
 # head(all_taxon_summary)
-=======
+
 all_taxon_by_iter <- all_taxon_plot_by_iter |>
   group_by(year, iter, taxon, model, site) |>
   dplyr::summarize(AGB.iter = mean(AGB.sum, na.rm=TRUE),
@@ -434,28 +433,33 @@ AGB_mean_wide = pivot_wider(data = all_site_summary[,(colnames(all_site_summary)
 ggplot(data = all_site_summary %>% filter(!is.na(period))) +
   geom_histogram(aes(x = AGBI.mean, fill = period)) +
   facet_wrap(site ~ .)+
-  theme(legend.position = "bottom")
+  theme(legend.position = "bottom")+
+  theme_light(14)
 ggsave('report/figures/AGBI_hist_past_present.jpg')
 
 #Plotting histogram of AGBI for the time period past, year<1960
 ggplot(data = all_site_summary %>% filter(period == "past")) +
   geom_histogram(aes(x = AGBI.mean, fill = period)) +
-  facet_wrap(site ~ .)
+  facet_wrap(site ~ .)+
+  theme_light(14)
 ggsave('report/figures/AGBI_hist_past.jpg')
 
 #plotting histogram of AGBI for the time period present, year>2000
 ggplot(data = all_site_summary %>% filter(period == "present")) +
   geom_histogram(aes(x = AGBI.mean, fill = period)) +
-  facet_wrap(site ~ .)
+  facet_wrap(site ~ .)+
+  theme_light(14)
 ggsave('report/figures/AGBI_hist_present.jpg')
 
 #plotting the overall AGBI over time on a histogram 
 ggplot()+
   geom_histogram(data =all_site_summary, aes(x = AGBI.mean, fill = site))+
   facet_grid(site~.)+
-  theme_light(14)
+  theme_light(14)+
+  labs(x = 'Aboveground biomass increment')
 ggsave("report/figures/AGBI_site_over_time_histogram.jpg")
 
+#all taxon_summary 
 ggplot()+
   geom_histogram(data = all_taxon_summary, aes(x=AGBI.mean, fill =taxon))+
   facet_wrap(site~., scales = "free_x")+
@@ -500,7 +504,8 @@ do.call(grid.arrange, plot_list)
 pairs(all_site_summary_wide[,2:7])
 
 library(GGally)
-ggpairs(all_site_summary_wide[,2:7], lower=list(continuous="smooth"))
+ggpairs(all_site_summary_wide[,2:7], lower=list(continuous="smooth"))+
+  theme_light(14)
 
 
 #####################################
@@ -509,9 +514,8 @@ ggpairs(all_site_summary_wide[,2:7], lower=list(continuous="smooth"))
 ggplot(data=all_site_summary) +
   geom_ribbon(aes(x=year, ymin=AGBI.lo, ymax=AGBI.hi, colour=site, fill=site)) +
   geom_line(aes(x=year, y=AGBI.mean, colour=site)) +
-  theme_classic(14) +
-  labs( title = "AGBI over time", x = "Year", y = "AGBI (Mg/ha)")+
-  facet_grid(model~.)
+  theme_light(14) +
+  labs( x = "Year", y = "AGBI (Mg/ha)")
 ggsave("report/figures/AGBI_over_time.jpg")
 
 #AGB ovetime
@@ -519,8 +523,7 @@ ggplot(data=all_site_summary) +
   geom_ribbon(aes(x=year, ymin=AGB.lo, ymax=AGB.hi, colour=site, fill=site)) +
   geom_line(aes(x=year, y=AGB.mean, colour=site)) +
   theme_light(14) +
-  labs( title = "Aboveground biomass over time", x = "Year", y = "AGB (Mg/ha)")+
-  facet_grid(model~.)
+  labs( x = "Year", y = "AGB (Mg/ha)")
 ggsave("report/figures/AGB_over_time.png")
 
 
@@ -538,10 +541,11 @@ ggsave("report/figures/AGBI_over_time_taxons.jpg")
 ggplot(data=all_taxon_summary) +
   geom_ribbon(aes(x=year, ymin=AGBI.lo, ymax=AGBI.hi, colour=taxon, fill=taxon)) +
   geom_line(aes(x=year, y=AGBI.mean, colour=taxon)) +
-  theme_bw(14) +
+  theme_light(14) +
   xlab('Year') +
   ylab('AGBI (Mg/ha)') +
-  facet_wrap(~site, scales = 'free_y')
+  facet_wrap(~site, scales = 'free_y')+
+  theme(axis.text.x = element_text(angle = -45))
 ggsave("report/figures/AGBI_over_time_taxons_freey.jpg")
 
 #AGBI over time by taxon with sd
@@ -566,6 +570,10 @@ cor_site_AGBI = data.frame(cor(all_site_summary_wide[, c('GOOSE', 'ROOSTER', 'SY
 write.csv(cor_site_AGBI, "correlation_AGBI_site.csv")
 #plotting correlaiton data
 ggcorrplot(cor_site_AGBI, method = "square", type = "lower",show.diag = TRUE, hc.order = FALSE)+
+  scale_fill_distiller(
+    palette = "PuOr", na.value = "white",
+    direction = 1, limits = c(-1, 1),
+    name = "Pearson\nCorrelation:")
   ggtitle("AGBI correlation")
 
 #calculating correlation and pvalues for AGBI between sites
@@ -1189,7 +1197,9 @@ ggplot(data = cor_clim_vars_taxon_filter %>% filter(period == "total"))+
   geom_point(aes(x= value, y =AGBI.mean, color = taxon))+
   geom_smooth(aes(x= value, y =AGBI.mean, color = taxon), method = 'lm', formula = y~x)+
   facet_wrap(~site, scales = "free")+
-  theme_light(14)
+  labs(x = "total tree precipitation", y = "AGBI (Mg/ha)")+
+  theme_light(14)+
+  theme(axis.text.x = element_text(angle = -45))
 
 ggplot(data = clim_taxon %>% filter(period == "total"))+ 
   geom_point(aes(x= value, y =AGBI.mean, color = taxon))+
@@ -1201,8 +1211,10 @@ ggplot(data = clim_agb) +
   geom_point(aes(x = PPT_total_tree, y = AGBI.mean)) +
   geom_smooth(aes(x = PPT_total_tree, y = AGBI.mean), method='lm', formula= y~x)+
   facet_wrap(~site, scales = "free")+
-  xlab('Mean annual precipitation') + 
-  ylab('Aboveground biomass increment')
+  xlab('total tree precipitaion') + 
+  ylab('AGBI (Mg/ha)')+
+  theme_light(14)+
+  theme(axis.text.x = element_text(angle = -45))
 ggsave("report/figures/AGBI_meanprecip_site.png")
 
 
