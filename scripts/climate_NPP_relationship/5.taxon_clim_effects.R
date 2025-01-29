@@ -4,13 +4,13 @@ rm(list = ls())
 
 # Load  AGBI
 # Uncomment trended or detrended
-#load('out/taxon_trended_AGBI.RData')
-load('out/taxon_detrended_AGBI.RData')
+load('out/taxon_trended_AGBI.RData')
+#load('out/taxon_detrended_AGBI.RData')
 
 # Rename trended dataframe
 if(exists('taxon_agbi')) taxon_save_comb <- taxon_agbi
 # Rename response column
-if(exists('taxon_agbi')) taxon_save_comb <- dplyr::rename(taxon_save_comb, residual_AGBI = mean)
+if(exists('taxon_agbi')) taxon_save_comb <- dplyr::rename(taxon_save_comb, residual_AGBI = sum)
 
 # Indexing for loops
 site <- c('GOOSE', 'NRP', 'ROOSTER', 'SYLVANIA', 'HARVARD Model RW', 'HARVARD Model RW + Census')
@@ -50,7 +50,7 @@ prism_growing <- prism_long |>
                 site = loc)
 
 # Storage
-coeff_save_taxon <- matrix(, nrow = sum(taxa), ncol = 12)
+coeff_save_taxon <- matrix(, nrow = sum(taxa), ncol = 11)
 
 row_ind <- 0
 # For each site, let's iteratively fit a simple linear model with
@@ -82,14 +82,13 @@ for(i in 1:length(site)){
     # total plot basal area
     mod <- lm(formula = residual_AGBI ~ PPT + Tmean + 
                 sd_PPT + sd_Tmean +
-                Tmin + Tmax +
-                Vpdmin + Vpdmax,
+                Tmin + Tmax + Vpdmax,
               data = joined)   
     # Save site name, tree number, coefficients, and r2 in matrix
     coeff_save_taxon[row_ind,1] <- i
     coeff_save_taxon[row_ind,2] <- j
-    coeff_save_taxon[row_ind,3:11] <- coefficients(mod)
-    coeff_save_taxon[row_ind,12] <- summary(mod)$adj.r.squared
+    coeff_save_taxon[row_ind,3:10] <- coefficients(mod)
+    coeff_save_taxon[row_ind,11] <- summary(mod)$adj.r.squared
     print(j)
   }
   print(paste0('---------------------',i,'----------------'))
@@ -100,7 +99,7 @@ colnames(coeff_save_taxon) <- c('Site', 'Taxon', 'Intercept',
                                 'Precipitation', 'Temperature',
                                 'SD_Precipitation', 'SD_Temperature',
                                 'Minimum_temperature', 'Maximum_temperature',
-                                'Minimum_VPD', 'Maximum_VPD', 'R2')
+                                'Maximum_VPD', 'R2')
 # Format
 coeff_save_taxon <- as.data.frame(coeff_save_taxon)
 
@@ -121,7 +120,6 @@ coeff_save_taxon <- coeff_save_taxon |>
                 SD_Temperature = as.numeric(SD_Temperature),
                 Minimum_temperature = as.numeric(Minimum_temperature),
                 Maximum_temperature = as.numeric(Maximum_temperature),
-                Minimum_VPD = as.numeric(Minimum_VPD),
                 Maximum_VPD = as.numeric(Maximum_VPD),
                 R2 = as.numeric(R2))
 

@@ -44,12 +44,13 @@ taxon_agbi <- rbind(goose_taxon_agbi, nrp_taxon_agbi,
 # Save mean over iterations in dataframe
 taxon_agbi <- taxon_agbi |>
   dplyr::group_by(year, plot, taxon, site) |>
-  dplyr::summarize(mean = mean(abi))
+  dplyr::summarize(mean = mean(abi),
+                   sum = sum(abi))
 
 # Conduct box tests for each taxon over time
 box_test <- taxon_agbi |>
   dplyr::group_by(plot, taxon, site) |>
-  dplyr::summarize(box_test = Box.test(mean) |> broom::tidy())
+  dplyr::summarize(box_test = Box.test(sum) |> broom::tidy())
 # Proportion of taxa demonstrating significant temporal autocorrelation
 length(which(box_test$box_test$p.value < 0.05)) / nrow(box_test)
 
@@ -65,7 +66,7 @@ for(i in 1:length(site)){
     tt <- tt + 1
     sub <- dplyr::filter(taxon_agbi, site == site_name &
                            taxon == j)
-    current_step <- ts(sub$mean, start = min(sub$year), end = max(sub$year),
+    current_step <- ts(sub$sum, start = min(sub$year), end = max(sub$year),
                        frequency = 1)
     last_step <- lag(current_step, k = -1)
     
