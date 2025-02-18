@@ -78,6 +78,7 @@ corrplot(corr = cor_hmc,
 #### Monthly as different variables ####
 
 # Split by site
+#########GOOSE MONTHLY###########
 clim_goose_month <- prism_long |>
   filter(loc == 'GOOSE') |>
   # Pivot so each month and each variable has a different column
@@ -86,6 +87,81 @@ clim_goose_month <- prism_long |>
                                      'Tmax2', 'Vpdmax2')) |>
   select(-year, -loc) |>
   drop_na()
+
+goose_summer = clim_goose_month %>% 
+  select(ends_with("06"), ends_with("07"), ends_with("08"))
+goose_summer_time = goose_summer
+goose_summer_time$year = 1:nrow(goose_summer)
+goose_summer_long = melt(goose_summer_time, id.vars = "year")
+
+goose_summer_mean = goose_summer %>% 
+  rowwise() %>%
+  mutate(
+    PPT_mean = mean(c_across(starts_with("PPT")), na.rm = TRUE),
+    Tmean_mean = mean(c_across(starts_with("Tmean")), na.rm = TRUE),
+    Tmin_mean = mean(c_across(starts_with("Tmin")), na.rm = TRUE),
+    Tmax_mean = mean(c_across(starts_with("Tmax")), na.rm = TRUE),
+    Vpdmax_mean = mean(c_across(starts_with("Vpd")), na.rm = TRUE)
+  ) %>%
+  ungroup() %>% 
+  subset(select = -c(PPT2_06:Vpdmax2_08))
+
+#monthly climate plot for goose all on one
+ggplot(data = goose_summer_long)+
+  geom_line(aes(x= year, y = value,colour = variable))
+#mean of climate variables for summer
+ggplot(data = goose_summer_mean)+
+  geom_line(aes(x= year, y = value,colour = variable))
+
+###PCA
+
+goose_scaled_sum = scale(goose_summer_mean)
+
+goose_summer_pca = prcomp(goose_scaled_sum)
+#PCA values for PC1
+goose_summer_pca$x[,'PC1']
+
+##????
+eigs <- goose_summer_pca$sdev^2
+rbind(SD = sqrt(eigs),
+      Proportion = eigs/sum(eigs),
+      Cumulative = cumsum(eigs)/sum(eigs))
+
+#shows variables per component
+fviz_eig(goose_summer_pca, addlabels = TRUE)
+
+#biplot
+fviz_pca_biplot(goose_summer_pca)
+
+
+
+####GOOSE WINTER#####
+goose_winter = clim_goose_month %>% 
+  select(ends_with("01"))
+# goose_winter_jan = goose_winter
+# goose_winter_jan$year = 1:nrow(goose_winter)
+# goose_winter_long = melt(goose_winter_jan, id.vars = "year")
+
+###PCA
+goose_scaled_jan = scale(goose_winter)
+
+goose_jan_pca = prcomp(goose_scaled_jan)
+#PCA values for PC1
+goose_jan_pca$x[,'PC1']
+
+##????
+eigs <- goose_jan_pca$sdev^2
+rbind(SD = sqrt(eigs),
+      Proportion = eigs/sum(eigs),
+      Cumulative = cumsum(eigs)/sum(eigs))
+
+#shows variables per component
+fviz_eig(goose_jan_pca, addlabels = TRUE)
+
+#biplot
+fviz_pca_biplot(goose_jan_pca)
+
+
 clim_nrp_month <- prism_long |>
   filter(loc == 'NRP') |>
   pivot_wider(names_from = 'month',
@@ -139,6 +215,44 @@ corrplot(corr = cor_harv_month,
                    method = 'circle',
                    type = 'upper', diag = FALSE)
 
+#####SUMMER PCA############
+#scaling the dataset
+goose_scaled_sum = scale(goose_summer)
+
+goose_summer_pca = prcomp(goose_scaled_sum)
+#PCA values for PC1
+goose_summer_pca$x[,'PC1']
+
+##????
+eigs <- goose_summer_pca$sdev^2
+rbind(SD = sqrt(eigs),
+      Proportion = eigs/sum(eigs),
+      Cumulative = cumsum(eigs)/sum(eigs))
+
+
+#shows variables per component
+fviz_eig(goose_summer_pca, addlabels = TRUE)
+
+
+#biplot
+fviz_pca_biplot(goose_summer_pca)
+
+#visualize principal component analysis
+fviz_pca_var(clim_goose_pca, col.var = "black")
+fviz_cos2(clim_goose_pca, choice = "var", axes = 1:2)
+clim_goose_pca_time = data.frame(year=seq(1, nrow(clim_goose)), clim_goose_scaled %*% clim_goose_pca$rotation)
+
+ggplot(data=clim_goose_pca_time) +
+  geom_line(aes(x=year, y=PC1))
+
+ggplot(data = goose_long, aes(x= year, y = value))+
+  geom_line()+
+  facet_wrap(~variable, scales = "free_y")
+
+pca_time_melt = melt(clim_goose_pca_time, id.vars='year')
+pca_time_melt$type = rep('goose')
+
+
 ## Correlated with each other:
 ## tmin and tmean of the same month across all sites
 ## tmax and tmean of the same month across all sites
@@ -176,6 +290,7 @@ clim_goose_year$year = 1:nrow(clim_goose_year)
 
 goose_long = melt(clim_goose_year, id.vars = "year")
 
+#annual climate plot
 ggplot()+
   geom_line(data = goose_long, aes(x= year, y = value, colour = variable))
 #clim_goose_scaled = scale(goose_long)
