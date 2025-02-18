@@ -261,6 +261,8 @@ all_taxon_site_summary = all_taxon_site_by_iter %>%
                    .groups='keep')
 head(all_taxon_site_summary)
 
+saveRDS(all_taxon_site_summary, "AGBI_taxon_data.RDS")
+
 # #taxon summary data without plot 
 # all_taxon_site_summary = all_taxon_site_by_iter %>%
 #   group_by(year, taxon, model, site) %>% 
