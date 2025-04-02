@@ -13,29 +13,29 @@ rm(list = ls())
 # Load climate data
 load('climate/prism_clim.RData')
 prism_long = prism_long[,-8 ] %>% 
-  filter(year <2012)
+  filter(year>1948,year <2012)
 
 # Split by site
 #for each year for each month 
 #total unfiltered data
-clim_goose <- prism_long |>
-  filter(loc == 'GOOSE') |>
-  select(PPT2, Tmean2:Vpdmax2)
-clim_nrp <- prism_long |>
-  filter(loc == 'NRP') |>
-  select(PPT2, Tmean2:Vpdmax2)
-clim_rooster <- prism_long |>
-  filter(loc == 'ROOSTER') |>
-  select(PPT2, Tmean2:Vpdmax2)
-clim_sylv <- prism_long |>
-  filter(loc == 'SYLVANIA') |>
-  select(PPT2, Tmean2:Vpdmax2)
-clim_harv <- prism_long |>
-  filter(loc == 'HARVARD') |>
-  select(PPT2, Tmean2:Vpdmax2)
-clim_hmc = prism_long |>
-  filter(loc == 'HMC') |>
-  select(PPT2, Tmean2:Vpdmax2)
+# clim_goose <- prism_long |>
+#   filter(loc == 'GOOSE') |>
+#   select(PPT2, Tmean2:Vpdmax2)
+# clim_nrp <- prism_long |>
+#   filter(loc == 'NRP') |>
+#   select(PPT2, Tmean2:Vpdmax2)
+# clim_rooster <- prism_long |>
+#   filter(loc == 'ROOSTER') |>
+#   select(PPT2, Tmean2:Vpdmax2)
+# clim_sylv <- prism_long |>
+#   filter(loc == 'SYLVANIA') |>
+#   select(PPT2, Tmean2:Vpdmax2)
+# clim_harv <- prism_long |>
+#   filter(loc == 'HARVARD') |>
+#   select(PPT2, Tmean2:Vpdmax2)
+# clim_hmc = prism_long |>
+#   filter(loc == 'HMC') |>
+#   select(PPT2, Tmean2:Vpdmax2)
 
 
 
@@ -76,7 +76,7 @@ clim_hmc = prism_long |>
 ## Can use Tmean or Tmin or Tmax or Vpdmax but not any combinations of them
 
 #### Monthly as different variables ####
-
+###averaged over summer###
 # Split by site
 #########GOOSE MONTHLY###########
 clim_goose_month <- prism_long |>
@@ -87,13 +87,15 @@ clim_goose_month <- prism_long |>
                                      'Tmax2', 'Vpdmax2')) |>
   select(-loc) |>
   drop_na()
-
-goose_summer = clim_goose_month %>% 
+#pulling each month for each season 
+goose_summer = subset(clim_goose_month, year>1949)%>% 
   select(starts_with("year"),ends_with("06"), ends_with("07"), ends_with("08"))
-# goose_summer_time = goose_summer
-# goose_summer_time$year = 1:nrow(goose_summer)
-goose_summer_long = melt(goose_summer, id.vars = "year")
+goose_spring = subset(clim_goose_month, year>1949) %>% 
+  select(starts_with("year"),ends_with("03"), ends_with("04"), ends_with("05"))
+goose_fall = subset(clim_goose_month, year>1949) %>% 
+  select(starts_with("year"),ends_with("09"), ends_with("10"), ends_with("11"))
 
+#taking the mean of each climate variable over all the months 
 goose_summer_mean = goose_summer %>% 
   rowwise() %>%
   mutate(
@@ -104,8 +106,7 @@ goose_summer_mean = goose_summer %>%
     Vpdmax_mean = mean(c_across(starts_with("Vpd")), na.rm = TRUE)
   ) %>%
   ungroup() %>% 
-  subset(select = -c(PPT2_06:Vpdmax2_08)) %>% 
-  slice(-1)
+  subset(select = -c(PPT2_06:Vpdmax2_08)) 
 
 #monthly climate plot for goose all on one
 # ggplot(data = goose_summer_long)+
@@ -115,19 +116,18 @@ goose_summer_mean = goose_summer %>%
 #   geom_line(aes(x= year, y = value,colour = variable))
 
 ###PCA SUMMER GOOSE ####
-
+#scaling data
 goose_scaled_sum = scale(goose_summer_mean[,2:6])
-
+#PCA of summer months 
 goose_summer_pca = prcomp(goose_scaled_sum)
-#PCA values for PC1
-goose_summer_pca$x[,'PC1']
 
-
-##????
-eigs <- goose_summer_pca$sdev^2
-rbind(SD = sqrt(eigs),
-      Proportion = eigs/sum(eigs),
-      Cumulative = cumsum(eigs)/sum(eigs))
+# #PCA values for PC1
+# goose_summer_pca$x[,'PC1']
+# ##????
+# eigs <- goose_summer_pca$sdev^2
+# rbind(SD = sqrt(eigs),
+#       Proportion = eigs/sum(eigs),
+#       Cumulative = cumsum(eigs)/sum(eigs))
 
 #shows variables per component
 fviz_eig(goose_summer_pca, addlabels = TRUE)
@@ -135,9 +135,91 @@ fviz_eig(goose_summer_pca, addlabels = TRUE)
 #biplot
 fviz_pca_biplot(goose_summer_pca)
 
+###SPRING
+goose_spring_mean = goose_spring %>% 
+  rowwise() %>%
+  mutate(
+    PPT_mean = mean(c_across(starts_with("PPT")), na.rm = TRUE),
+    Tmean_mean = mean(c_across(starts_with("Tmean")), na.rm = TRUE),
+    Tmin_mean = mean(c_across(starts_with("Tmin")), na.rm = TRUE),
+    Tmax_mean = mean(c_across(starts_with("Tmax")), na.rm = TRUE),
+    Vpdmax_mean = mean(c_across(starts_with("Vpd")), na.rm = TRUE)
+  ) %>%
+  ungroup() %>% 
+  subset(select = -c(PPT2_03:Vpdmax2_05)) 
+
+#monthly climate plot for goose all on one
+# ggplot(data = goose_spring_long)+
+#   geom_line(aes(x= year, y = value,colour = variable))
+# #mean of climate variables for spring
+# ggplot(data = goose_spring_mean)+
+#   geom_line(aes(x= year, y = value,colour = variable))
+
+###PCA spring GOOSE ####
+#scaling dataa
+goose_scaled_spring = scale(goose_spring_mean[,2:6])
+
+goose_spring_pca = prcomp(goose_scaled_spring)
+
+# #PCA values for PC1
+# goose_spring_pca$x[,'PC1']
+# ##????
+# eigs <- goose_spring_pca$sdev^2
+# rbind(SD = sqrt(eigs),
+#       Proportion = eigs/sum(eigs),
+#       Cumulative = cumsum(eigs)/sum(eigs))
+
+#shows variables per component
+fviz_eig(goose_spring_pca, addlabels = TRUE)
+
+#biplot
+fviz_pca_biplot(goose_spring_pca)
+
+
+####FALL
+goose_fall_mean = goose_fall %>% 
+  rowwise() %>%
+  mutate(
+    PPT_mean = mean(c_across(starts_with("PPT")), na.rm = TRUE),
+    Tmean_mean = mean(c_across(starts_with("Tmean")), na.rm = TRUE),
+    Tmin_mean = mean(c_across(starts_with("Tmin")), na.rm = TRUE),
+    Tmax_mean = mean(c_across(starts_with("Tmax")), na.rm = TRUE),
+    Vpdmax_mean = mean(c_across(starts_with("Vpd")), na.rm = TRUE)
+  ) %>%
+  ungroup() %>% 
+  subset(select = -c(PPT2_09:Vpdmax2_11)) 
+
+#monthly climate plot for goose all on one
+# ggplot(data = goose_fall_long)+
+#   geom_line(aes(x= year, y = value,colour = variable))
+# #mean of climate variables for fall
+# ggplot(data = goose_fall_mean)+
+#   geom_line(aes(x= year, y = value,colour = variable))
+
+###PCA fall GOOSE ####
+
+goose_scaled_fall = scale(goose_fall_mean[,2:6])
+
+goose_fall_pca = prcomp(goose_scaled_fall)
+
+# #PCA values for PC1
+# goose_fall_pca$x[,'PC1']
+# ##????
+# eigs <- goose_fall_pca$sdev^2
+# rbind(SD = sqrt(eigs),
+#       Proportion = eigs/sum(eigs),
+#       Cumulative = cumsum(eigs)/sum(eigs))
+
+#shows variables per component
+fviz_eig(goose_fall_pca, addlabels = TRUE)
+
+#biplot
+fviz_pca_biplot(goose_fall_pca)
+
 ####GOOSE WINTER#####
 goose_winter = clim_goose_month %>% 
   select(starts_with("year"),ends_with("01"), ends_with("02"), ends_with("12"))
+
 
 goose_winter_reorg = goose_winter %>% 
   mutate(
@@ -175,22 +257,20 @@ goose_winter_reorg$mean_winter_Vpd[2:N_years] = rowMeans(cbind(goose_winter_reor
 
 goose_winter_mean = goose_winter_reorg %>% 
   select(-c(winter_prev_PPT:winter_current_Vpd)) %>% 
-  slice(-1) 
-  
-
+  slice(-1)
 
 ###PCA WINTER GOOSE
 goose_scaled_winter = scale(goose_winter_mean[,2:6])
 
 goose_winter_pca = prcomp(goose_scaled_winter)
-#PCA values for PC1
-goose_winter_pca$x[,'PC1']
 
-##????
-eigs <- goose_winter_pca$sdev^2
-rbind(SD = sqrt(eigs),
-      Proportion = eigs/sum(eigs),
-      Cumulative = cumsum(eigs)/sum(eigs))
+# #PCA values for PC1
+# goose_winter_pca$x[,'PC1']
+# ##????
+# eigs <- goose_winter_pca$sdev^2
+# rbind(SD = sqrt(eigs),
+#       Proportion = eigs/sum(eigs),
+#       Cumulative = cumsum(eigs)/sum(eigs))
 
 #shows variables per component
 fviz_eig(goose_winter_pca, addlabels = TRUE)
@@ -201,11 +281,15 @@ fviz_pca_biplot(goose_winter_pca)
 goose_PCA = data.frame(year=goose_summer_mean$year, site = "GOOSE",
                        PCA1_summer = goose_summer_pca$x[,'PC1'],
                        PCA2_summer = goose_summer_pca$x[,'PC2'],
+                       PCA1_spring = goose_spring_pca$x[,'PC1'],
+                       PCA2_spring = goose_spring_pca$x[,'PC2'],
+                       PCA1_fall = goose_fall_pca$x[,'PC1'],
+                       PCA2_fall = goose_fall_pca$x[,'PC2'],
                        PCA1_winter = goose_winter_pca$x[,'PC1'],
                        PCA2_winter = goose_winter_pca$x[,'PC2'])
 
 goose_PCA$year = as.numeric(goose_PCA$year)
-saveRDS(goose_PCA, "goose_PCA.RDS")
+saveRDS(goose_PCA, "goose_PCA_mean.RDS")
 
 
 ############NRP ###########################################
@@ -217,11 +301,12 @@ clim_nrp_month <- prism_long |>
   select(-loc) |>
   drop_na()
 
-nrp_summer = clim_nrp_month %>% 
+nrp_summer = subset(clim_nrp_month, year>1949)%>% 
   select(starts_with("year"),ends_with("06"), ends_with("07"), ends_with("08"))
-# nrp_summer_time = nrp_summer
-# nrp_summer_time$year = 1:nrow(nrp_summer)
-nrp_summer_long = melt(nrp_summer, id.vars = "year")
+nrp_spring = subset(clim_nrp_month, year>1949) %>% 
+  select(starts_with("year"),ends_with("03"), ends_with("04"), ends_with("05"))
+nrp_fall = subset(clim_nrp_month, year>1949) %>% 
+  select(starts_with("year"),ends_with("09"), ends_with("10"), ends_with("11"))
 
 nrp_summer_mean = nrp_summer %>% 
   rowwise() %>%
@@ -233,8 +318,7 @@ nrp_summer_mean = nrp_summer %>%
     Vpdmax_mean = mean(c_across(starts_with("Vpd")), na.rm = TRUE)
   ) %>%
   ungroup() %>% 
-  subset(select = -c(PPT2_06:Vpdmax2_08)) %>% 
-  slice(-1)
+  subset(select = -c(PPT2_06:Vpdmax2_08)) 
 
 #monthly climate plot for nrp all on one
 # ggplot(data = nrp_summer_long)+
@@ -243,20 +327,19 @@ nrp_summer_mean = nrp_summer %>%
 # ggplot(data = nrp_summer_mean)+
 #   geom_line(aes(x= year, y = value,colour = variable))
 
-###PCA SUMMER NRP ####
+###PCA SUMMER nrp ####
 
 nrp_scaled_sum = scale(nrp_summer_mean[,2:6])
 
 nrp_summer_pca = prcomp(nrp_scaled_sum)
-#PCA values for PC1
-nrp_summer_pca$x[,'PC1']
 
-
-##????
-eigs <- nrp_summer_pca$sdev^2
-rbind(SD = sqrt(eigs),
-      Proportion = eigs/sum(eigs),
-      Cumulative = cumsum(eigs)/sum(eigs))
+# #PCA values for PC1
+# nrp_summer_pca$x[,'PC1']
+# ##????
+# eigs <- nrp_summer_pca$sdev^2
+# rbind(SD = sqrt(eigs),
+#       Proportion = eigs/sum(eigs),
+#       Cumulative = cumsum(eigs)/sum(eigs))
 
 #shows variables per component
 fviz_eig(nrp_summer_pca, addlabels = TRUE)
@@ -264,9 +347,91 @@ fviz_eig(nrp_summer_pca, addlabels = TRUE)
 #biplot
 fviz_pca_biplot(nrp_summer_pca)
 
-####NRP WINTER#####
+###SPRING
+nrp_spring_mean = nrp_spring %>% 
+  rowwise() %>%
+  mutate(
+    PPT_mean = mean(c_across(starts_with("PPT")), na.rm = TRUE),
+    Tmean_mean = mean(c_across(starts_with("Tmean")), na.rm = TRUE),
+    Tmin_mean = mean(c_across(starts_with("Tmin")), na.rm = TRUE),
+    Tmax_mean = mean(c_across(starts_with("Tmax")), na.rm = TRUE),
+    Vpdmax_mean = mean(c_across(starts_with("Vpd")), na.rm = TRUE)
+  ) %>%
+  ungroup() %>% 
+  subset(select = -c(PPT2_03:Vpdmax2_05)) 
+
+#monthly climate plot for nrp all on one
+# ggplot(data = nrp_spring_long)+
+#   geom_line(aes(x= year, y = value,colour = variable))
+# #mean of climate variables for spring
+# ggplot(data = nrp_spring_mean)+
+#   geom_line(aes(x= year, y = value,colour = variable))
+
+###PCA spring nrp ####
+
+nrp_scaled_spring = scale(nrp_spring_mean[,2:6])
+
+nrp_spring_pca = prcomp(nrp_scaled_spring)
+
+# #PCA values for PC1
+# nrp_spring_pca$x[,'PC1']
+# ##????
+# eigs <- nrp_spring_pca$sdev^2
+# rbind(SD = sqrt(eigs),
+#       Proportion = eigs/sum(eigs),
+#       Cumulative = cumsum(eigs)/sum(eigs))
+
+#shows variables per component
+fviz_eig(nrp_spring_pca, addlabels = TRUE)
+
+#biplot
+fviz_pca_biplot(nrp_spring_pca)
+
+
+####FALL
+nrp_fall_mean = nrp_fall %>% 
+  rowwise() %>%
+  mutate(
+    PPT_mean = mean(c_across(starts_with("PPT")), na.rm = TRUE),
+    Tmean_mean = mean(c_across(starts_with("Tmean")), na.rm = TRUE),
+    Tmin_mean = mean(c_across(starts_with("Tmin")), na.rm = TRUE),
+    Tmax_mean = mean(c_across(starts_with("Tmax")), na.rm = TRUE),
+    Vpdmax_mean = mean(c_across(starts_with("Vpd")), na.rm = TRUE)
+  ) %>%
+  ungroup() %>% 
+  subset(select = -c(PPT2_09:Vpdmax2_11)) 
+
+#monthly climate plot for nrp all on one
+# ggplot(data = nrp_fall_long)+
+#   geom_line(aes(x= year, y = value,colour = variable))
+# #mean of climate variables for fall
+# ggplot(data = nrp_fall_mean)+
+#   geom_line(aes(x= year, y = value,colour = variable))
+
+###PCA fall nrp ####
+
+nrp_scaled_fall = scale(nrp_fall_mean[,2:6])
+
+nrp_fall_pca = prcomp(nrp_scaled_fall)
+
+# #PCA values for PC1
+# nrp_fall_pca$x[,'PC1']
+# ##????
+# eigs <- nrp_fall_pca$sdev^2
+# rbind(SD = sqrt(eigs),
+#       Proportion = eigs/sum(eigs),
+#       Cumulative = cumsum(eigs)/sum(eigs))
+
+#shows variables per component
+fviz_eig(nrp_fall_pca, addlabels = TRUE)
+
+#biplot
+fviz_pca_biplot(nrp_fall_pca)
+
+####nrp WINTER#####
 nrp_winter = clim_nrp_month %>% 
   select(starts_with("year"),ends_with("01"), ends_with("02"), ends_with("12"))
+
 
 nrp_winter_reorg = nrp_winter %>% 
   mutate(
@@ -292,34 +457,33 @@ nrp_winter_reorg$mean_winter_Vpd = NA
 # Calculate the mean for the previous year with the current year for each variable
 N_years = nrow(nrp_winter_reorg)
 nrp_winter_reorg$mean_winter_PPT[2:N_years] = rowMeans(cbind(nrp_winter_reorg$winter_prev_PPT[1:(N_years-1)], 
-                                                               nrp_winter_reorg$winter_current_PPT[2:N_years]), na.rm = TRUE)
+                                                             nrp_winter_reorg$winter_current_PPT[2:N_years]), na.rm = TRUE)
 nrp_winter_reorg$mean_winter_Tmean[2:N_years] = rowMeans(cbind(nrp_winter_reorg$winter_prev_Tmean[1:(N_years-1)], 
-                                                                 nrp_winter_reorg$winter_current_Tmean[2:N_years]), na.rm = TRUE)
+                                                               nrp_winter_reorg$winter_current_Tmean[2:N_years]), na.rm = TRUE)
 nrp_winter_reorg$mean_winter_Tmin[2:N_years] = rowMeans(cbind(nrp_winter_reorg$winter_prev_Tmin[1:(N_years-1)], 
-                                                                nrp_winter_reorg$winter_current_Tmin[2:N_years]), na.rm = TRUE)
+                                                              nrp_winter_reorg$winter_current_Tmin[2:N_years]), na.rm = TRUE)
 nrp_winter_reorg$mean_winter_Tmax[2:N_years] = rowMeans(cbind(nrp_winter_reorg$winter_prev_Tmax[1:(N_years-1)], 
-                                                                nrp_winter_reorg$winter_current_Tmax[2:N_years]), na.rm = TRUE)
+                                                              nrp_winter_reorg$winter_current_Tmax[2:N_years]), na.rm = TRUE)
 nrp_winter_reorg$mean_winter_Vpd[2:N_years] = rowMeans(cbind(nrp_winter_reorg$winter_prev_Vpd[1:(N_years-1)], 
-                                                               nrp_winter_reorg$winter_current_Vpd[2:N_years]), na.rm = TRUE) 
+                                                             nrp_winter_reorg$winter_current_Vpd[2:N_years]), na.rm = TRUE) 
 
 nrp_winter_mean = nrp_winter_reorg %>% 
   select(-c(winter_prev_PPT:winter_current_Vpd)) %>% 
   slice(-1) 
 
 
-
 ###PCA WINTER nrp
 nrp_scaled_winter = scale(nrp_winter_mean[,2:6])
 
 nrp_winter_pca = prcomp(nrp_scaled_winter)
-#PCA values for PC1
-nrp_winter_pca$x[,'PC1']
 
-##????
-eigs <- nrp_winter_pca$sdev^2
-rbind(SD = sqrt(eigs),
-      Proportion = eigs/sum(eigs),
-      Cumulative = cumsum(eigs)/sum(eigs))
+# #PCA values for PC1
+# nrp_winter_pca$x[,'PC1']
+# ##????
+# eigs <- nrp_winter_pca$sdev^2
+# rbind(SD = sqrt(eigs),
+#       Proportion = eigs/sum(eigs),
+#       Cumulative = cumsum(eigs)/sum(eigs))
 
 #shows variables per component
 fviz_eig(nrp_winter_pca, addlabels = TRUE)
@@ -328,12 +492,18 @@ fviz_eig(nrp_winter_pca, addlabels = TRUE)
 fviz_pca_biplot(nrp_winter_pca)
 
 nrp_PCA = data.frame(year=nrp_summer_mean$year, site = "NRP",
-                       PCA1_summer = nrp_summer_pca$x[,'PC1'],
-                       PCA2_summer = nrp_summer_pca$x[,'PC2'],
-                       PCA1_winter = nrp_winter_pca$x[,'PC1'],
-                       PCA2_winter = nrp_winter_pca$x[,'PC2'])
+                     PCA1_summer = nrp_summer_pca$x[,'PC1'],
+                     PCA2_summer = nrp_summer_pca$x[,'PC2'],
+                     PCA1_spring = nrp_spring_pca$x[,'PC1'],
+                     PCA2_spring = nrp_spring_pca$x[,'PC2'],
+                     PCA1_fall = nrp_fall_pca$x[,'PC1'],
+                     PCA2_fall = nrp_fall_pca$x[,'PC2'],
+                     PCA1_winter = nrp_winter_pca$x[,'PC1'],
+                     PCA2_winter = nrp_winter_pca$x[,'PC2'])
+
 nrp_PCA$year = as.numeric(nrp_PCA$year)
-saveRDS(nrp_PCA, "nrp_PCA.RDS")
+saveRDS(nrp_PCA, "nrp_PCA_mean.RDS")
+
 
 ############ROOSTER ###########################################
 clim_rooster_month <- prism_long |>
@@ -344,11 +514,12 @@ clim_rooster_month <- prism_long |>
   select(-loc) |>
   drop_na()
 
-rooster_summer = clim_rooster_month %>% 
+rooster_summer = subset(clim_rooster_month, year>1949)%>% 
   select(starts_with("year"),ends_with("06"), ends_with("07"), ends_with("08"))
-# rooster_summer_time = rooster_summer
-# rooster_summer_time$year = 1:nrow(rooster_summer)
-rooster_summer_long = melt(rooster_summer, id.vars = "year")
+rooster_spring = subset(clim_rooster_month, year>1949) %>% 
+  select(starts_with("year"),ends_with("03"), ends_with("04"), ends_with("05"))
+rooster_fall = subset(clim_rooster_month, year>1949) %>% 
+  select(starts_with("year"),ends_with("09"), ends_with("10"), ends_with("11"))
 
 rooster_summer_mean = rooster_summer %>% 
   rowwise() %>%
@@ -360,8 +531,7 @@ rooster_summer_mean = rooster_summer %>%
     Vpdmax_mean = mean(c_across(starts_with("Vpd")), na.rm = TRUE)
   ) %>%
   ungroup() %>% 
-  subset(select = -c(PPT2_06:Vpdmax2_08)) %>% 
-  slice(-1)
+  subset(select = -c(PPT2_06:Vpdmax2_08))
 
 #monthly climate plot for rooster all on one
 # ggplot(data = rooster_summer_long)+
@@ -375,15 +545,14 @@ rooster_summer_mean = rooster_summer %>%
 rooster_scaled_sum = scale(rooster_summer_mean[,2:6])
 
 rooster_summer_pca = prcomp(rooster_scaled_sum)
-#PCA values for PC1
-rooster_summer_pca$x[,'PC1']
 
-
-##????
-eigs <- rooster_summer_pca$sdev^2
-rbind(SD = sqrt(eigs),
-      Proportion = eigs/sum(eigs),
-      Cumulative = cumsum(eigs)/sum(eigs))
+# #PCA values for PC1
+# rooster_summer_pca$x[,'PC1']
+# ##????
+# eigs <- rooster_summer_pca$sdev^2
+# rbind(SD = sqrt(eigs),
+#       Proportion = eigs/sum(eigs),
+#       Cumulative = cumsum(eigs)/sum(eigs))
 
 #shows variables per component
 fviz_eig(rooster_summer_pca, addlabels = TRUE)
@@ -391,9 +560,91 @@ fviz_eig(rooster_summer_pca, addlabels = TRUE)
 #biplot
 fviz_pca_biplot(rooster_summer_pca)
 
-####ROOSTER WINTER#####
+###SPRING
+rooster_spring_mean = rooster_spring %>% 
+  rowwise() %>%
+  mutate(
+    PPT_mean = mean(c_across(starts_with("PPT")), na.rm = TRUE),
+    Tmean_mean = mean(c_across(starts_with("Tmean")), na.rm = TRUE),
+    Tmin_mean = mean(c_across(starts_with("Tmin")), na.rm = TRUE),
+    Tmax_mean = mean(c_across(starts_with("Tmax")), na.rm = TRUE),
+    Vpdmax_mean = mean(c_across(starts_with("Vpd")), na.rm = TRUE)
+  ) %>%
+  ungroup() %>% 
+  subset(select = -c(PPT2_03:Vpdmax2_05)) 
+
+#monthly climate plot for rooster all on one
+# ggplot(data = rooster_spring_long)+
+#   geom_line(aes(x= year, y = value,colour = variable))
+# #mean of climate variables for spring
+# ggplot(data = rooster_spring_mean)+
+#   geom_line(aes(x= year, y = value,colour = variable))
+
+###PCA spring rooster ####
+
+rooster_scaled_spring = scale(rooster_spring_mean[,2:6])
+
+rooster_spring_pca = prcomp(rooster_scaled_spring)
+
+# #PCA values for PC1
+# rooster_spring_pca$x[,'PC1']
+# ##????
+# eigs <- rooster_spring_pca$sdev^2
+# rbind(SD = sqrt(eigs),
+#       Proportion = eigs/sum(eigs),
+#       Cumulative = cumsum(eigs)/sum(eigs))
+
+#shows variables per component
+fviz_eig(rooster_spring_pca, addlabels = TRUE)
+
+#biplot
+fviz_pca_biplot(rooster_spring_pca)
+
+
+####FALL
+rooster_fall_mean = rooster_fall %>% 
+  rowwise() %>%
+  mutate(
+    PPT_mean = mean(c_across(starts_with("PPT")), na.rm = TRUE),
+    Tmean_mean = mean(c_across(starts_with("Tmean")), na.rm = TRUE),
+    Tmin_mean = mean(c_across(starts_with("Tmin")), na.rm = TRUE),
+    Tmax_mean = mean(c_across(starts_with("Tmax")), na.rm = TRUE),
+    Vpdmax_mean = mean(c_across(starts_with("Vpd")), na.rm = TRUE)
+  ) %>%
+  ungroup() %>% 
+  subset(select = -c(PPT2_09:Vpdmax2_11))
+
+#monthly climate plot for rooster all on one
+# ggplot(data = rooster_fall_long)+
+#   geom_line(aes(x= year, y = value,colour = variable))
+# #mean of climate variables for fall
+# ggplot(data = rooster_fall_mean)+
+#   geom_line(aes(x= year, y = value,colour = variable))
+
+###PCA fall rooster ####
+
+rooster_scaled_fall = scale(rooster_fall_mean[,2:6])
+
+rooster_fall_pca = prcomp(rooster_scaled_fall)
+
+# #PCA values for PC1
+# rooster_fall_pca$x[,'PC1']
+# ##????
+# eigs <- rooster_fall_pca$sdev^2
+# rbind(SD = sqrt(eigs),
+#       Proportion = eigs/sum(eigs),
+#       Cumulative = cumsum(eigs)/sum(eigs))
+
+#shows variables per component
+fviz_eig(rooster_fall_pca, addlabels = TRUE)
+
+#biplot
+fviz_pca_biplot(rooster_fall_pca)
+
+####rooster WINTER#####
 rooster_winter = clim_rooster_month %>% 
   select(starts_with("year"),ends_with("01"), ends_with("02"), ends_with("12"))
+
 
 rooster_winter_reorg = rooster_winter %>% 
   mutate(
@@ -419,34 +670,33 @@ rooster_winter_reorg$mean_winter_Vpd = NA
 # Calculate the mean for the previous year with the current year for each variable
 N_years = nrow(rooster_winter_reorg)
 rooster_winter_reorg$mean_winter_PPT[2:N_years] = rowMeans(cbind(rooster_winter_reorg$winter_prev_PPT[1:(N_years-1)], 
-                                                             rooster_winter_reorg$winter_current_PPT[2:N_years]), na.rm = TRUE)
+                                                                 rooster_winter_reorg$winter_current_PPT[2:N_years]), na.rm = TRUE)
 rooster_winter_reorg$mean_winter_Tmean[2:N_years] = rowMeans(cbind(rooster_winter_reorg$winter_prev_Tmean[1:(N_years-1)], 
-                                                               rooster_winter_reorg$winter_current_Tmean[2:N_years]), na.rm = TRUE)
+                                                                   rooster_winter_reorg$winter_current_Tmean[2:N_years]), na.rm = TRUE)
 rooster_winter_reorg$mean_winter_Tmin[2:N_years] = rowMeans(cbind(rooster_winter_reorg$winter_prev_Tmin[1:(N_years-1)], 
-                                                              rooster_winter_reorg$winter_current_Tmin[2:N_years]), na.rm = TRUE)
+                                                                  rooster_winter_reorg$winter_current_Tmin[2:N_years]), na.rm = TRUE)
 rooster_winter_reorg$mean_winter_Tmax[2:N_years] = rowMeans(cbind(rooster_winter_reorg$winter_prev_Tmax[1:(N_years-1)], 
-                                                              rooster_winter_reorg$winter_current_Tmax[2:N_years]), na.rm = TRUE)
+                                                                  rooster_winter_reorg$winter_current_Tmax[2:N_years]), na.rm = TRUE)
 rooster_winter_reorg$mean_winter_Vpd[2:N_years] = rowMeans(cbind(rooster_winter_reorg$winter_prev_Vpd[1:(N_years-1)], 
-                                                             rooster_winter_reorg$winter_current_Vpd[2:N_years]), na.rm = TRUE) 
+                                                                 rooster_winter_reorg$winter_current_Vpd[2:N_years]), na.rm = TRUE) 
 
 rooster_winter_mean = rooster_winter_reorg %>% 
   select(-c(winter_prev_PPT:winter_current_Vpd)) %>% 
   slice(-1) 
 
 
-
 ###PCA WINTER rooster
 rooster_scaled_winter = scale(rooster_winter_mean[,2:6])
 
 rooster_winter_pca = prcomp(rooster_scaled_winter)
-#PCA values for PC1
-rooster_winter_pca$x[,'PC1']
 
-##????
-eigs <- rooster_winter_pca$sdev^2
-rbind(SD = sqrt(eigs),
-      Proportion = eigs/sum(eigs),
-      Cumulative = cumsum(eigs)/sum(eigs))
+# #PCA values for PC1
+# rooster_winter_pca$x[,'PC1']
+# ##????
+# eigs <- rooster_winter_pca$sdev^2
+# rbind(SD = sqrt(eigs),
+#       Proportion = eigs/sum(eigs),
+#       Cumulative = cumsum(eigs)/sum(eigs))
 
 #shows variables per component
 fviz_eig(rooster_winter_pca, addlabels = TRUE)
@@ -455,12 +705,18 @@ fviz_eig(rooster_winter_pca, addlabels = TRUE)
 fviz_pca_biplot(rooster_winter_pca)
 
 rooster_PCA = data.frame(year=rooster_summer_mean$year, site = "ROOSTER",
-                     PCA1_summer = rooster_summer_pca$x[,'PC1'],
-                     PCA2_summer = rooster_summer_pca$x[,'PC2'],
-                     PCA1_winter = rooster_winter_pca$x[,'PC1'],
-                     PCA2_winter = rooster_winter_pca$x[,'PC2'])
+                         PCA1_summer = rooster_summer_pca$x[,'PC1'],
+                         PCA2_summer = rooster_summer_pca$x[,'PC2'],
+                         PCA1_spring = rooster_spring_pca$x[,'PC1'],
+                         PCA2_spring = rooster_spring_pca$x[,'PC2'],
+                         PCA1_fall = rooster_fall_pca$x[,'PC1'],
+                         PCA2_fall = rooster_fall_pca$x[,'PC2'],
+                         PCA1_winter = rooster_winter_pca$x[,'PC1'],
+                         PCA2_winter = rooster_winter_pca$x[,'PC2'])
+
 rooster_PCA$year = as.numeric(rooster_PCA$year)
-saveRDS(rooster_PCA, "rooster_PCA.RDS")
+saveRDS(rooster_PCA, "rooster_PCA_mean.RDS")
+
 
 
 ############SYLVANIA ###########################################
@@ -472,11 +728,12 @@ clim_sylvania_month <- prism_long |>
   select(-loc) |>
   drop_na()
 
-sylvania_summer = clim_sylvania_month %>% 
+sylvania_summer = subset(clim_sylvania_month, year>1949)%>% 
   select(starts_with("year"),ends_with("06"), ends_with("07"), ends_with("08"))
-# sylvania_summer_time = sylvania_summer
-# sylvania_summer_time$year = 1:nrow(sylvania_summer)
-sylvania_summer_long = melt(sylvania_summer, id.vars = "year")
+sylvania_spring = subset(clim_sylvania_month, year>1949) %>% 
+  select(starts_with("year"),ends_with("03"), ends_with("04"), ends_with("05"))
+sylvania_fall = subset(clim_sylvania_month, year>1949) %>% 
+  select(starts_with("year"),ends_with("09"), ends_with("10"), ends_with("11"))
 
 sylvania_summer_mean = sylvania_summer %>% 
   rowwise() %>%
@@ -488,8 +745,7 @@ sylvania_summer_mean = sylvania_summer %>%
     Vpdmax_mean = mean(c_across(starts_with("Vpd")), na.rm = TRUE)
   ) %>%
   ungroup() %>% 
-  subset(select = -c(PPT2_06:Vpdmax2_08)) %>% 
-  slice(-1)
+  subset(select = -c(PPT2_06:Vpdmax2_08)) 
 
 #monthly climate plot for sylvania all on one
 # ggplot(data = sylvania_summer_long)+
@@ -503,15 +759,14 @@ sylvania_summer_mean = sylvania_summer %>%
 sylvania_scaled_sum = scale(sylvania_summer_mean[,2:6])
 
 sylvania_summer_pca = prcomp(sylvania_scaled_sum)
-#PCA values for PC1
-sylvania_summer_pca$x[,'PC1']
 
-
-##????
-eigs <- sylvania_summer_pca$sdev^2
-rbind(SD = sqrt(eigs),
-      Proportion = eigs/sum(eigs),
-      Cumulative = cumsum(eigs)/sum(eigs))
+# #PCA values for PC1
+# sylvania_summer_pca$x[,'PC1']
+# ##????
+# eigs <- sylvania_summer_pca$sdev^2
+# rbind(SD = sqrt(eigs),
+#       Proportion = eigs/sum(eigs),
+#       Cumulative = cumsum(eigs)/sum(eigs))
 
 #shows variables per component
 fviz_eig(sylvania_summer_pca, addlabels = TRUE)
@@ -519,9 +774,91 @@ fviz_eig(sylvania_summer_pca, addlabels = TRUE)
 #biplot
 fviz_pca_biplot(sylvania_summer_pca)
 
-####SYLVANIA WINTER#####
+###SPRING
+sylvania_spring_mean = sylvania_spring %>% 
+  rowwise() %>%
+  mutate(
+    PPT_mean = mean(c_across(starts_with("PPT")), na.rm = TRUE),
+    Tmean_mean = mean(c_across(starts_with("Tmean")), na.rm = TRUE),
+    Tmin_mean = mean(c_across(starts_with("Tmin")), na.rm = TRUE),
+    Tmax_mean = mean(c_across(starts_with("Tmax")), na.rm = TRUE),
+    Vpdmax_mean = mean(c_across(starts_with("Vpd")), na.rm = TRUE)
+  ) %>%
+  ungroup() %>% 
+  subset(select = -c(PPT2_03:Vpdmax2_05)) 
+
+#monthly climate plot for sylvania all on one
+# ggplot(data = sylvania_spring_long)+
+#   geom_line(aes(x= year, y = value,colour = variable))
+# #mean of climate variables for spring
+# ggplot(data = sylvania_spring_mean)+
+#   geom_line(aes(x= year, y = value,colour = variable))
+
+###PCA spring sylvania ####
+
+sylvania_scaled_spring = scale(sylvania_spring_mean[,2:6])
+
+sylvania_spring_pca = prcomp(sylvania_scaled_spring)
+
+# #PCA values for PC1
+# sylvania_spring_pca$x[,'PC1']
+# ##????
+# eigs <- sylvania_spring_pca$sdev^2
+# rbind(SD = sqrt(eigs),
+#       Proportion = eigs/sum(eigs),
+#       Cumulative = cumsum(eigs)/sum(eigs))
+
+#shows variables per component
+fviz_eig(sylvania_spring_pca, addlabels = TRUE)
+
+#biplot
+fviz_pca_biplot(sylvania_spring_pca)
+
+
+####FALL
+sylvania_fall_mean = sylvania_fall %>% 
+  rowwise() %>%
+  mutate(
+    PPT_mean = mean(c_across(starts_with("PPT")), na.rm = TRUE),
+    Tmean_mean = mean(c_across(starts_with("Tmean")), na.rm = TRUE),
+    Tmin_mean = mean(c_across(starts_with("Tmin")), na.rm = TRUE),
+    Tmax_mean = mean(c_across(starts_with("Tmax")), na.rm = TRUE),
+    Vpdmax_mean = mean(c_across(starts_with("Vpd")), na.rm = TRUE)
+  ) %>%
+  ungroup() %>% 
+  subset(select = -c(PPT2_09:Vpdmax2_11)) 
+
+#monthly climate plot for sylvania all on one
+# ggplot(data = sylvania_fall_long)+
+#   geom_line(aes(x= year, y = value,colour = variable))
+# #mean of climate variables for fall
+# ggplot(data = sylvania_fall_mean)+
+#   geom_line(aes(x= year, y = value,colour = variable))
+
+###PCA fall sylvania ####
+
+sylvania_scaled_fall = scale(sylvania_fall_mean[,2:6])
+
+sylvania_fall_pca = prcomp(sylvania_scaled_fall)
+
+# #PCA values for PC1
+# sylvania_fall_pca$x[,'PC1']
+# ##????
+# eigs <- sylvania_fall_pca$sdev^2
+# rbind(SD = sqrt(eigs),
+#       Proportion = eigs/sum(eigs),
+#       Cumulative = cumsum(eigs)/sum(eigs))
+
+#shows variables per component
+fviz_eig(sylvania_fall_pca, addlabels = TRUE)
+
+#biplot
+fviz_pca_biplot(sylvania_fall_pca)
+
+####sylvania WINTER#####
 sylvania_winter = clim_sylvania_month %>% 
   select(starts_with("year"),ends_with("01"), ends_with("02"), ends_with("12"))
+
 
 sylvania_winter_reorg = sylvania_winter %>% 
   mutate(
@@ -547,34 +884,33 @@ sylvania_winter_reorg$mean_winter_Vpd = NA
 # Calculate the mean for the previous year with the current year for each variable
 N_years = nrow(sylvania_winter_reorg)
 sylvania_winter_reorg$mean_winter_PPT[2:N_years] = rowMeans(cbind(sylvania_winter_reorg$winter_prev_PPT[1:(N_years-1)], 
-                                                                 sylvania_winter_reorg$winter_current_PPT[2:N_years]), na.rm = TRUE)
+                                                                  sylvania_winter_reorg$winter_current_PPT[2:N_years]), na.rm = TRUE)
 sylvania_winter_reorg$mean_winter_Tmean[2:N_years] = rowMeans(cbind(sylvania_winter_reorg$winter_prev_Tmean[1:(N_years-1)], 
-                                                                   sylvania_winter_reorg$winter_current_Tmean[2:N_years]), na.rm = TRUE)
+                                                                    sylvania_winter_reorg$winter_current_Tmean[2:N_years]), na.rm = TRUE)
 sylvania_winter_reorg$mean_winter_Tmin[2:N_years] = rowMeans(cbind(sylvania_winter_reorg$winter_prev_Tmin[1:(N_years-1)], 
-                                                                  sylvania_winter_reorg$winter_current_Tmin[2:N_years]), na.rm = TRUE)
+                                                                   sylvania_winter_reorg$winter_current_Tmin[2:N_years]), na.rm = TRUE)
 sylvania_winter_reorg$mean_winter_Tmax[2:N_years] = rowMeans(cbind(sylvania_winter_reorg$winter_prev_Tmax[1:(N_years-1)], 
-                                                                  sylvania_winter_reorg$winter_current_Tmax[2:N_years]), na.rm = TRUE)
+                                                                   sylvania_winter_reorg$winter_current_Tmax[2:N_years]), na.rm = TRUE)
 sylvania_winter_reorg$mean_winter_Vpd[2:N_years] = rowMeans(cbind(sylvania_winter_reorg$winter_prev_Vpd[1:(N_years-1)], 
-                                                                 sylvania_winter_reorg$winter_current_Vpd[2:N_years]), na.rm = TRUE) 
+                                                                  sylvania_winter_reorg$winter_current_Vpd[2:N_years]), na.rm = TRUE) 
 
 sylvania_winter_mean = sylvania_winter_reorg %>% 
   select(-c(winter_prev_PPT:winter_current_Vpd)) %>% 
   slice(-1) 
 
 
-
 ###PCA WINTER sylvania
 sylvania_scaled_winter = scale(sylvania_winter_mean[,2:6])
 
 sylvania_winter_pca = prcomp(sylvania_scaled_winter)
-#PCA values for PC1
-sylvania_winter_pca$x[,'PC1']
 
-##????
-eigs <- sylvania_winter_pca$sdev^2
-rbind(SD = sqrt(eigs),
-      Proportion = eigs/sum(eigs),
-      Cumulative = cumsum(eigs)/sum(eigs))
+# #PCA values for PC1
+# sylvania_winter_pca$x[,'PC1']
+# ##????
+# eigs <- sylvania_winter_pca$sdev^2
+# rbind(SD = sqrt(eigs),
+#       Proportion = eigs/sum(eigs),
+#       Cumulative = cumsum(eigs)/sum(eigs))
 
 #shows variables per component
 fviz_eig(sylvania_winter_pca, addlabels = TRUE)
@@ -583,12 +919,18 @@ fviz_eig(sylvania_winter_pca, addlabels = TRUE)
 fviz_pca_biplot(sylvania_winter_pca)
 
 sylvania_PCA = data.frame(year=sylvania_summer_mean$year, site = "SYLVANIA",
-                         PCA1_summer = sylvania_summer_pca$x[,'PC1'],
-                         PCA2_summer = sylvania_summer_pca$x[,'PC2'],
-                         PCA1_winter = sylvania_winter_pca$x[,'PC1'],
-                         PCA2_winter = sylvania_winter_pca$x[,'PC2'])
+                          PCA1_summer = sylvania_summer_pca$x[,'PC1'],
+                          PCA2_summer = sylvania_summer_pca$x[,'PC2'],
+                          PCA1_spring = sylvania_spring_pca$x[,'PC1'],
+                          PCA2_spring = sylvania_spring_pca$x[,'PC2'],
+                          PCA1_fall = sylvania_fall_pca$x[,'PC1'],
+                          PCA2_fall = sylvania_fall_pca$x[,'PC2'],
+                          PCA1_winter = sylvania_winter_pca$x[,'PC1'],
+                          PCA2_winter = sylvania_winter_pca$x[,'PC2'])
+
 sylvania_PCA$year = as.numeric(sylvania_PCA$year)
-saveRDS(sylvania_PCA, "sylvania_PCA.RDS")
+saveRDS(sylvania_PCA, "sylvania_PCA_mean.RDS")
+
 ############HARVARD ###########################################
 clim_harvard_month <- prism_long |>
   filter(loc == 'HARVARD') |>
@@ -598,11 +940,12 @@ clim_harvard_month <- prism_long |>
   select(-loc) |>
   drop_na()
 
-harvard_summer = clim_harvard_month %>% 
+harvard_summer = subset(clim_harvard_month, year>1949)%>% 
   select(starts_with("year"),ends_with("06"), ends_with("07"), ends_with("08"))
-# harvard_summer_time = harvard_summer
-# harvard_summer_time$year = 1:nrow(harvard_summer)
-harvard_summer_long = melt(harvard_summer, id.vars = "year")
+harvard_spring = subset(clim_harvard_month, year>1949) %>% 
+  select(starts_with("year"),ends_with("03"), ends_with("04"), ends_with("05"))
+harvard_fall = subset(clim_harvard_month, year>1949) %>% 
+  select(starts_with("year"),ends_with("09"), ends_with("10"), ends_with("11"))
 
 harvard_summer_mean = harvard_summer %>% 
   rowwise() %>%
@@ -614,8 +957,7 @@ harvard_summer_mean = harvard_summer %>%
     Vpdmax_mean = mean(c_across(starts_with("Vpd")), na.rm = TRUE)
   ) %>%
   ungroup() %>% 
-  subset(select = -c(PPT2_06:Vpdmax2_08)) %>% 
-  slice(-1)
+  subset(select = -c(PPT2_06:Vpdmax2_08)) 
 
 #monthly climate plot for harvard all on one
 # ggplot(data = harvard_summer_long)+
@@ -629,15 +971,14 @@ harvard_summer_mean = harvard_summer %>%
 harvard_scaled_sum = scale(harvard_summer_mean[,2:6])
 
 harvard_summer_pca = prcomp(harvard_scaled_sum)
-#PCA values for PC1
-harvard_summer_pca$x[,'PC1']
 
-
-##????
-eigs <- harvard_summer_pca$sdev^2
-rbind(SD = sqrt(eigs),
-      Proportion = eigs/sum(eigs),
-      Cumulative = cumsum(eigs)/sum(eigs))
+# #PCA values for PC1
+# harvard_summer_pca$x[,'PC1']
+# ##????
+# eigs <- harvard_summer_pca$sdev^2
+# rbind(SD = sqrt(eigs),
+#       Proportion = eigs/sum(eigs),
+#       Cumulative = cumsum(eigs)/sum(eigs))
 
 #shows variables per component
 fviz_eig(harvard_summer_pca, addlabels = TRUE)
@@ -645,9 +986,91 @@ fviz_eig(harvard_summer_pca, addlabels = TRUE)
 #biplot
 fviz_pca_biplot(harvard_summer_pca)
 
+###SPRING
+harvard_spring_mean = harvard_spring %>% 
+  rowwise() %>%
+  mutate(
+    PPT_mean = mean(c_across(starts_with("PPT")), na.rm = TRUE),
+    Tmean_mean = mean(c_across(starts_with("Tmean")), na.rm = TRUE),
+    Tmin_mean = mean(c_across(starts_with("Tmin")), na.rm = TRUE),
+    Tmax_mean = mean(c_across(starts_with("Tmax")), na.rm = TRUE),
+    Vpdmax_mean = mean(c_across(starts_with("Vpd")), na.rm = TRUE)
+  ) %>%
+  ungroup() %>% 
+  subset(select = -c(PPT2_03:Vpdmax2_05)) 
+
+#monthly climate plot for harvard all on one
+# ggplot(data = harvard_spring_long)+
+#   geom_line(aes(x= year, y = value,colour = variable))
+# #mean of climate variables for spring
+# ggplot(data = harvard_spring_mean)+
+#   geom_line(aes(x= year, y = value,colour = variable))
+
+###PCA spring harvard ####
+
+harvard_scaled_spring = scale(harvard_spring_mean[,2:6])
+
+harvard_spring_pca = prcomp(harvard_scaled_spring)
+
+# #PCA values for PC1
+# harvard_spring_pca$x[,'PC1']
+# ##????
+# eigs <- harvard_spring_pca$sdev^2
+# rbind(SD = sqrt(eigs),
+#       Proportion = eigs/sum(eigs),
+#       Cumulative = cumsum(eigs)/sum(eigs))
+
+#shows variables per component
+fviz_eig(harvard_spring_pca, addlabels = TRUE)
+
+#biplot
+fviz_pca_biplot(harvard_spring_pca)
+
+
+####FALL
+harvard_fall_mean = harvard_fall %>% 
+  rowwise() %>%
+  mutate(
+    PPT_mean = mean(c_across(starts_with("PPT")), na.rm = TRUE),
+    Tmean_mean = mean(c_across(starts_with("Tmean")), na.rm = TRUE),
+    Tmin_mean = mean(c_across(starts_with("Tmin")), na.rm = TRUE),
+    Tmax_mean = mean(c_across(starts_with("Tmax")), na.rm = TRUE),
+    Vpdmax_mean = mean(c_across(starts_with("Vpd")), na.rm = TRUE)
+  ) %>%
+  ungroup() %>% 
+  subset(select = -c(PPT2_09:Vpdmax2_11)) 
+
+#monthly climate plot for harvard all on one
+# ggplot(data = harvard_fall_long)+
+#   geom_line(aes(x= year, y = value,colour = variable))
+# #mean of climate variables for fall
+# ggplot(data = harvard_fall_mean)+
+#   geom_line(aes(x= year, y = value,colour = variable))
+
+###PCA fall harvard ####
+
+harvard_scaled_fall = scale(harvard_fall_mean[,2:6])
+
+harvard_fall_pca = prcomp(harvard_scaled_fall)
+
+# #PCA values for PC1
+# harvard_fall_pca$x[,'PC1']
+# ##????
+# eigs <- harvard_fall_pca$sdev^2
+# rbind(SD = sqrt(eigs),
+#       Proportion = eigs/sum(eigs),
+#       Cumulative = cumsum(eigs)/sum(eigs))
+
+#shows variables per component
+fviz_eig(harvard_fall_pca, addlabels = TRUE)
+
+#biplot
+fviz_pca_biplot(harvard_fall_pca)
+
 ####harvard WINTER#####
 harvard_winter = clim_harvard_month %>% 
   select(starts_with("year"),ends_with("01"), ends_with("02"), ends_with("12"))
+
 
 harvard_winter_reorg = harvard_winter %>% 
   mutate(
@@ -673,34 +1096,33 @@ harvard_winter_reorg$mean_winter_Vpd = NA
 # Calculate the mean for the previous year with the current year for each variable
 N_years = nrow(harvard_winter_reorg)
 harvard_winter_reorg$mean_winter_PPT[2:N_years] = rowMeans(cbind(harvard_winter_reorg$winter_prev_PPT[1:(N_years-1)], 
-                                                                  harvard_winter_reorg$winter_current_PPT[2:N_years]), na.rm = TRUE)
+                                                                 harvard_winter_reorg$winter_current_PPT[2:N_years]), na.rm = TRUE)
 harvard_winter_reorg$mean_winter_Tmean[2:N_years] = rowMeans(cbind(harvard_winter_reorg$winter_prev_Tmean[1:(N_years-1)], 
-                                                                    harvard_winter_reorg$winter_current_Tmean[2:N_years]), na.rm = TRUE)
+                                                                   harvard_winter_reorg$winter_current_Tmean[2:N_years]), na.rm = TRUE)
 harvard_winter_reorg$mean_winter_Tmin[2:N_years] = rowMeans(cbind(harvard_winter_reorg$winter_prev_Tmin[1:(N_years-1)], 
-                                                                   harvard_winter_reorg$winter_current_Tmin[2:N_years]), na.rm = TRUE)
+                                                                  harvard_winter_reorg$winter_current_Tmin[2:N_years]), na.rm = TRUE)
 harvard_winter_reorg$mean_winter_Tmax[2:N_years] = rowMeans(cbind(harvard_winter_reorg$winter_prev_Tmax[1:(N_years-1)], 
-                                                                   harvard_winter_reorg$winter_current_Tmax[2:N_years]), na.rm = TRUE)
+                                                                  harvard_winter_reorg$winter_current_Tmax[2:N_years]), na.rm = TRUE)
 harvard_winter_reorg$mean_winter_Vpd[2:N_years] = rowMeans(cbind(harvard_winter_reorg$winter_prev_Vpd[1:(N_years-1)], 
-                                                                  harvard_winter_reorg$winter_current_Vpd[2:N_years]), na.rm = TRUE) 
+                                                                 harvard_winter_reorg$winter_current_Vpd[2:N_years]), na.rm = TRUE) 
 
 harvard_winter_mean = harvard_winter_reorg %>% 
   select(-c(winter_prev_PPT:winter_current_Vpd)) %>% 
   slice(-1) 
 
 
-
 ###PCA WINTER harvard
 harvard_scaled_winter = scale(harvard_winter_mean[,2:6])
 
 harvard_winter_pca = prcomp(harvard_scaled_winter)
-#PCA values for PC1
-harvard_winter_pca$x[,'PC1']
 
-##????
-eigs <- harvard_winter_pca$sdev^2
-rbind(SD = sqrt(eigs),
-      Proportion = eigs/sum(eigs),
-      Cumulative = cumsum(eigs)/sum(eigs))
+# #PCA values for PC1
+# harvard_winter_pca$x[,'PC1']
+# ##????
+# eigs <- harvard_winter_pca$sdev^2
+# rbind(SD = sqrt(eigs),
+#       Proportion = eigs/sum(eigs),
+#       Cumulative = cumsum(eigs)/sum(eigs))
 
 #shows variables per component
 fviz_eig(harvard_winter_pca, addlabels = TRUE)
@@ -709,12 +1131,18 @@ fviz_eig(harvard_winter_pca, addlabels = TRUE)
 fviz_pca_biplot(harvard_winter_pca)
 
 harvard_PCA = data.frame(year=harvard_summer_mean$year, site = "HARVARD",
-                          PCA1_summer = harvard_summer_pca$x[,'PC1'],
-                          PCA2_summer = harvard_summer_pca$x[,'PC2'],
-                          PCA1_winter = harvard_winter_pca$x[,'PC1'],
-                          PCA2_winter = harvard_winter_pca$x[,'PC2'])
+                         PCA1_summer = harvard_summer_pca$x[,'PC1'],
+                         PCA2_summer = harvard_summer_pca$x[,'PC2'],
+                         PCA1_spring = harvard_spring_pca$x[,'PC1'],
+                         PCA2_spring = harvard_spring_pca$x[,'PC2'],
+                         PCA1_fall = harvard_fall_pca$x[,'PC1'],
+                         PCA2_fall = harvard_fall_pca$x[,'PC2'],
+                         PCA1_winter = harvard_winter_pca$x[,'PC1'],
+                         PCA2_winter = harvard_winter_pca$x[,'PC2'])
+
 harvard_PCA$year = as.numeric(harvard_PCA$year)
-saveRDS(harvard_PCA, "harvard_PCA.RDS")
+saveRDS(harvard_PCA, "harvard_PCA_mean.RDS")
+
 
 ############HMC ###########################################
 clim_hmc_month <- prism_long |>
@@ -725,11 +1153,12 @@ clim_hmc_month <- prism_long |>
   select(-loc) |>
   drop_na()
 
-hmc_summer = clim_hmc_month %>% 
+hmc_summer = subset(clim_hmc_month, year>1949)%>% 
   select(starts_with("year"),ends_with("06"), ends_with("07"), ends_with("08"))
-# hmc_summer_time = hmc_summer
-# hmc_summer_time$year = 1:nrow(hmc_summer)
-hmc_summer_long = melt(hmc_summer, id.vars = "year")
+hmc_spring = subset(clim_hmc_month, year>1949) %>% 
+  select(starts_with("year"),ends_with("03"), ends_with("04"), ends_with("05"))
+hmc_fall = subset(clim_hmc_month, year>1949) %>% 
+  select(starts_with("year"),ends_with("09"), ends_with("10"), ends_with("11"))
 
 hmc_summer_mean = hmc_summer %>% 
   rowwise() %>%
@@ -741,8 +1170,7 @@ hmc_summer_mean = hmc_summer %>%
     Vpdmax_mean = mean(c_across(starts_with("Vpd")), na.rm = TRUE)
   ) %>%
   ungroup() %>% 
-  subset(select = -c(PPT2_06:Vpdmax2_08)) %>% 
-  slice(-1)
+  subset(select = -c(PPT2_06:Vpdmax2_08)) 
 
 #monthly climate plot for hmc all on one
 # ggplot(data = hmc_summer_long)+
@@ -756,15 +1184,14 @@ hmc_summer_mean = hmc_summer %>%
 hmc_scaled_sum = scale(hmc_summer_mean[,2:6])
 
 hmc_summer_pca = prcomp(hmc_scaled_sum)
-#PCA values for PC1
-hmc_summer_pca$x[,'PC1']
 
-
-##????
-eigs <- hmc_summer_pca$sdev^2
-rbind(SD = sqrt(eigs),
-      Proportion = eigs/sum(eigs),
-      Cumulative = cumsum(eigs)/sum(eigs))
+# #PCA values for PC1
+# hmc_summer_pca$x[,'PC1']
+# ##????
+# eigs <- hmc_summer_pca$sdev^2
+# rbind(SD = sqrt(eigs),
+#       Proportion = eigs/sum(eigs),
+#       Cumulative = cumsum(eigs)/sum(eigs))
 
 #shows variables per component
 fviz_eig(hmc_summer_pca, addlabels = TRUE)
@@ -772,9 +1199,91 @@ fviz_eig(hmc_summer_pca, addlabels = TRUE)
 #biplot
 fviz_pca_biplot(hmc_summer_pca)
 
+###SPRING
+hmc_spring_mean = hmc_spring %>% 
+  rowwise() %>%
+  mutate(
+    PPT_mean = mean(c_across(starts_with("PPT")), na.rm = TRUE),
+    Tmean_mean = mean(c_across(starts_with("Tmean")), na.rm = TRUE),
+    Tmin_mean = mean(c_across(starts_with("Tmin")), na.rm = TRUE),
+    Tmax_mean = mean(c_across(starts_with("Tmax")), na.rm = TRUE),
+    Vpdmax_mean = mean(c_across(starts_with("Vpd")), na.rm = TRUE)
+  ) %>%
+  ungroup() %>% 
+  subset(select = -c(PPT2_03:Vpdmax2_05)) 
+
+#monthly climate plot for hmc all on one
+# ggplot(data = hmc_spring_long)+
+#   geom_line(aes(x= year, y = value,colour = variable))
+# #mean of climate variables for spring
+# ggplot(data = hmc_spring_mean)+
+#   geom_line(aes(x= year, y = value,colour = variable))
+
+###PCA spring hmc ####
+
+hmc_scaled_spring = scale(hmc_spring_mean[,2:6])
+
+hmc_spring_pca = prcomp(hmc_scaled_spring)
+
+# #PCA values for PC1
+# hmc_spring_pca$x[,'PC1']
+# ##????
+# eigs <- hmc_spring_pca$sdev^2
+# rbind(SD = sqrt(eigs),
+#       Proportion = eigs/sum(eigs),
+#       Cumulative = cumsum(eigs)/sum(eigs))
+
+#shows variables per component
+fviz_eig(hmc_spring_pca, addlabels = TRUE)
+
+#biplot
+fviz_pca_biplot(hmc_spring_pca)
+
+
+####FALL
+hmc_fall_mean = hmc_fall %>% 
+  rowwise() %>%
+  mutate(
+    PPT_mean = mean(c_across(starts_with("PPT")), na.rm = TRUE),
+    Tmean_mean = mean(c_across(starts_with("Tmean")), na.rm = TRUE),
+    Tmin_mean = mean(c_across(starts_with("Tmin")), na.rm = TRUE),
+    Tmax_mean = mean(c_across(starts_with("Tmax")), na.rm = TRUE),
+    Vpdmax_mean = mean(c_across(starts_with("Vpd")), na.rm = TRUE)
+  ) %>%
+  ungroup() %>% 
+  subset(select = -c(PPT2_09:Vpdmax2_11)) 
+
+#monthly climate plot for hmc all on one
+# ggplot(data = hmc_fall_long)+
+#   geom_line(aes(x= year, y = value,colour = variable))
+# #mean of climate variables for fall
+# ggplot(data = hmc_fall_mean)+
+#   geom_line(aes(x= year, y = value,colour = variable))
+
+###PCA fall hmc ####
+
+hmc_scaled_fall = scale(hmc_fall_mean[,2:6])
+
+hmc_fall_pca = prcomp(hmc_scaled_fall)
+
+# #PCA values for PC1
+# hmc_fall_pca$x[,'PC1']
+# ##????
+# eigs <- hmc_fall_pca$sdev^2
+# rbind(SD = sqrt(eigs),
+#       Proportion = eigs/sum(eigs),
+#       Cumulative = cumsum(eigs)/sum(eigs))
+
+#shows variables per component
+fviz_eig(hmc_fall_pca, addlabels = TRUE)
+
+#biplot
+fviz_pca_biplot(hmc_fall_pca)
+
 ####hmc WINTER#####
 hmc_winter = clim_hmc_month %>% 
   select(starts_with("year"),ends_with("01"), ends_with("02"), ends_with("12"))
+
 
 hmc_winter_reorg = hmc_winter %>% 
   mutate(
@@ -800,34 +1309,33 @@ hmc_winter_reorg$mean_winter_Vpd = NA
 # Calculate the mean for the previous year with the current year for each variable
 N_years = nrow(hmc_winter_reorg)
 hmc_winter_reorg$mean_winter_PPT[2:N_years] = rowMeans(cbind(hmc_winter_reorg$winter_prev_PPT[1:(N_years-1)], 
-                                                                 hmc_winter_reorg$winter_current_PPT[2:N_years]), na.rm = TRUE)
+                                                             hmc_winter_reorg$winter_current_PPT[2:N_years]), na.rm = TRUE)
 hmc_winter_reorg$mean_winter_Tmean[2:N_years] = rowMeans(cbind(hmc_winter_reorg$winter_prev_Tmean[1:(N_years-1)], 
-                                                                   hmc_winter_reorg$winter_current_Tmean[2:N_years]), na.rm = TRUE)
+                                                               hmc_winter_reorg$winter_current_Tmean[2:N_years]), na.rm = TRUE)
 hmc_winter_reorg$mean_winter_Tmin[2:N_years] = rowMeans(cbind(hmc_winter_reorg$winter_prev_Tmin[1:(N_years-1)], 
-                                                                  hmc_winter_reorg$winter_current_Tmin[2:N_years]), na.rm = TRUE)
+                                                              hmc_winter_reorg$winter_current_Tmin[2:N_years]), na.rm = TRUE)
 hmc_winter_reorg$mean_winter_Tmax[2:N_years] = rowMeans(cbind(hmc_winter_reorg$winter_prev_Tmax[1:(N_years-1)], 
-                                                                  hmc_winter_reorg$winter_current_Tmax[2:N_years]), na.rm = TRUE)
+                                                              hmc_winter_reorg$winter_current_Tmax[2:N_years]), na.rm = TRUE)
 hmc_winter_reorg$mean_winter_Vpd[2:N_years] = rowMeans(cbind(hmc_winter_reorg$winter_prev_Vpd[1:(N_years-1)], 
-                                                                 hmc_winter_reorg$winter_current_Vpd[2:N_years]), na.rm = TRUE) 
+                                                             hmc_winter_reorg$winter_current_Vpd[2:N_years]), na.rm = TRUE) 
 
 hmc_winter_mean = hmc_winter_reorg %>% 
   select(-c(winter_prev_PPT:winter_current_Vpd)) %>% 
   slice(-1) 
 
 
-
 ###PCA WINTER hmc
 hmc_scaled_winter = scale(hmc_winter_mean[,2:6])
 
 hmc_winter_pca = prcomp(hmc_scaled_winter)
-#PCA values for PC1
-hmc_winter_pca$x[,'PC1']
 
-##????
-eigs <- hmc_winter_pca$sdev^2
-rbind(SD = sqrt(eigs),
-      Proportion = eigs/sum(eigs),
-      Cumulative = cumsum(eigs)/sum(eigs))
+# #PCA values for PC1
+# hmc_winter_pca$x[,'PC1']
+# ##????
+# eigs <- hmc_winter_pca$sdev^2
+# rbind(SD = sqrt(eigs),
+#       Proportion = eigs/sum(eigs),
+#       Cumulative = cumsum(eigs)/sum(eigs))
 
 #shows variables per component
 fviz_eig(hmc_winter_pca, addlabels = TRUE)
@@ -836,23 +1344,32 @@ fviz_eig(hmc_winter_pca, addlabels = TRUE)
 fviz_pca_biplot(hmc_winter_pca)
 
 hmc_PCA = data.frame(year=hmc_summer_mean$year, site = "HMC",
-                         PCA1_summer = hmc_summer_pca$x[,'PC1'],
-                         PCA2_summer = hmc_summer_pca$x[,'PC2'],
-                         PCA1_winter = hmc_winter_pca$x[,'PC1'],
-                         PCA2_winter = hmc_winter_pca$x[,'PC2'])
+                     PCA1_summer = hmc_summer_pca$x[,'PC1'],
+                     PCA2_summer = hmc_summer_pca$x[,'PC2'],
+                     PCA1_spring = hmc_spring_pca$x[,'PC1'],
+                     PCA2_spring = hmc_spring_pca$x[,'PC2'],
+                     PCA1_fall = hmc_fall_pca$x[,'PC1'],
+                     PCA2_fall = hmc_fall_pca$x[,'PC2'],
+                     PCA1_winter = hmc_winter_pca$x[,'PC1'],
+                     PCA2_winter = hmc_winter_pca$x[,'PC2'])
+
 hmc_PCA$year = as.numeric(hmc_PCA$year)
-saveRDS(hmc_PCA, "hmc_PCA.RDS")
+saveRDS(hmc_PCA, "hmc_PCA_mean.RDS")
 
 
+#################ALL SITES######################
 #################ALL SITES######################
 #PCA1/2 for all sites for summer and winter 
 pca_sites = data.frame(year = character(0), 
                        site = character(0), PCA1_summer = numeric(0), 
-                       PCA2_summer = numeric(0), PCA1_winter = numeric(0), 
+                       PCA2_summer = numeric(0),PCA1_spring = numeric(0), 
+                       PCA2_spring = numeric(0), PCA1_fall = numeric(0), 
+                       PCA2_fall = numeric(0),
+                       PCA1_winter = numeric(0), 
                        PCA2_winter = numeric(0))
 
 pca_sites = rbind(goose_PCA, rooster_PCA, nrp_PCA, harvard_PCA, sylvania_PCA, hmc_PCA)
-saveRDS(pca_sites, "pca_sites.RDS")
+saveRDS(pca_sites, "pca_sites_mean.RDS")
 
 # Correlations by site
 # cor_goose_month <- cor(clim_goose_month)
