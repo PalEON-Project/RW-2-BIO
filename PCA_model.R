@@ -1,4 +1,5 @@
 library(dplyr)
+library(tidyr)
 
 #PCA model for averaged seasons and not averaged climate data
 #from 1951-2011
@@ -113,6 +114,352 @@ res_long <- res_df %>%
   pivot_longer(cols = GOOSE_ACRU:SYLVANIA_TSCA, names_to = "site_taxon", values_to = "value") %>%
   separate(site_taxon, into = c("site", "taxon"), sep = "_")
 
+
+###########################
+######################################################################################################################
+
+# foo = pollen_BVs_summary[, c('taxon', 'timeMid', 'bvc_mean', 'bvc_median')]
+# colnames(foo) = c('taxon', 'year_ybp', 'bvc_mean', 'bvc_median')
+
+foo = res_long %>% filter(site=='GOOSE')
+
+foo = foo %>% group_by(taxon) %>% arrange(taxon, year)
+
+year = sort(unique(foo$year))
+# year_map = data.frame(year = year, year_idx = seq(1950, 1950 + length(year) - 1))
+# year_map$year_k = seq(20.5, 0.5, by=-1)#round(year_map$year_ybp)
+# 
+# # 
+# # library(tibbletime)
+# # library(lubridate)
+# 
+# foo$year_k = year_map$year_k[match(foo$year_ybp, year_map$year_ybp)]
+# 
+# foo$year_idx = year_map$year_idx[match(foo$year_ybp, year_map$year_ybp)]
+foo$year_month = paste0(foo$year, '01') 
+
+foo$year_idx = ym(foo$year_month)
+
+foo_tbl = as_tbl_time(foo, index=year_idx)
+
+# does this work with groups?
+taxa_anom = foo_tbl %>% 
+  group_by(taxon) %>%
+  time_decompose(value, method="stl", merge = TRUE)  %>%
+  anomalize(remainder, method='iqr', alpha = 0.08) %>%
+  time_recompose()
+
+# pdf('figures/BVC_anom_grouped.pdf', width=10, height=14)
+p = taxa_anom %>%
+  plot_anomalies(ncol = 3, alpha_dots = 0.25)
+print(p)
+# dev.off()
+
+
+
+
+taxa = unique(foo$taxon)
+
+# taxa_anom_list = lapply(taxa, function(this_taxon){ subset(foo_tbl, taxon==this_taxon) %>% 
+#   # group_by(taxon) %>%
+#   time_decompose(bvc_mean, method="stl", merge = TRUE)  %>%
+#   anomalize(remainder, method='iqr', alpha = 0.08) %>%
+#   time_recompose()})
+# 
+# taxa_anom = taxa_anom_list %>% bind_rows()#.id = 'taxon')
+
+taxa_anom %>%
+  plot_anomalies(ncol = 3, alpha_dots = 0.25)
+
+taxa_anom %>%
+  plot_anomaly_decomposition(ncol = 3, alpha_dots = 0.25)
+
+
+
+# set frequency
+taxa_anom_test = foo_tbl %>% 
+  group_by(taxon) %>%
+  time_decompose(value, method="stl", merge = TRUE, frequency=10)  %>%
+  anomalize(remainder, method='iqr', alpha = 0.08) %>%
+  time_recompose()
+
+taxa = unique(foo$taxon)
+
+
+taxa_anom_test %>%
+  plot_anomalies(ncol = 3, alpha_dots = 0.25)
+
+ggplot(data=taxa_anom_test) +
+  geom_point(aes(x=year, y=observed)) +
+  geom_line(aes(x=year, y=(trend + season))) +
+  facet_wrap(~taxon, scales='free_y') #+
+  # scale_x_reverse()
+
+ggplot() +
+  geom_point(data=taxa_anom, aes(x=year, y=observed*100, 
+                                 colour=anomaly, shape=anomaly, size=anomaly)) +
+  # scale_x_reverse() + 
+  facet_wrap(~taxon, scales='free_y') +
+  # scale_colour_brewer(palette = "Set1", direction=-1) +
+  # scale_colour_manual(values = c('#b2df8a', '#33a02c')) +
+  scale_colour_manual(values = c('grey34', 'indianred')) +
+  scale_shape_manual(values=c(19, 19)) +
+  scale_fill_brewer(palette = "BrBG", direction=-1) +
+  scale_size_manual(values = c(1, 2)) +
+  theme_bw() +
+  xlab('year (YBP)') +
+  ylab('ABI (KG/m2)')
+
+
+ggplot() +
+  geom_rect(data=climate_periods, inherit.aes=FALSE, aes(xmin=time_from, 
+                                                         xmax=time_to, 
+                                                         ymin=0,
+                                                         ymax=13*100,
+                                                         group=period_name,
+                                                         fill=period_name),
+            # colour='transparent',
+            alpha=0.3) +
+  geom_point(data=taxa_anom, aes(x=year_k, y=observed*100, 
+                                 colour=anomaly, shape=anomaly,
+                                 size = anomaly)) +
+  scale_x_reverse() + 
+  # facet_wrap(~taxon, scales='free_y') +
+  # scale_colour_brewer(palette = "Set1", direction=-1) +
+  # scale_shape_manual(values=c(19, 19)) 
+  scale_colour_manual(values = c('grey34', 'indianred')) +
+  scale_shape_manual(values=c(19, 19)) +
+  scale_size_manual(values = c(1, 3)) +
+  scale_fill_brewer(palette = "BrBG", direction=-1) +
+  theme_bw() +
+  xlab('year (YBP)') +
+  ylab('biotic velocity (m/year)') +
+  annotate("text", x=climate_periods$time_from - 0.8 + c(0, 0, 0, 0.2, -0.2, 0, 0), y=12*100, label=climate_periods$type)
+ggsave('figures/BV_time_series_anom_all.pdf')
+
+ggplot() +
+  geom_rect(data=climate_periods, inherit.aes=FALSE, aes(xmin=time_from, 
+                                                         xmax=time_to, 
+                                                         ymin=0,
+                                                         ymax=13*100,
+                                                         group=period_name,
+                                                         fill=period_name),
+            # colour='transparent',
+            alpha=0.3) +
+  geom_point(data=taxa_anom, aes(x=year_k, y=observed*100, 
+                                 colour=anomaly, shape=anomaly,
+                                 size = anomaly)) +
+  scale_x_reverse() + 
+  # facet_wrap(~taxon, scales='free_y') +
+  # scale_colour_brewer(palette = "Set1", direction=-1) +
+  # scale_shape_manual(values=c(19, 19)) 
+  scale_colour_manual(values = c('grey34', 'indianred')) +
+  scale_shape_manual(values=c(NA, 19)) +
+  scale_size_manual(values = c(1, 3)) +
+  scale_fill_brewer(palette = "BrBG", direction=-1) +
+  theme_bw() +
+  xlab('year (YBP)') +
+  ylab('biotic velocity (m/year)') +
+  annotate("text", x=climate_periods$time_from - 0.8 + c(0, 0, 0, 0.2, -0.2, 0, 0), y=12*100, label=climate_periods$type)
+ggsave('figures/BV_only_anom_all.pdf')
+
+ggplot() +
+  geom_rect(data=climate_periods, inherit.aes=FALSE, aes(xmin=time_from, 
+                                                         xmax=time_to, 
+                                                         ymin=-2*100,
+                                                         ymax=9*100,
+                                                         group=period_name,
+                                                         fill=period_name),
+            # colour='transparent',
+            alpha=0.3) +
+  geom_point(data=taxa_anom, aes(x=year_k, y=remainder*100, colour=anomaly, shape=anomaly, size=anomaly)) +
+  scale_x_reverse() + 
+  # facet_wrap(~taxon, scales='free_y') +
+  # scale_colour_brewer(palette = "Set1", direction=-1) +
+  # scale_shape_manual(values=c(19, 19)) 
+  scale_colour_manual(values = c('grey34', 'indianred')) +
+  scale_shape_manual(values=c(19, 19)) +
+  scale_size_manual(values = c(1, 3)) +
+  scale_fill_brewer(palette = "BrBG", direction=-1) +
+  theme_bw() +
+  xlab('year (kYBP)') +
+  ylab('remainder (m/year)') +
+  geom_hline(yintercept = 0, alpha=0.2) +
+  annotate("text", x=climate_periods$time_from - 0.8 + c(0, 0, 0, 0.2, -0.2, 0, 0), y=8*100, label=climate_periods$type)
+ggsave('figures/BV_time_series_anom_remainder_all.pdf')
+
+ggplot() +
+  geom_point(data=taxa_anom, aes(x=year, y=remainder*100, colour=anomaly, shape=anomaly, size=anomaly)) +
+  scale_colour_manual(values = c('grey34', 'indianred')) +
+  scale_shape_manual(values=c(19, 19)) +
+  scale_size_manual(values = c(1, 3)) +
+  scale_fill_brewer(palette = "BrBG", direction=-1) +
+  theme_bw() +
+  xlab('year (kYBP)') +
+  ylab('remainder (m/year)')  +
+  facet_wrap(~taxon, scales='free_y') +
+  geom_hline(yintercept = 0, alpha=0.2) #+
+# annotate("text", x=climate_periods$time_from, y=rep(Inf, 7), label=climate_periods$type)
+# ggsave('figures/BV_time_series_anom_remainder_taxon.pdf')
+
+ggplot() +
+  geom_rect(data=climate_periods_taxa, inherit.aes=FALSE, aes(xmin=time_from, 
+                                                              xmax=time_to, 
+                                                              ymin=0, #ymin_trend,
+                                                              ymax=ymax_trend,
+                                                              group=period_name,
+                                                              fill=period_name),
+            colour='transparent',
+            alpha=0.3) +
+  geom_point(data=taxa_anom, aes(x=year_k, y=trend*100, colour=anomaly, shape=anomaly, size=anomaly)) +
+  scale_x_reverse() + 
+  # scale_colour_brewer(palette = "Set1", direction=-1) +
+  # scale_shape_manual(values=c(19, 19)) 
+  scale_colour_manual(values = c('grey34', 'indianred')) +
+  scale_shape_manual(values=c(19, 19)) +
+  scale_size_manual(values = c(1, 3)) +
+  scale_fill_brewer(palette = "BrBG", direction=-1) +
+  theme_bw() +
+  xlab('year (kYBP)') +
+  ylab('trend (m/year)')  +
+  facet_wrap(~taxon, scales='free_y')# +
+# geom_hline(yintercept = 0, alpha=0.2) #+
+# annotate("text", x=climate_periods$time_from, y=rep(Inf, 7), label=climate_periods$type)
+ggsave('figures/BV_time_series_anom_trend_taxon.pdf')
+
+taxa_anom_other_rid = taxa_anom[which(taxa_anom$taxon != 'Other'),] 
+climate_periods_taxa = climate_periods_taxa[which(climate_periods_taxa$taxon != 'Other'),]
+
+# taxa_anom_other_rid$taxon
+
+ggplot() +
+  geom_rect(data=climate_periods_taxa, inherit.aes=FALSE, aes(xmin=time_from, 
+                                                              xmax=time_to, 
+                                                              ymin=0, #ymin_trend,
+                                                              ymax=ymax_obs,
+                                                              group=period_name,
+                                                              fill=period_name),
+            colour='transparent',
+            alpha=0.3) +
+  geom_line(data=taxa_anom_other_rid, aes(x=year_k, y=trend*100)) +
+  geom_point(data=taxa_anom_other_rid, aes(x=year_k, y=observed*100, colour=anomaly, shape=anomaly, size=anomaly), alpha=0.5) +
+  scale_x_reverse() + 
+  # scale_colour_brewer(palette = "Set1", direction=-1) +
+  # scale_shape_manual(values=c(19, 19)) 
+  scale_colour_manual(values = c('grey34', 'indianred')) +
+  scale_shape_manual(values=c(19, 19)) +
+  scale_size_manual(values = c(1, 2)) +
+  scale_fill_brewer(name = "period", palette = "BrBG", direction=-1) +
+  theme_bw(12) +
+  xlab('year (kYBP)') +
+  ylab('Biotic velocity (m/year)')  +
+  facet_wrap(~taxon, scales='free_y', ncol=4)# +
+# geom_hline(yintercept = 0, alpha=0.2) #+
+# annotate("text", x=climate_periods$time_from, y=rep(Inf, 7), label=climate_periods$type)
+ggsave('figures/BV_time_series_anom_observed_trend_taxon.pdf')
+
+
+# seasonal
+ggplot() +
+  geom_rect(data=climate_periods_taxa, inherit.aes=FALSE, aes(xmin=time_from, 
+                                                              xmax=time_to, 
+                                                              ymin=ymin_season,
+                                                              ymax=ymax_season,
+                                                              group=period_name,
+                                                              fill=period_name),
+            colour='transparent',
+            alpha=0.3) +
+  geom_line(data=taxa_anom_other_rid, aes(x=year_k, y=season*100)) +
+  geom_point(data=taxa_anom_other_rid, aes(x=year_k, y=season*100, colour=anomaly, shape=anomaly, size=anomaly), alpha=0.5) +
+  scale_x_reverse() + 
+  # scale_colour_brewer(palette = "Set1", direction=-1) +
+  # scale_shape_manual(values=c(19, 19)) 
+  scale_colour_manual(values = c('grey34', 'indianred')) +
+  scale_shape_manual(values=c(19, 19)) +
+  scale_size_manual(values = c(1, 2)) +
+  scale_fill_brewer(name = "period", palette = "BrBG", direction=-1) +
+  theme_bw(12) +
+  xlab('year (kYBP)') +
+  ylab('Biotic velocity anomaly from trend (m/year)')  +
+  facet_wrap(~taxon, scales='free_y', ncol=4)# +
+# geom_hline(yintercept = 0, alpha=0.2) #+
+# annotate("text", x=climate_periods$time_from, y=rep(Inf, 7), label=climate_periods$type)
+ggsave('figures/BV_time_series_anom_seasonal_taxon.pdf')
+
+
+# seasonal
+ggplot() +
+  geom_rect(data=climate_periods_taxa, inherit.aes=FALSE, aes(xmin=time_from, 
+                                                              xmax=time_to, 
+                                                              ymin=ymin_season,
+                                                              ymax=ymax_season,
+                                                              group=period_name,
+                                                              fill=period_name),
+            colour='transparent',
+            alpha=0.3) +
+  geom_line(data=taxa_anom_other_rid, aes(x=year_k, y=season*100, group=taxon)) +
+  geom_point(data=taxa_anom_other_rid, aes(x=year_k, y=season*100, group=taxon, colour=anomaly, shape=anomaly, size=anomaly), alpha=0.5) +
+  scale_x_reverse() + 
+  # scale_colour_brewer(palette = "Set1", direction=-1) +
+  # scale_shape_manual(values=c(19, 19)) 
+  scale_colour_manual(values = c('grey34', 'indianred')) +
+  scale_shape_manual(values=c(19, 19)) +
+  scale_size_manual(values = c(1, 2)) +
+  scale_fill_brewer(name = "period", palette = "BrBG", direction=-1) +
+  theme_bw(12) +
+  xlab('year (kYBP)') +
+  ylab('Biotic velocity anomaly from trend (m/year)')  #+
+# facet_wrap(~taxon, scales='free_y', ncol=4)# +
+# geom_hline(yintercept = 0, alpha=0.2) #+
+# annotate("text", x=climate_periods$time_from, y=rep(Inf, 7), label=climate_periods$type)
+ggsave('figures/BV_time_series_anom_seasonal_all.pdf')
+
+# seasonal
+ggplot() +
+  geom_rect(data=climate_periods_taxa, inherit.aes=FALSE, aes(xmin=time_from, 
+                                                              xmax=time_to, 
+                                                              ymin=ymin_obs,
+                                                              ymax=ymax_obs,
+                                                              group=period_name,
+                                                              fill=period_name),
+            colour='transparent',
+            alpha=0.3) +
+  geom_line(data=taxa_anom_other_rid, aes(x=year_k, y=(trend+season)*100)) +
+  geom_point(data=taxa_anom_other_rid, aes(x=year_k, y=(observed)*100, colour=anomaly, shape=anomaly, size=anomaly), alpha=0.5) +
+  scale_x_reverse() + 
+  # scale_colour_brewer(palette = "Set1", direction=-1) +
+  # scale_shape_manual(values=c(19, 19)) 
+  scale_colour_manual(values = c('grey34', 'indianred')) +
+  scale_shape_manual(values=c(19, 19)) +
+  scale_size_manual(values = c(1, 2)) +
+  scale_fill_brewer(name = "period", palette = "BrBG", direction=-1) +
+  theme_bw(12) +
+  xlab('year (kYBP)') +
+  ylab('Biotic velocity (m/year)')  +
+  facet_wrap(~taxon, scales='free_y', ncol=4)# +
+# geom_hline(yintercept = 0, alpha=0.2) #+
+# annotate("text", x=climate_periods$time_from, y=rep(Inf, 7), label=climate_periods$type)
+ggsave('figures/BV_time_series_anom_trend_seasonal_taxon.pdf')
+
+##########################
+# res_long2 = res_long %>% 
+#   group_by(site, taxon) %>% 
+#   dplyr::reframe(zscore = (value - mean(value)) / sd(value))
+
+
+res_long2 = res_long %>% 
+  group_by(site, taxon) %>% 
+  dplyr::mutate(zscore = (value - mean(value)) / sd(value))
+res_long2$outlier = abs(res_long2$zscore) > 3  
+
+ggplot(data=res_long2) + 
+  geom_point(aes(x=year, y=value, colour=site, size=zscore)) + 
+  facet_wrap(~taxon)
+
+ggplot(data=res_long) + 
+  geom_point(aes(x=year, y=value, colour=site)) + 
+  facet_wrap(~taxon, scales='free_y') +
+  geom_smooth(method='lm', aes(x=year, y=value, colour=site))
 
 ####RESIDUALS PLOTS#####
 #plotting residuals for each site for each taxa 
