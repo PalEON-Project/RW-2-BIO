@@ -1,5 +1,9 @@
 library(dplyr)
 library(tidyr)
+library(ggplot2)
+library(segmented)
+library(purrr)
+library(GGally)
 
 #PCA model for averaged seasons and not averaged climate data
 #from 1951-2011
@@ -89,7 +93,6 @@ coefficients_summary_mean <- dplyr::mutate(coefficients_summary_mean,
 #####plotting R2#####
 
 
-ggplot()
 #####RESIDUALS#################
 #residuals not mean 
 #pulling residuals for models
@@ -107,12 +110,363 @@ res_df = data.frame(matrix(unlist(res), ncol =length(res), byrow=FALSE))
 #changing column names to site_taxon corresponding model
 colnames(res_df) <- coefficients_summary$model
 res_df <- res_df %>%
-  mutate(year = 1950:2011) %>%
-  select(year, everything())
+  mutate(year = 1950:2011)%>%
+  dplyr::select(year, everything())
+#removing column with NA values 
+res_df_na <- subset(res_df, select = -c(HARVARD_HAVI, NRP_BEPA)) 
+
+res_df$period = NA
+
+#marking periods pre and post disturbance=1981 at GOOSE 
+goose_res = res_df %>% 
+  dplyr::select(year, period, starts_with("GOOSE"))
+goose_res$period[which(goose_res$year<1981)] = "pre"
+goose_res$period[which(goose_res$year>1981)] = "post"
+
+#correlation pre and post disturbance 
+ggpairs(data = goose_res %>% filter(period == "pre"),
+  columns = which(startsWith(names(goose_res), "GOOSE")))
+ggpairs(data = goose_res %>% filter(period == "post"),
+        columns = which(startsWith(names(goose_res), "GOOSE")))
+
+harvard_res = res_df_na %>% 
+  dplyr::select(year, period, starts_with("HARVARD"))
+harvard_res$period[which(harvard_res$year<1981)] = "pre"
+harvard_res$period[which(harvard_res$year>1981)] = "post"
+
+#correlation pre and post disturbance 
+ggpairs(data = harvard_res %>% filter(period == "pre"),
+        columns = which(startsWith(names(harvard_res), "HARVARD")))
+ggpairs(data = harvard_res %>% filter(period == "post"),
+        columns = which(startsWith(names(harvard_res), "HARVARD")))
+
+rooster_res = res_df %>% 
+  dplyr::select(year, period, starts_with("ROOSTER"))
+rooster_res$period[which(rooster_res$year<1983)] = "pre"
+rooster_res$period[which(rooster_res$year>1983)] = "post"
+
+#correlation pre and post disturbance 
+ggpairs(data = rooster_res %>% filter(period == "pre"),
+        columns = which(startsWith(names(rooster_res), "ROOSTER")))
+ggpairs(data = rooster_res %>% filter(period == "post"),
+        columns = which(startsWith(names(rooster_res), "ROOSTER")))
+
+# nrp_res = res_df_na %>% 
+#   dplyr::select(year, period, starts_with("NRP"))
+# nrp_res$period[which(nrp_res$year<1981)] = "pre"
+# nrp_res$period[which(nrp_res$year>1981)] = "post"
+# 
+# #correlation pre and post disturbance 
+# ggpairs(data = nrp_res %>% filter(period == "pre"),
+#         columns = which(startsWith(names(nrp_res), "NRP")))
+# ggpairs(data = nrp_res %>% filter(period == "post"),
+#         columns = which(startsWith(names(nrp_res), "NRP")))
+
+# hmc_res = res_df %>% 
+#   dplyr::select(year, period, starts_with("HMC"))
+# hmc_res$period[which(hmc_res$year<1981)] = "pre"
+# hmc_res$period[which(hmc_res$year>1981)] = "post"
+# 
+# #correlation pre and post disturbance 
+# ggpairs(data = hmc_res %>% filter(period == "pre"),
+#         columns = which(startsWith(names(hmc_res), "HMC")))
+# ggpairs(data = hmc_res %>% filter(period == "post"),
+#         columns = which(startsWith(names(hmc_res), "HMC")))
+
+
+
 
 res_long <- res_df %>%
   pivot_longer(cols = GOOSE_ACRU:SYLVANIA_TSCA, names_to = "site_taxon", values_to = "value") %>%
   separate(site_taxon, into = c("site", "taxon"), sep = "_")
+
+#making cor df for each site 
+sites <- c("GOOSE", "ROOSTER", "HARVARD", "HMC", "NRP", "SYLVANIA")
+for (site in sites) {
+  # Select columns that start with the site name
+  cor_mat <- res_df %>%
+    dplyr::select(starts_with(site)) %>%
+    cor(use = "pairwise.complete.obs") %>%
+    as.data.frame()
+  
+  # Clean up the row and column names
+  clean_names <- sub(".*_", "", colnames(cor_mat))
+  colnames(cor_mat) <- clean_names
+  rownames(cor_mat) <- clean_names
+  
+  # Save as an individual data frame like goose_cor, rooster_cor, etc.
+  assign(paste0(tolower(site), "_cor"), cor_mat)
+}
+
+
+
+pdf('report/figures/res_cor_PCA.pdf')
+
+ggcorrplot(goose_cor, method = "square", type = "lower", hc.order = FALSE, show.diag = TRUE) +
+  scale_fill_distiller(
+    palette = "PuOr", na.value = "white",
+    direction = 1, limits = c(-1, 1),
+    name = "Pearson\nCorrelation:") +
+  ggtitle("Goose residual Correlations (PCA)")
+ggcorrplot(harvard_cor, method = "square", type = "lower", hc.order = FALSE, show.diag = TRUE) +
+  scale_fill_distiller(
+    palette = "PuOr", na.value = "white",
+    direction = 1, limits = c(-1, 1),
+    name = "Pearson\nCorrelation:") +
+  ggtitle("Harvard residual Correlations (PCA)")
+ggcorrplot(nrp_cor, method = "square", type = "lower", hc.order = FALSE, show.diag = TRUE) +
+  scale_fill_distiller(
+    palette = "PuOr", na.value = "white",
+    direction = 1, limits = c(-1, 1),
+    name = "Pearson\nCorrelation:") +
+  ggtitle("NRP residual Correlations (PCA)")
+ggcorrplot(rooster_cor, method = "square", type = "lower", hc.order = FALSE, show.diag = TRUE) +
+  scale_fill_distiller(
+    palette = "PuOr", na.value = "white",
+    direction = 1, limits = c(-1, 1),
+    name = "Pearson\nCorrelation:") +
+  ggtitle("Rooster residual Correlations (PCA)")
+ggcorrplot(sylvania_cor, method = "square", type = "lower", hc.order = FALSE, show.diag = TRUE) +
+  scale_fill_distiller(
+    palette = "PuOr", na.value = "white",
+    direction = 1, limits = c(-1, 1),
+    name = "Pearson\nCorrelation:") +
+  ggtitle("Sylvania residual Correlations (PCA)")
+ggcorrplot(hmc_cor, method = "square", type = "lower", hc.order = FALSE, show.diag = TRUE) +
+  scale_fill_distiller(
+    palette = "PuOr", na.value = "white",
+    direction = 1, limits = c(-1, 1),
+    name = "Pearson\nCorrelation:") +
+  ggtitle("HMC residual Correlations (PCA)")
+dev.off()
+
+
+
+
+####RESIDUALS PLOTS#####
+#plotting residuals for each site for each taxa 
+#giving each site a unique colour
+site_levels <- unique(res_long$site)
+site_colors <- RColorBrewer::brewer.pal(length(site_levels), "Set1")
+names(site_colors) <- site_levels
+
+
+
+
+pdf('report/figures/ggpairs_residuals_sites.pdf')
+#ggpairs for each site 
+for (site in sites) {
+  site_data <- res_df_na %>%
+    dplyr::select(starts_with(site))
+  
+  # Skip if no matching columns (to avoid errors)
+  if (ncol(site_data) == 0) next
+  
+  # Clean column names
+  colnames(site_data) <- sub(".*_", "", colnames(site_data))
+  
+  # Plot
+  print(ggpairs(data = site_data, title = paste(site, "Correlations")))
+}
+dev.off()
+
+#residuals for each site with each taxa
+ggplot()+
+  geom_point(data = res_long , aes(x = year, y = value, color = taxon))+
+  facet_wrap(~site)+
+  theme_light(base_size = 11)+
+  ggtitle("PCA res")
+
+#residuals for each site with each taxa, free_y 
+ggplot(data = res_long , aes(x = year, y = value, color = taxon))+
+  geom_point()+
+  geom_smooth( method = "gam")+
+  facet_wrap(~site, scales = "free_y")+
+  theme_light(base_size = 11)+
+  ggtitle("PCA res")
+
+#residuals for ony harvard 
+ggplot(data = res_long %>% filter(site== "HARVARD"))+
+  geom_point(aes(x = year, y = value, color = taxon))+
+  # facet_wrap(~site, scales = "free_y")+
+  theme_light(base_size =11)+
+  ggtitle("HARVARD")
+
+#residuals where QURU is found 
+ggplot(data = res_long %>% filter(taxon== "QURU"),
+       aes(x = year, y = value, color = site))+
+  geom_point()+
+ # facet_wrap(~site, scales = "free_y")+
+  geom_smooth( method = "gam")+
+  scale_color_manual(values = site_colors) +
+  theme_light(base_size =11)+
+  ggtitle("QURU")
+
+ggplot(data = res_long %>% filter(taxon== "PIST"),
+       aes(x = year, y = value, color = site))+
+  geom_point()+
+  # facet_wrap(~site, scales = "free_y")+
+  geom_smooth(method = "gam")+
+  scale_color_manual(values = site_colors) +
+  theme_light(base_size =11)+
+  ggtitle("PIST")
+
+ggplot(data = res_long %>% filter(taxon== "TSCA"),
+       aes(x = year, y = value, color = site))+
+  geom_point()+
+  # facet_wrap(~site, scales = "free_y")+
+  geom_smooth(method = "gam")+
+  scale_color_manual(values = site_colors) +
+  theme_light(base_size =11)+
+  ggtitle("TSCA")
+
+####Residuals MEAN
+#pulling residuals for models
+#res_mean = lapply(models_mean[[3]], function(x) x$residuals)
+
+res_mean = lapply(models_mean[[3]], function(x) {
+  if(length(x$residuals) < 62){ rep(NA, 62)}else{x$residuals}})
+
+
+
+#Deleting models with missing data HAVI at Harvard and BEPA at NRP
+#res = res[-c(16, 32)] 
+#creating df where each column has the residuals for each model
+res_mean_df = data.frame(matrix(unlist(res_mean), ncol =length(res_mean), byrow=FALSE))
+#changing column names to site_taxon corresponding model
+colnames(res_mean_df) <- coefficients_summary_mean$model
+res_mean_df <- res_mean_df %>%
+  mutate(year = 1950:2011) %>%
+  select(year, everything())
+
+res_mean_long <- res_mean_df %>%
+  pivot_longer(cols = GOOSE_ACRU:SYLVANIA_TSCA, names_to = "site_taxon", values_to = "value") %>%
+  separate(site_taxon, into = c("site", "taxon"), sep = "_")
+
+
+goose_correlations_mean <- res_mean_df %>%
+  select(starts_with("GOOSE")) %>%
+  cor(use = "pairwise.complete.obs") %>%
+  as.data.frame()
+rooster_correlations_mean <- res_mean_df %>%
+  select(starts_with("ROOSTER")) %>%
+  cor(use = "pairwise.complete.obs") %>%
+  as.data.frame()
+harvard_correlations_mean <- res_mean_df %>%
+  select(starts_with("HARVARD")) %>%
+  cor(use = "pairwise.complete.obs") %>%
+  as.data.frame()
+nrp_correlations_mean <- res_mean_df %>%
+  select(starts_with("NRP")) %>%
+  cor(use = "pairwise.complete.obs") %>%
+  as.data.frame()
+hmc_correlations_mean <- res_mean_df %>%
+  select(starts_with("HMC")) %>%
+  cor(use = "pairwise.complete.obs") %>%
+  as.data.frame()
+sylvania_correlations_mean <- res_mean_df %>%
+  select(starts_with("SYLVANIA")) %>%
+  cor(use = "pairwise.complete.obs") %>%
+  as.data.frame()
+
+res_df$period = NA
+res_df$period[which(all_site_summary$year<1960)] = "past"
+res_df$period[which(all_site_summary$year>2000)] = "present"
+res_df$period[which(all_site_summary$year<1960)] = "past"
+res_df$period[which(all_site_summary$year>2000)] = "present"
+
+
+
+
+
+pdf('report/figures/res_cor_PCAmean.pdf')
+
+ggcorrplot(goose_correlations_mean, method = "square", type = "lower", hc.order = FALSE, show.diag = TRUE) +
+  scale_fill_distiller(
+    palette = "PuOr", na.value = "white",
+    direction = 1, limits = c(-1, 1),
+    name = "Pearson\nCorrelation:") +
+  ggtitle("Goose residual Correlations (mean PCA)")
+ggcorrplot(harvard_correlations_mean, method = "square", type = "lower", hc.order = FALSE, show.diag = TRUE) +
+  scale_fill_distiller(
+    palette = "PuOr", na.value = "white",
+    direction = 1, limits = c(-1, 1),
+    name = "Pearson\nCorrelation:") +
+  ggtitle("Harvard residual Correlations (mean PCA)")
+ggcorrplot(nrp_correlations_mean, method = "square", type = "lower", hc.order = FALSE, show.diag = TRUE) +
+  scale_fill_distiller(
+    palette = "PuOr", na.value = "white",
+    direction = 1, limits = c(-1, 1),
+    name = "Pearson\nCorrelation:") +
+  ggtitle("NRP residual Correlations (mean PCA)")
+ggcorrplot(rooster_correlations_mean, method = "square", type = "lower", hc.order = FALSE, show.diag = TRUE) +
+  scale_fill_distiller(
+    palette = "PuOr", na.value = "white",
+    direction = 1, limits = c(-1, 1),
+    name = "Pearson\nCorrelation:") +
+  ggtitle("Rooster residual Correlations (mean PCA)")
+ggcorrplot(sylvania_correlations_mean, method = "square", type = "lower", hc.order = FALSE, show.diag = TRUE) +
+  scale_fill_distiller(
+    palette = "PuOr", na.value = "white",
+    direction = 1, limits = c(-1, 1),
+    name = "Pearson\nCorrelation:") +
+  ggtitle("Sylvania residual Correlations (mean PCA)")
+ggcorrplot(hmc_correlations_mean, method = "square", type = "lower", hc.order = FALSE, show.diag = TRUE) +
+  scale_fill_distiller(
+    palette = "PuOr", na.value = "white",
+    direction = 1, limits = c(-1, 1),
+    name = "Pearson\nCorrelation:") +
+  ggtitle("HMC residual Correlations (mean PCA)")
+dev.off()
+
+
+
+####RESIDUALS PLOTS#####
+#plotting residuals for each site for each taxa 
+ggplot()+
+  geom_point(data = res_mean_long , aes(x = year, y = value, color = taxon))+
+  theme_light(base_size =11)+
+  facet_wrap(~site)+
+  ggtitle("mean PCA")
+#ggsave("report/2025/meanPCA_res.jpg")
+
+ggplot()+
+  geom_point(data = res_mean_long , aes(x = year, y = value, color = taxon))+
+  facet_wrap(~site, scales="free_y")+
+  theme_light(base_size = 11)+
+  ggtitle("mean PCA")
+#ggsave("report/2025/meanPCA_res_freey.jpg")
+
+
+ggplot(data = res_mean_long %>% filter(taxon== "QURU"))+
+  geom_point(aes(x = year, y = value, color = site))+
+  # facet_wrap(~site, scales = "free_y")+
+  scale_color_manual(values = site_colors) +
+  theme_light(base_size =11)+
+  ggtitle("QURU mean PCA")
+
+ggplot(data = res_mean_long %>% filter(taxon== "PIST"))+
+  geom_point(aes(x = year, y = value, color = site))+
+  # facet_wrap(~site, scales = "free_y")+
+  scale_color_manual(values = site_colors) +
+  theme_light(base_size =11)+
+  ggtitle("PIST mean PCA")
+
+ggplot(data = res_long %>% filter(taxon== "TSCA"))+
+  geom_point(aes(x = year, y = value, color = site))+
+  # facet_wrap(~site, scales = "free_y")+
+  scale_color_manual(values = site_colors) +
+  theme_light(base_size =11)+
+  ggtitle("TSCA mean PCA")
+
+
+#apply(models_mean, 1, function(x) models_mean[x,3][['residuals']])
+#apply(models_mean, 1, function(x) models_mean[x,3])
+
+
+
+
+
 
 
 ###########################
@@ -193,7 +547,7 @@ ggplot(data=taxa_anom_test) +
   geom_point(aes(x=year, y=observed)) +
   geom_line(aes(x=year, y=(trend + season))) +
   facet_wrap(~taxon, scales='free_y') #+
-  # scale_x_reverse()
+# scale_x_reverse()
 
 ggplot() +
   geom_point(data=taxa_anom, aes(x=year, y=observed*100, 
@@ -441,7 +795,7 @@ ggplot() +
 # annotate("text", x=climate_periods$time_from, y=rep(Inf, 7), label=climate_periods$type)
 ggsave('figures/BV_time_series_anom_trend_seasonal_taxon.pdf')
 
-##########################
+######################################################################
 # res_long2 = res_long %>% 
 #   group_by(site, taxon) %>% 
 #   dplyr::reframe(zscore = (value - mean(value)) / sd(value))
@@ -461,117 +815,48 @@ ggplot(data=res_long) +
   facet_wrap(~taxon, scales='free_y') +
   geom_smooth(method='lm', aes(x=year, y=value, colour=site))
 
-####RESIDUALS PLOTS#####
-#plotting residuals for each site for each taxa 
-site_levels <- unique(res_long$site)
-site_colors <- RColorBrewer::brewer.pal(length(site_levels), "Set1")
-names(site_colors) <- site_levels
 
 
-ggplot()+
-  geom_point(data = res_long , aes(x = year, y = value, color = taxon))+
-  facet_wrap(~site)+
-  theme_light(base_size = 11)+
-  ggtitle("PCA res")
+goose_correlations <- res_df %>%
+  dplyr::select(starts_with("GOOSE")) %>%
+  cor(use = "pairwise.complete.obs") %>%
+  as.data.frame()
+rooster_correlations <- res_df %>%
+  dplyr::select(starts_with("ROOSTER")) %>%
+  cor(use = "pairwise.complete.obs") %>%
+  as.data.frame()
+harvard_correlations <- res_df %>%
+  dplyr::select(starts_with("HARVARD")) %>%
+  cor(use = "pairwise.complete.obs") %>%
+  as.data.frame()
+nrp_correlations <- res_df %>%
+  dplyr::select(starts_with("NRP")) %>%
+  cor(use = "pairwise.complete.obs") %>%
+  as.data.frame()
+hmc_correlations <- res_df %>%
+  dplyr::select(starts_with("HMC")) %>%
+  cor(use = "pairwise.complete.obs") %>%
+  as.data.frame()
+colnames(hmc_correlations) <- sub(".*_", "", colnames(hmc_correlations))
+sylvania_correlations <- res_df %>%
+  dplyr::select(starts_with("SYLVANIA")) %>%
+  cor(use = "pairwise.complete.obs") %>%
+  as.data.frame()
 
-ggplot()+
-  geom_point(data = res_long , aes(x = year, y = value, color = taxon))+
-  facet_wrap(~site, scales = "free_y")+
-  theme_light(base_size = 11)+
-  ggtitle("PCA res")
 
-
-ggplot(data = res_long %>% filter(site== "HARVARD"))+
-  geom_point(aes(x = year, y = value, color = taxon))+
-  # facet_wrap(~site, scales = "free_y")+
-  theme_light(base_size =11)+
-  ggtitle("HARVARD")
-
-ggplot(data = res_long %>% filter(taxon== "QURU"))+
-  geom_point(aes(x = year, y = value, color = site))+
- # facet_wrap(~site, scales = "free_y")+
-  scale_color_manual(values = site_colors) +
-  theme_light(base_size =11)+
-  ggtitle("QURU")
-
-ggplot(data = res_long %>% filter(taxon== "PIST"))+
-  geom_point(aes(x = year, y = value, color = site))+
-  # facet_wrap(~site, scales = "free_y")+
-  scale_color_manual(values = site_colors) +
-  theme_light(base_size =11)+
-  ggtitle("PIST")
-
-ggplot(data = res_long %>% filter(taxon== "TSCA"))+
-  geom_point(aes(x = year, y = value, color = site))+
-  # facet_wrap(~site, scales = "free_y")+
-  scale_color_manual(values = site_colors) +
-  theme_light(base_size =11)+
-  ggtitle("TSCA")
-
-####Residuals MEAN
-#pulling residuals for models
-#res_mean = lapply(models_mean[[3]], function(x) x$residuals)
-
-res_mean = lapply(models_mean[[3]], function(x) {
-  if(length(x$residuals) < 62){ rep(NA, 62)}else{x$residuals}})
+res_df$period = NA
+res_df$period[which(all_site_summary$year<1960)] = "past"
+res_df$period[which(all_site_summary$year>2000)] = "present"
 
 
 
-#Deleting models with missing data HAVI at Harvard and BEPA at NRP
-#res = res[-c(16, 32)] 
-#creating df where each column has the residuals for each model
-res_mean_df = data.frame(matrix(unlist(res_mean), ncol =length(res_mean), byrow=FALSE))
-#changing column names to site_taxon corresponding model
-colnames(res_mean_df) <- coefficients_summary_mean$model
-res_mean_df <- res_mean_df %>%
-  mutate(year = 1950:2011) %>%
-  select(year, everything())
+ggpairs(data = res_df,
+        columns = which(startsWith(names(res_df), "HARVARD")), 
+        ggplot2:: theme_light())
 
-res_mean_long <- res_mean_df %>%
-  pivot_longer(cols = GOOSE_ACRU:SYLVANIA_TSCA, names_to = "site_taxon", values_to = "value") %>%
-  separate(site_taxon, into = c("site", "taxon"), sep = "_")
-
-
-####RESIDUALS PLOTS#####
-#plotting residuals for each site for each taxa 
-ggplot()+
-  geom_point(data = res_mean_long , aes(x = year, y = value, color = taxon))+
-  theme_light(base_size =11)+
-  facet_wrap(~site)+
-  ggtitle("mean PCA")
-#ggsave("report/2025/meanPCA_res.jpg")
-
-ggplot()+
-  geom_point(data = res_mean_long , aes(x = year, y = value, color = taxon))+
-  facet_wrap(~site, scales="free_y")+
-  theme_light(base_size = 11)+
-  ggtitle("mean PCA")
-#ggsave("report/2025/meanPCA_res_freey.jpg")
-
-
-ggplot(data = res_mean_long %>% filter(taxon== "QURU"))+
-  geom_point(aes(x = year, y = value, color = site))+
-  # facet_wrap(~site, scales = "free_y")+
-  scale_color_manual(values = site_colors) +
-  theme_light(base_size =11)+
-  ggtitle("QURU mean PCA")
-
-ggplot(data = res_mean_long %>% filter(taxon== "PIST"))+
-  geom_point(aes(x = year, y = value, color = site))+
-  # facet_wrap(~site, scales = "free_y")+
-  scale_color_manual(values = site_colors) +
-  theme_light(base_size =11)+
-  ggtitle("PIST mean PCA")
-
-ggplot(data = res_long %>% filter(taxon== "TSCA"))+
-  geom_point(aes(x = year, y = value, color = site))+
-  # facet_wrap(~site, scales = "free_y")+
-  scale_color_manual(values = site_colors) +
-  theme_light(base_size =11)+
-  ggtitle("TSCA mean PCA")
-
-
-#apply(models_mean, 1, function(x) models_mean[x,3][['residuals']])
-#apply(models_mean, 1, function(x) models_mean[x,3])
-
-
+ggpairs(data = res_df,
+        columns = which(startsWith(names(res_df), "NRP")))
+ggpairs(data = res_df,
+        columns = which(startsWith(names(res_df), "HMC")))
+ggpairs(data = res_df,
+        columns = which(startsWith(names(res_df), "ROOSTER")))
