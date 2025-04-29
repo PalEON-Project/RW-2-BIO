@@ -59,6 +59,8 @@ AGBI_data = AGBI_data %>%
   mutate(AGBI.mean.prev1 = lag(AGBI.mean, n=1),
          AGBI.mean.prev2 = lag(AGBI.mean, n=2))
 
+
+
 # #long format
 # clim_agbi_long <- AGBI_data %>% 
 #   left_join(clim_data, by = c('year', 'site'))
@@ -68,9 +70,16 @@ clim_agbi <- AGBI_data %>%
   left_join(clim_wide, by = c('year', 'site'))
 
 
-months = c(paste0('0', seq(1,9)), seq(10, 12))
+# months = c(paste0('0', seq(1,9)), seq(10, 12))
+# 
+# predictor_clim_names = paste(rep(c('PPT', 'Tmean', 'Tmin', 'Tmax', 'Vpdmax'), each=12), rep(months, times = 5), sep='_')
 
-predictor_clim_names = paste(rep(c('PPT', 'Tmean', 'Tmin', 'Tmax', 'Vpdmax'), each=12), rep(months, times = 5), sep='_')
+months = c(paste0('0', c(3, 6, 9)), 12)
+
+predictor_clim_names = paste(rep(c('PPT', 'Tmean', 'Tmin', 'Tmax', 'Vpdmax'), each=4), rep(months, times = 5), sep='_')
+
+# 
+# predictor_clim_names_keep = c()
 
 predictor_lag_names = c('AGBI.mean.prev1', 'AGBI.mean.prev2')
 
@@ -127,6 +136,8 @@ predictor_names = c(predictor_clim_names, 'AGBI.mean.prev1')
 
 ggplot(data=clim_agbi) +
   geom_point(aes(x=AGBI.mean, y=AGBI.mean.prev1))
+ggplot(data=clim_agbi) +
+  geom_point(aes(x=AGBI.mean, y=AGBI.mean.prev2))
 
 
 models_clim_ar1 <- clim_agbi %>% 
@@ -148,18 +159,19 @@ models_clim_ar1 <- clim_agbi %>%
 
 summary(models_clim_ar1[[3]][1][[1]])
 
+summary(models_clim_ar1[[3]][3][[1]])
+
 #R2 for the models
-rsq_values_clim <- models_clim %>%
+rsq_values_clim <- models_clim_ar1 %>%
   mutate(glance = map(mod, glance)) %>%
   unnest(glance) %>%
   dplyr::select(site, taxon, r.squared)
 
 #adjusted R2 for the models
-rsq_adj_values_clim <- models_clim %>%
+rsq_adj_values_clim <- models_clim_ar1 %>%
   mutate(glance = map(mod, glance)) %>%
   unnest(glance) %>%
   dplyr::select(site, taxon, adj.r.squared)
-
 
 ggplot(data=rsq_values_clim) +
   geom_point(aes(x=site, y = r.squared, colour=taxon))
@@ -167,54 +179,145 @@ ggplot(data=rsq_values_clim) +
 ggplot(data=rsq_values_clim) +
   geom_point(aes(y=taxon, x = r.squared, colour=site))
 
-
 ggplot(data=rsq_adj_values_clim) +
   geom_point(aes(y=taxon, x = adj.r.squared, colour=site))
 
+## 
+AGBI_data_site = readRDS("AGBI_site_data.RDS")
 
-# wtr_yr <- function(df, start_month=12) {
-#   # Year offset
-#   offset = ifelse(as.numeric(df$month) >= start_month,  1, 0)
-#   # Water year
-#   adj.year = as.numeric(df$year) + offset
-#   # Return the water year
-#   adj.year
-# }
+AGBI_data_site = AGBI_data_site %>%
+  group_by(site) %>%
+  arrange(site, year) %>%
+  mutate(AGBI.mean.prev1 = lag(AGBI.mean, n=1),
+         AGBI.mean.prev2 = lag(AGBI.mean, n=2))
+
+
+#wide format
+clim_agbi_site <- AGBI_data_site %>% 
+  left_join(clim_wide, by = c('year', 'site'))
+
+
+# months = c(paste0('0', seq(1,9)), seq(10, 12))
+# 
+# predictor_clim_names = paste(rep(c('PPT', 'Tmean', 'Tmin', 'Tmax', 'Vpdmax'), each=12), rep(months, times = 5), sep='_')
+
+months = c(paste0('0', c(3, 6, 9)), 12)
+
+predictor_clim_names = paste(rep(c('PPT', 'Tmean', 'Tmin', 'Tmax', 'Vpdmax'), each=4), rep(months, times = 5), sep='_')
+
+# 
+# predictor_clim_names_keep = c()
+
+predictor_lag_names = c('AGBI.mean.prev1', 'AGBI.mean.prev2')
+
+predictor_names = predictor_clim_names 
+
+models_clim_site <- clim_agbi_site %>% 
+  group_by(site) %>%
+  do({
+    # predictors <- names(.)[13:72]
+    # print(predictors)
+    # print(length(predictors))
+    predictors <- predictor_clim_names
+    formula <- reformulate(predictors, response = "AGBI.mean")
+    print(formula)
+    model <- lm(formula, data = .)
+    tibble(mod = list(model))
+  })
+
+
+#rsq = models %>% rowwise() %>% mutate(mod$r.squared)
+
+summary(models_clim_site[[2]][1][[1]])
+
+#R2 for the models
+rsq_values_clim_site <- models_clim_site %>%
+  mutate(glance = map(mod, glance)) %>%
+  unnest(glance) %>%
+  dplyr::select(site, r.squared)
+
+#adjusted R2 for the models
+rsq_adj_values_clim_site <- models_clim_site %>%
+  mutate(glance = map(mod, glance)) %>%
+  unnest(glance) %>%
+  dplyr::select(site, adj.r.squared)
+
+
+ggplot(data=rsq_values_clim_site) +
+  geom_point(aes(x=site, y = r.squared))
+
+# ggplot(data=rsq_values_clim_site) +
+#   geom_point(aes(y=taxon, x = r.squared, colour=site))
 # 
 # 
+# ggplot(data=rsq_adj_values_clim_site) +
+#   geom_point(aes(y=taxon, x = adj.r.squared, colour=site))
+
+#
+# now include prev year AGBI
+#
+
+predictor_names = c(predictor_clim_names, 'AGBI.mean.prev1') 
+
+# below not working, prob with AGBI.mean.prev1
+
+ggplot(data=clim_agbi_site) +
+  geom_point(aes(x=AGBI.mean, y=AGBI.mean.prev1))
+ggplot(data=clim_agbi_site) +
+  geom_point(aes(x=AGBI.mean, y=AGBI.mean.prev2))
+
+
+models_clim_ar1_site <- clim_agbi_site %>% 
+  group_by(site) %>%
+  do({
+    # predictors <- names(.)[13:72]
+    # print(predictors)
+    # print(length(predictors))
+    predictors <- predictor_names
+    print(predictors)
+    formula <- reformulate(predictors, response = "AGBI.mean")
+    print(formula)
+    model <- lm(formula, data = ., na.action = na.exclude)
+    tibble(mod = list(model))
+  })
+
+
+#rsq = models %>% rowwise() %>% mutate(mod$r.squared)
+
+summary(models_clim_ar1_site[[2]][1][[1]])
+
+summary(models_clim_ar1_site[[2]][3][[1]])
+
+#R2 for the models
+rsq_values_clim_site <- models_clim_ar1_site %>%
+  mutate(glance = map(mod, glance)) %>%
+  unnest(glance) %>%
+  dplyr::select(site, r.squared)
+
+#adjusted R2 for the models
+rsq_adj_values_clim_site <- models_clim_ar1_site %>%
+  mutate(glance = map(mod, glance)) %>%
+  unnest(glance) %>%
+  dplyr::select(site, adj.r.squared)
+
+ggplot(data=rsq_values_clim_site) +
+  geom_point(aes(x=site, y = r.squared))
+
+# ggplot(data=rsq_values_clim_site) +
+#   geom_point(aes(y=taxon, x = r.squared, colour=site))
 # 
-# # moving mean for that day and previous days (e.g. 5 represents the mean of that day and the for previous days)
-# df2 = df %>%
-#   group_by(site, year) %>%
-#   arrange(site, year, day) %>%
-#   mutate(temp.5 = rollmean(x = temp, 5, align = "right", fill = NA))
-# head(df2, 75)
-# 
-# # moving mean for the previous days not including the current day (e.g. 5 represents the mean of the 5 previous days)
-# df2 = df2 %>%
-#   mutate(temp.lag1 = lag(temp, n = 1)) %>%
-#   mutate(temp.5.previous = rollapply(data = temp.lag1, 
-#                                      width = 5, 
-#                                      FUN = mean, 
-#                                      align = "right", 
-#                                      fill = NA, 
-#                                      na.rm = T))
-# head(df2, 75)
-# 
-# foo = clim_agbi_long %>%
-#   group_by(site, taxon) %>%
-#   arrange(site, taxon, year) %>%
-#   mutate(AGBI_prev = lag(AGBI.mean, n=1))
-# 
-# 
-# foo = clim_agbi_long %>%  
-#   group_by(year, site, taxon) %>% 
-#   dplyr::mutate(prev_abgi = wtr_yr(.))
-#   
-# 
-# clim_agbi_long$year_water = wtr_yr(clim_agbi_long)
-# 
-# AGBI_prev = clim_agbi_long[,c('year', 'month', 'site', 'year_water')]
-# 
-# water <- AGBI_prev %>%
-#   left_join(AGBI_data, by = c('year_water'='year', 'site'))
+# ggplot(data=rsq_adj_values_clim) +
+#   geom_point(aes(y=taxon, x = adj.r.squared, colour=site))
+
+
+## merge species and site r-squared
+
+foo = data.frame(rsq_values_clim, level='SPECIES')
+
+bar = data.frame(rsq_values_clim_site, taxon='SITE', level='SITE')
+
+rsq_merged = rbind(foo[,c('site', 'taxon', 'level', 'r.squared')], bar[,c('site', 'taxon', 'level', 'r.squared')])
+
+ggplot(data=rsq_merged) +
+  geom_point(aes(x=site, y=r.squared, colour=level))
+
