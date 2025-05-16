@@ -169,6 +169,121 @@ ggplot(data = rsq_AGBI_sum) +
 ggplot(data=rsq_values) +
   geom_point(aes(y=taxon, x = r.squared, colour=site))
 
+### ADD ARIMA
+
+predictor_names = c('PPT_winter', 'PPT_spring', 'PPT_summer', 'PPT_fall',
+                    'Vpdmax_winter','Vpdmax_spring', 'Vpdmax_summer', 'Vpdmax_fall',
+                    'Tmean_winter', 'Tmean_spring', 'Tmean_summer', 'Tmean_fall',
+                    'Tmin_winter', 'Tmin_spring', 'Tmin_summer', 'Tmin_fall',
+                    'Tmax_winter', 'Tmax_spring', 'Tmax_summer', 'Tmax_fall') 
+
+# Subset to test: one taxon at one site
+test_df <- clim_seasons |>
+  dplyr::filter(site == 'GOOSE',
+                taxon == 'QURU')
+
+# Make AGBI a time series
+agbi_ts <- ts(data = test_df$AGBI.mean,
+              start = min(test_df$year),
+              end = max(test_df$year),
+              frequency = 1)
+
+# Make matrix of covariates
+xreg <- as.matrix(test_df |>
+                    dplyr::ungroup() |>
+                    dplyr::select(dplyr::all_of(predictor_names)))
+
+#### 5. Fit AR(1) model ####
+
+# Fit ARIMA model
+mod <- forecast::Arima(y = agbi_ts, # AGBI time series response variable
+                       order = c(1, 0, 0), # AR(1) model with no differencing or moving average- 
+                       # note this is consistent with what you had before but c(1, 0, 1) might be more appropriate idk
+                       xreg = xreg)
+
+# Check for basic statistics
+print(mod)
+
+# Pseudo-R2
+fit_stat <- cor(x = fitted(mod),
+                y = agbi_ts)^2
+fit_stat
+
+# Residuals plot
+forecast::checkresiduals(mod)
+
+# try for all sites and species
+
+#uses seasonal climate data + AGBI lag1
+models <- clim_seasons %>% 
+  group_by(site, taxon) %>%
+  do({
+
+    df = .
+    
+    site_val <- .$site[1]
+    taxon_val <- .$taxon[1]
+    print(paste("Site:", site_val, "Taxon:", taxon_val))
+
+    if (any(is.na(df$AGBI.mean))){
+      next
+    }
+    
+    # Make AGBI a time series
+    agbi_ts <- ts(data = df$AGBI.mean,
+                  start = min(df$year),
+                  end = max(df$year),
+                  frequency = 1)
+    print(agbi_ts)
+    
+    # Make matrix of covariates
+    xreg <- as.matrix(. |>
+                        dplyr::ungroup() |>
+                        dplyr::select(dplyr::all_of(predictor_names)))
+    
+    # Check for sufficient data
+    if (length(agbi_ts) < 4) {
+      warning("Too few years to fit model reliably for group: ", paste(group_info, collapse = ", "))
+      return(tibble(mod = list(NA), stationary = NA, note = "Too few years"))
+    }
+    
+    # ADF test: is the series stationary?
+    adf_result <- tryCatch({
+      tseries::adf.test(agbi_ts)
+    }, error = function(e) {
+      warning("ADF test failed for group: ", paste(group_info, collapse = ", "))
+      return(NULL)
+    })
+    
+    stationary <- !is.null(adf_result) && adf_result$p.value < 0.05
+    
+    # Set model order
+    model_order <- if (stationary) c(1, 0, 0) else c(1, 1, 0)
+    
+    # Fit model
+    model <- tryCatch({
+      forecast::Arima(y = agbi_ts, order = model_order, xreg = xreg, method = "ML")
+    }, error = function(e) {
+      warning("ARIMA model failed for group: ", paste(group_info, collapse = ", "), " — ", e$message)
+      return(NULL)
+    })
+    
+    tibble(
+      mod = list(model),
+      stationary = stationary,
+      note = if (is.null(model)) "Model failed" else NA
+    )
+    
+    # #### 5. Fit AR(1) model ####
+    # 
+    # # Fit ARIMA model
+    # model <- forecast::Arima(y = agbi_ts, # AGBI time series response variable
+    #                        order = c(1, 0, 0), # AR(1) model with no differencing or moving average- 
+    #                        # note this is consistent with what you had before but c(1, 0, 1) might be more appropriate idk
+    #                        xreg = xreg)
+    # tibble(mod = list(model))
+  })
+
 
 # RESIDUALS ---------------------------------------------------------------
 
@@ -178,15 +293,21 @@ ggplot(data=rsq_values) +
 
 # res = lapply(models[[3]], function(x) {
 #   if(length(x$residuals) < 62){ rep(NA, 62)}else{x$residuals}})
+# res = lapply(models[[3]], function(x) {
+#   if(length(residuals(x)) < 62){ rep(NA, 62)}else{residuals(x)}})
+
+models <- dplyr::mutate(models, model = paste0(site, "_", taxon))
+
+# res = apply(models, 2, function(x) {residuals(mod)})
 res = lapply(models[[3]], function(x) {
-  if(length(x$residuals) < 61){ rep(NA, 61)}else{x$residuals}})
+  if(length(residuals(x)) < 62){ rep(NA, 62)}else{residuals(x)}})
 
 #creating df where each column has the residuals for each model
 res_df = data.frame(matrix(unlist(res), ncol=length(res), byrow=FALSE))
 #changing column names to site_taxon corresponding model
 colnames(res_df) <- models$model
 res_df <- res_df %>%
-  mutate(year = 1951:2011)%>%
+  mutate(year = 1950:2011)%>%
   dplyr::select(year, everything())
 
 #changing residula values to long format
@@ -243,7 +364,7 @@ for (site in sites) {
   
   p <- ggplot(data = site_data) +
     geom_point(aes(x = year, y = value)) +
-    facet_wrap(~taxon) +
+    facet_wrap(~taxon, scales='free_y') +
     theme_light(base_size = 11) +
     ggtitle(site)
   
