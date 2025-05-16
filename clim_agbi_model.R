@@ -4,6 +4,7 @@ library(tidyr)
 library(reshape2)
 library(purrr)
 library(ggplot2)
+library(GGally)
 
 #arima(xreg = INDEPENDENT.VARS)
 
@@ -78,9 +79,15 @@ mean_AGBI = clim_agbi %>%
   group_by(site, taxon) %>% 
   mutate(mean_abun = mean(AGBI.mean))
 
+sum_AGBI = clim_agbi %>% 
+  group_by(site, taxon) %>% 
+  mutate(sum_abun = sum(AGBI.mean))
+
+
 #pulling the mean values of AGBI
 #use this line at line 147
 mean_AGBI = data.frame(mean_abun = unique(mean_AGBI$mean_abun))
+sum_AGBI = data.frame(sum_abun = unique(sum_AGBI$sum_abun))
 
 #new dataframe with seasonal climate data
 #Across seasons, sum PPT, mean Tmean, max Tmax, min Tmin
@@ -135,7 +142,7 @@ models <- clim_seasons %>%
 modelS <- dplyr::mutate(modelS, model = paste0(site, "_", taxon))
 
 #verifying Rsq function 
-#summary(models[[3]][1][[1]])
+summary(models[[3]][1][[1]])
 
 #Rsq values for each model 
 rsq_values <- models %>%
@@ -145,7 +152,7 @@ rsq_values <- models %>%
 
 #combining Rsq values with mean AGBI across site and taxa
 rsq_AGBI = cbind(rsq_values, mean_AGBI)
-
+rsq_AGBI_sum = cbind(rsq_values, sum_AGBI)
 
 #plotting Rsq by site and taxon 
 ggplot(data = rsq_AGBI) +
@@ -153,7 +160,13 @@ ggplot(data = rsq_AGBI) +
   theme_light(14)+
   theme(axis.text.x = element_text(angle = -45))
 
-ggplot(data=rsq_values_clim2) +
+ggplot(data = rsq_AGBI_sum) +
+  geom_point(aes(x=site, y = r.squared, colour = taxon, size = sum_abun))+
+  theme_light(14)+
+  theme(axis.text.x = element_text(angle = -45))
+
+
+ggplot(data=rsq_values) +
   geom_point(aes(y=taxon, x = r.squared, colour=site))
 
 
@@ -163,14 +176,14 @@ ggplot(data=rsq_values_clim2) +
 #residuals not mean 
 #pulling residuals for models
 
-res = lapply(models_clim2[[3]], function(x) {
+res = lapply(models[[3]], function(x) {
   if(length(x$residuals) < 62){ rep(NA, 62)}else{x$residuals}})
 
 
 #creating df where each column has the residuals for each model
 res_df = data.frame(matrix(unlist(res), ncol =length(res), byrow=FALSE))
 #changing column names to site_taxon corresponding model
-colnames(res_df) <- models_clim2$model
+colnames(res_df) <- models$model
 res_df <- res_df %>%
   mutate(year = 1950:2011)%>%
   dplyr::select(year, everything())
@@ -205,41 +218,75 @@ ggplot(data = res_long , aes(x = year, y = value, color = taxon))+
   theme_light(base_size = 11)+
   ggtitle("model resiudals")
 
-#residuals for ony harvard 
-ggplot(data = res_long %>% filter(site== "HARVARD"))+
-  geom_point(aes(x = year, y = value, color = taxon))+
-  # facet_wrap(~site, scales = "free_y")+
-  theme_light(base_size =11)+
-  ggtitle("HARVARD")
+#residuals for each site, wrapped by taxa
+sites <- c("GOOSE", "ROOSTER", "HARVARD", "HMC", "NRP", "SYLVANIA")
+for (site in sites) {
+  site_data <- res_long %>%
+    dplyr::filter(site == !!site)
+  
+  p <- ggplot(data = site_data) +
+    geom_point(aes(x = year, y = value)) +
+    facet_wrap(~taxon) +
+    theme_light(base_size = 11) +
+    ggtitle(site)
+  
+  print(p)
+}
+  
+  
+# #residuals for ony harvard 
+# ggplot(data = res_long %>% filter(site== "HARVARD"))+
+#   geom_point(aes(x = year, y = value, color = taxon))+
+#   # facet_wrap(~site, scales = "free_y")+
+#   theme_light(base_size =11)+
+#   ggtitle("HARVARD")
+
 
 #residuals where QURU is found 
 ggplot(data = res_long %>% filter(taxon== "QURU"),
        aes(x = year, y = value, color = site))+
   geom_point()+
   # facet_wrap(~site, scales = "free_y")+
-  geom_smooth( method = "gam")+
+  #geom_smooth( method = "gam")+
   scale_color_manual(values = site_colors) +
   theme_light(base_size =11)+
   ggtitle("QURU")
 
+#residuals for PIST at all sites found
 ggplot(data = res_long %>% filter(taxon== "PIST"),
        aes(x = year, y = value, color = site))+
   geom_point()+
   # facet_wrap(~site, scales = "free_y")+
-  geom_smooth(method = "gam")+
+  #geom_smooth(method = "gam")+
   scale_color_manual(values = site_colors) +
   theme_light(base_size =11)+
   ggtitle("PIST")
 
+#residuals for TSCA at all sites found
 ggplot(data = res_long %>% filter(taxon== "TSCA"),
        aes(x = year, y = value, color = site))+
   geom_point()+
   # facet_wrap(~site, scales = "free_y")+
-  geom_smooth(method = "gam")+
+  #geom_smooth(method = "gam")+
   scale_color_manual(values = site_colors) +
   theme_light(base_size =11)+
   ggtitle("TSCA")
 
+res_df_na <- subset(res_df, select = -c(HARVARD_HAVI, NRP_BEPA)) 
+
+for (site in sites) {
+  site_data <- res_df_na %>%
+    dplyr::select(starts_with(site))
+  
+  # Skip if no matching columns (to avoid errors)
+  if (ncol(site_data) == 0) next
+  
+  # Clean column names
+  colnames(site_data) <- sub(".*_", "", colnames(site_data))
+  
+  # Plot
+  print(ggpairs(data = site_data, title = paste(site, "Correlations")))
+}
 
 
 
