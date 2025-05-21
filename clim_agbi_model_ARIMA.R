@@ -72,6 +72,179 @@ clim_agbi <- AGBI_data %>%
   left_join(clim_wide, by = c('year', 'site'))
 
 
+# ARIMA Model -------------------------------------------------------------
+
+### ADD ARIMA
+
+#climate predictors
+predictor_names = c('PPT_winter', 'PPT_spring', 'PPT_summer', 'PPT_fall',
+                    'Vpdmax_winter','Vpdmax_spring', 'Vpdmax_summer', 'Vpdmax_fall',
+                    'Tmean_winter', 'Tmean_spring', 'Tmean_summer', 'Tmean_fall',
+                    'Tmin_winter', 'Tmin_spring', 'Tmin_summer', 'Tmin_fall',
+                    'Tmax_winter', 'Tmax_spring', 'Tmax_summer', 'Tmax_fall') 
+
+#testing ARIMA model
+# # Subset to test: one taxon at one site
+# test_df <- clim_seasons |>
+#   dplyr::filter(site == 'GOOSE',
+#                 taxon == 'QURU')
+# 
+# # Make AGBI a time series
+# agbi_ts <- ts(data = test_df$AGBI.mean,
+#               start = min(test_df$year),
+#               end = max(test_df$year),
+#               frequency = 1)
+# 
+# # Make matrix of covariates
+# xreg <- as.matrix(test_df |>
+#                     dplyr::ungroup() |>
+#                     dplyr::select(dplyr::all_of(predictor_names)))
+# 
+# #### 5. Fit AR(1) model ####
+# 
+# # Fit ARIMA model
+# mod <- forecast::Arima(y = agbi_ts, # AGBI time series response variable
+#                        order = c(1, 0, 0), # AR(1) model with no differencing or moving average- 
+#                        # note this is consistent with what you had before but c(1, 0, 1) might be more appropriate idk
+#                        xreg = xreg)
+# 
+# # Check for basic statistics
+# print(mod)
+# 
+# # Pseudo-R2
+# fit_stat <- cor(x = fitted(mod),
+#                 y = agbi_ts)^2
+# fit_stat
+# 
+# # Residuals plot
+# forecast::checkresiduals(mod)
+
+# try for all sites and species
+
+#### 3. Remove last five years ####
+
+clim_agbi_in <- dplyr::filter(clim_agbi, year < 2007)
+clim_agbi_out <- dplyr::filter(clim_seasons, year > 2006)
+
+#uses seasonal climate data 
+#making a time series 
+# Fit ARIMA models by site and taxon
+models <- clim_seasons %>%
+  group_by(site, taxon) %>%
+  do({
+    df <- .
+    
+    # Drop rows with NA in response or predictors
+    if (any(is.na(df$AGBI.mean)) || any(is.na(df[predictor_names]))) {
+      return(tibble(mod = list(NULL), note = "Missing data"))
+    }
+    
+    # Response variable as time series
+    agbi_ts <- ts(df$AGBI.mean, start = min(df$year), frequency = 1)
+    
+    # External regressors
+    xreg <- as.matrix(df %>% select(all_of(predictor_names)))
+    
+    # Fit ARIMA model
+    model <- tryCatch({
+      forecast::Arima(
+        y = agbi_ts,
+        order = c(1, 0, 0),  # AR(1)
+        xreg = xreg,
+        method = "ML"
+      )
+    }, error = function(e) {
+      warning("ARIMA failed for site=", df$site[1], ", taxon=", df$taxon[1], ": ", e$message)
+      return(NULL)
+    })
+    
+    tibble(mod = list(model), note = if (is.null(model)) "Model failed" else NA)
+  })
+
+
+
+model_forecasts <- models %>%
+  filter(!is.null(mod[[1]])) %>%
+  mutate(
+    forecast = pmap(list(mod, site, taxon), function(model_obj, site_val, taxon_val) {
+      if (is.null(model_obj)) return(NA)
+      
+      # Get future predictors for the same group
+      future_data <- clim_agbi_out %>%
+        filter(site == site_val, taxon == taxon_val) %>%
+        arrange(year)
+      
+      if (nrow(future_data) == 0) return(NA)
+      
+      future_xreg <- future_data %>%
+        select(all_of(predictor_names)) %>%
+        as.matrix()
+      
+      # Forecast
+      tryCatch({
+        forecast::forecast(model_obj, xreg = future_xreg)
+      }, error = function(e) {
+        warning(paste("Forecast failed for", site_val, taxon_val, ":", e$message))
+        return(NA)
+      })
+    })
+  )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+agbi_ts_out <- ts(data = clim_agbi_out$AGBI.mean,
+                  start = min(test_df$year),
+                  end = max(test_df$year),
+                  frequency = 1)
+
+xreg_out <- as.matrix(agbi_ts_out |>
+                        dplyr::select(dplyr::all_of(predictor_names)))
+
+# Make forecast
+forecast_test <- forecast::forecast(object = models,
+                                    xreg = xreg_out)
+
+
+
+
+# Apply forecast to each model
+forecasts <- models %>%
+  bind_cols(clim_seasons %>% group_by(site, taxon) %>% summarise(n = n(), .groups = "drop")) %>% # recover site/taxon info if needed
+  rowwise() %>%
+  mutate(
+    forecast = list({
+      if (is.null(mod) || all(is.na(mod))) {
+        NA
+      } else {
+        # Get matching rows from future_xreg
+        future_df <- future_xreg %>%
+          filter(site == cur_data()$site, taxon == cur_data()$taxon) %>%
+          arrange(year)
+        
+        future_matrix <- as.matrix(future_df %>% select(all_of(predictor_names)))
+        
+        # Forecast
+        forecast::forecast(mod[[1]], xreg = future_matrix)
+      }
+    })
+  )
+# Check object
+forecast_test
+
+
+
 # MODEL -------------------------------------------------------------------
 
 #taking the mean AGBI of each taxa at each site 
@@ -169,120 +342,6 @@ ggplot(data = rsq_AGBI_sum) +
 ggplot(data=rsq_values) +
   geom_point(aes(y=taxon, x = r.squared, colour=site))
 
-### ADD ARIMA
-
-predictor_names = c('PPT_winter', 'PPT_spring', 'PPT_summer', 'PPT_fall',
-                    'Vpdmax_winter','Vpdmax_spring', 'Vpdmax_summer', 'Vpdmax_fall',
-                    'Tmean_winter', 'Tmean_spring', 'Tmean_summer', 'Tmean_fall',
-                    'Tmin_winter', 'Tmin_spring', 'Tmin_summer', 'Tmin_fall',
-                    'Tmax_winter', 'Tmax_spring', 'Tmax_summer', 'Tmax_fall') 
-
-# Subset to test: one taxon at one site
-test_df <- clim_seasons |>
-  dplyr::filter(site == 'GOOSE',
-                taxon == 'QURU')
-
-# Make AGBI a time series
-agbi_ts <- ts(data = test_df$AGBI.mean,
-              start = min(test_df$year),
-              end = max(test_df$year),
-              frequency = 1)
-
-# Make matrix of covariates
-xreg <- as.matrix(test_df |>
-                    dplyr::ungroup() |>
-                    dplyr::select(dplyr::all_of(predictor_names)))
-
-#### 5. Fit AR(1) model ####
-
-# Fit ARIMA model
-mod <- forecast::Arima(y = agbi_ts, # AGBI time series response variable
-                       order = c(1, 0, 0), # AR(1) model with no differencing or moving average- 
-                       # note this is consistent with what you had before but c(1, 0, 1) might be more appropriate idk
-                       xreg = xreg)
-
-# Check for basic statistics
-print(mod)
-
-# Pseudo-R2
-fit_stat <- cor(x = fitted(mod),
-                y = agbi_ts)^2
-fit_stat
-
-# Residuals plot
-forecast::checkresiduals(mod)
-
-# try for all sites and species
-
-#uses seasonal climate data + AGBI lag1
-models <- clim_seasons %>% 
-  group_by(site, taxon) %>%
-  do({
-
-    df = .
-    
-    site_val <- .$site[1]
-    taxon_val <- .$taxon[1]
-    print(paste("Site:", site_val, "Taxon:", taxon_val))
-
-    if (any(is.na(df$AGBI.mean))){
-      next
-    }
-    
-    # Make AGBI a time series
-    agbi_ts <- ts(data = df$AGBI.mean,
-                  start = min(df$year),
-                  end = max(df$year),
-                  frequency = 1)
-    print(agbi_ts)
-    
-    # Make matrix of covariates
-    xreg <- as.matrix(. |>
-                        dplyr::ungroup() |>
-                        dplyr::select(dplyr::all_of(predictor_names)))
-    
-    # Check for sufficient data
-    if (length(agbi_ts) < 4) {
-      warning("Too few years to fit model reliably for group: ", paste(group_info, collapse = ", "))
-      return(tibble(mod = list(NA), stationary = NA, note = "Too few years"))
-    }
-    
-    # ADF test: is the series stationary?
-    adf_result <- tryCatch({
-      tseries::adf.test(agbi_ts)
-    }, error = function(e) {
-      warning("ADF test failed for group: ", paste(group_info, collapse = ", "))
-      return(NULL)
-    })
-    
-    stationary <- !is.null(adf_result) && adf_result$p.value < 0.05
-    
-    # Set model order
-    model_order <- if (stationary) c(1, 0, 0) else c(1, 1, 0)
-    
-    # Fit model
-    model <- tryCatch({
-      forecast::Arima(y = agbi_ts, order = model_order, xreg = xreg, method = "ML")
-    }, error = function(e) {
-      warning("ARIMA model failed for group: ", paste(group_info, collapse = ", "), " — ", e$message)
-      return(NULL)
-    })
-    
-    tibble(
-      mod = list(model),
-      stationary = stationary,
-      note = if (is.null(model)) "Model failed" else NA
-    )
-    
-    # #### 5. Fit AR(1) model ####
-    # 
-    # # Fit ARIMA model
-    # model <- forecast::Arima(y = agbi_ts, # AGBI time series response variable
-    #                        order = c(1, 0, 0), # AR(1) model with no differencing or moving average- 
-    #                        # note this is consistent with what you had before but c(1, 0, 1) might be more appropriate idk
-    #                        xreg = xreg)
-    # tibble(mod = list(model))
-  })
 
 
 # RESIDUALS ---------------------------------------------------------------
