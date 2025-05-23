@@ -235,12 +235,8 @@ fit_long <- fitted_df %>%
   pivot_longer(cols = GOOSE_ACRU:SYLVANIA_TSCA, names_to = "site_taxon", values_to = "value") %>%
   separate(site_taxon, into = c("site", "taxon"), sep = "_")
 
-lapply(model_forecasts, function(x){
-  site = x[[1]]
-  taxon = x[[2]]
-  f_mean = x[[5]][[]]
-  data.frame(site=site, taxon=taxon, f_mean = f_mean)})
-
+lapply(model_forecasts[[5]], function(x) 
+  {fmean = x$mean; flo=x$lower; fhi=x$upper})
 
 foo = list_rbind(model_forecasts[[5]])
 #changing column names to site_taxon corresponding model
