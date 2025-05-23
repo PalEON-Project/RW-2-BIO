@@ -123,13 +123,13 @@ predictor_names = c('PPT_winter', 'PPT_spring', 'PPT_summer', 'PPT_fall',
 
 #### 3. Remove last five years ####
 
-clim_agbi_in <- dplyr::filter(clim_agbi, year < 2007)
+clim_agbi_in <- dplyr::filter(clim_seasons, year < 2007)
 clim_agbi_out <- dplyr::filter(clim_seasons, year > 2006)
 
 #uses seasonal climate data 
 #making a time series 
 # Fit ARIMA models by site and taxon
-models <- clim_seasons %>%
+models <- clim_agbi_in %>%
   group_by(site, taxon) %>%
   do({
     df <- .
@@ -161,6 +161,19 @@ models <- clim_seasons %>%
     tibble(mod = list(model), note = if (is.null(model)) "Model failed" else NA)
   })
 
+models <- dplyr::mutate(models, model = paste0(site, "_", taxon))
+# foo = clim_agbi_out %>% 
+#   dplyr::select(predictor_names) %>% 
+#   dplyr::ungroup() |>
+#   dplyr::select(dplyr::all_of(predictor_names)) %>% 
+#   as.matrix()
+# 
+# forecast_out = clim_agbi_out %>% 
+#   dplyr::ungroup() %>% 
+#   dplyr::select(dplyr::all_of(predictor_names)) %>% 
+#   as.matrix()
+# 
+# bar =forecast::forecast(models[[3]][[11]], xreg = foo)
 
 
 model_forecasts <- models %>%
@@ -176,8 +189,9 @@ model_forecasts <- models %>%
       
       if (nrow(future_data) == 0) return(NA)
       
-      future_xreg <- future_data %>%
-        select(all_of(predictor_names)) %>%
+      future_xreg <-future_data %>%
+        dplyr::ungroup() %>% 
+        dplyr::select(dplyr::all_of(predictor_names)) %>% 
         as.matrix()
       
       # Forecast
@@ -192,58 +206,97 @@ model_forecasts <- models %>%
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-agbi_ts_out <- ts(data = clim_agbi_out$AGBI.mean,
-                  start = min(test_df$year),
-                  end = max(test_df$year),
-                  frequency = 1)
-
-xreg_out <- as.matrix(agbi_ts_out |>
-                        dplyr::select(dplyr::all_of(predictor_names)))
-
-# Make forecast
-forecast_test <- forecast::forecast(object = models,
-                                    xreg = xreg_out)
-
-
-
-
-# Apply forecast to each model
-forecasts <- models %>%
-  bind_cols(clim_seasons %>% group_by(site, taxon) %>% summarise(n = n(), .groups = "drop")) %>% # recover site/taxon info if needed
-  rowwise() %>%
-  mutate(
-    forecast = list({
-      if (is.null(mod) || all(is.na(mod))) {
-        NA
-      } else {
-        # Get matching rows from future_xreg
-        future_df <- future_xreg %>%
-          filter(site == cur_data()$site, taxon == cur_data()$taxon) %>%
-          arrange(year)
-        
-        future_matrix <- as.matrix(future_df %>% select(all_of(predictor_names)))
-        
-        # Forecast
-        forecast::forecast(mod[[1]], xreg = future_matrix)
-      }
-    })
-  )
 # Check object
-forecast_test
+model_forecasts
+
+fitted = lapply(model_forecasts[[3]], function(x) {
+    if(length(x$fitted) < 57){ rep(NA, 57)}else{x$fitted}})
+
+fitted_df = data.frame(matrix(unlist(fitted), ncol=length(fitted), byrow=FALSE))
+#changing column names to site_taxon corresponding model
+colnames(fitted_df) <- models$model
+fitted_df <- fitted_df %>%
+  mutate(year = 1950:2006)%>%
+  dplyr::select(year, everything())
+fit_long <- fitted_df %>%
+  pivot_longer(cols = GOOSE_ACRU:SYLVANIA_TSCA, names_to = "site_taxon", values_to = "value") %>%
+  separate(site_taxon, into = c("site", "taxon"), sep = "_")
 
 
+
+mean_forecast = lapply(model_forecasts[[5]], function(x) {
+  if(length(x$mean) < 5){ rep(NA, 5)}else{x$mean}})
+forecast_mean = data.frame(matrix(unlist(mean_forecast), ncol=length(mean_forecast), byrow=FALSE))
+colnames(forecast_mean) <- models$model
+fitted_df <- fitted_df %>%
+  mutate(year = 2007:2011)%>%
+  dplyr::select(year, everything())
+fit_long <- fitted_df %>%
+  pivot_longer(cols = GOOSE_ACRU:SYLVANIA_TSCA, names_to = "site_taxon", values_to = "value") %>%
+  separate(site_taxon, into = c("site", "taxon"), sep = "_")
+
+lapply(model_forecasts, function(x){
+  site = x[[1]]
+  taxon = x[[2]]
+  f_mean = x[[5]][[]]
+  data.frame(site=site, taxon=taxon, f_mean = f_mean)})
+
+
+foo = list_rbind(model_forecasts[[5]])
+#changing column names to site_taxon corresponding model
+# colnames(fitted_df) <- models$model
+# fitted_df <- fitted_df %>%
+#   mutate(year = 1950:2006)%>%
+#   dplyr::select(year, everything())
+# fit_long <- fitted_df %>%
+#   pivot_longer(cols = GOOSE_ACRU:SYLVANIA_TSCA, names_to = "site_taxon", values_to = "value") %>%
+#   separate(site_taxon, into = c("site", "taxon"), sep = "_")
+
+
+
+lower = lapply(model_forecasts[[5]], function(x) {
+  if(length(x$lower) < 10){ rep(NA, 10)}else{x$lower}})
+upper = lapply(model_forecasts[[5]], function(x) {
+  if(length(x$upper) < 10){ rep(NA, 10)}else{x$upper}})
+
+
+# agbi_pred <- c(models$fitted, model_forecasts$mean)
+# lower <- c(mod$fitted, forecast_test$lower[,2])
+# upper <- c(mod$fitted, forecast_test$upper[,2])
+sites <- c("GOOSE", "ROOSTER", "HARVARD", "HMC", "NRP", "SYLVANIA")
+taxa = (unique(clim_agbi$taxon))
+
+# Plot
+pdf("report/figures/AGBI_fitted_forecast.pdf")
+for (site in sites) {
+  for (taxon in taxa) {
+    print(site)
+    print(taxon)
+    clim_agbi_sub = clim_agbi %>%
+      filter(site == !!site,
+             taxon == !!taxon)
+    
+    fitted_sub = fit_long %>%
+      filter(site == !!site,
+             taxon == !!taxon)
+    
+   p = ggplot2::ggplot(data = clim_agbi_sub) +
+      ggplot2::geom_point(ggplot2::aes(x = year, y = AGBI.mean)) +
+     geom_point(data = fitted_sub, aes(x = year, y = value), color = "blue")+
+     
+   print(p) 
+    
+  }
+  
+}
+dev.off()
+
+# +
+  # ggplot2::geom_line(ggplot2::aes(x = year, y = agbi_pred)) +
+  # ggplot2::geom_ribbon(ggplot2::aes(x = year, ymin = lower,
+  #                                   ymax = upper),
+  #                      alpha = 0.5)
+  # 
 
 # MODEL -------------------------------------------------------------------
 
