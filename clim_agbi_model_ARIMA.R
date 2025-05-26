@@ -95,6 +95,32 @@ predictor_names = c('PPT_winter', 'PPT_spring', 'PPT_summer', 'PPT_fall',
 
 # try for all sites and species
 
+#new dataframe with seasonal climate data
+#Across seasons, sum PPT, mean Tmean, max Tmax, min Tmin
+clim_seasons = clim_agbi %>% 
+  group_by(year, site, taxon) %>% 
+  mutate(PPT_winter = sum(dplyr::pick('PPT_12', 'PPT_01', 'PPT_02')),
+         PPT_spring = sum(dplyr::pick('PPT_03', 'PPT_04', 'PPT_05')),
+         PPT_summer = sum(dplyr::pick('PPT_06', 'PPT_07', 'PPT_08')),
+         PPT_fall = sum(dplyr::pick('PPT_09', 'PPT_10', 'PPT_11')),
+         Vpdmax_winter = rowMeans(dplyr::pick('Vpdmax_12', 'Vpdmax_01','Vpdmax_02')),
+         Vpdmax_spring = rowMeans(dplyr::pick('Vpdmax_03', 'Vpdmax_04','Vpdmax_05')),
+         Vpdmax_summer = rowMeans(dplyr::pick('Vpdmax_06', 'Vpdmax_07','Vpdmax_08')),
+         Vpdmax_fall = rowMeans(dplyr::pick('Vpdmax_09', 'Vpdmax_10','Vpdmax_11')),
+         Tmin_winter = min(dplyr::pick('Tmin_12', 'Tmin_01', 'Tmin_02')),
+         Tmin_spring = min(dplyr::pick('Tmin_03', 'Tmin_04', 'Tmin_05')),
+         Tmin_summer = min(dplyr::pick('Tmin_06', 'Tmin_07', 'Tmin_08')),
+         Tmin_fall = min(dplyr::pick('Tmin_09', 'Tmin_10', 'Tmin_11')),
+         Tmax_winter = max(dplyr::pick('Tmax_12', 'Tmax_01', 'Tmax_02')),
+         Tmax_spring = max(dplyr::pick('Tmax_03', 'Tmax_04', 'Tmax_05')),
+         Tmax_summer = max(dplyr::pick('Tmax_06', 'Tmax_07', 'Tmax_08')),
+         Tmax_fall = max(dplyr::pick('Tmax_09', 'Tmax_10', 'Tmax_11')),
+         Tmean_winter = rowMeans(dplyr::pick('Tmean_12', 'Tmean_01', 'Tmean_02')),
+         Tmean_spring = rowMeans(dplyr::pick('Tmean_03', 'Tmean_04', 'PPT_05')),
+         Tmean_summer = rowMeans(dplyr::pick('Tmean_06', 'Tmean_07', 'Tmean_08')),
+         Tmean_fall = rowMeans(dplyr::pick('Tmean_09', 'Tmean_10', 'Tmean_11'))
+  )
+
 #### 3. Remove last five years ####
 
 clim_agbi_in <- dplyr::filter(clim_seasons, year < 2007)
@@ -188,18 +214,28 @@ fitted_long <- fitted_df %>%
   separate(site_taxon, into = c("site", "taxon"), sep = "_")
   
 
-#mean forecast values
-mean_forecast = lapply(model_forecasts[[5]], function(x) {
-  if(length(x$mean) < 5){ rep(NA, 5)}else{x$mean}})
-forecast_mean = data.frame(matrix(unlist(mean_forecast), ncol=length(mean_forecast), byrow=FALSE))
-#renaming columns based on model name
-colnames(forecast_mean) <- models$model
-mean_df <- forecast_mean %>%
-  mutate(year = 2007:2011)%>%
-  dplyr::select(year, everything())
-mean_long <- mean_df %>%
-  pivot_longer(cols = GOOSE_ACRU:SYLVANIA_TSCA, names_to = "site_taxon", values_to = "value") %>%
-  separate(site_taxon, into = c("site", "taxon"), sep = "_")
+# #mean forecast values
+# mean_forecast = lapply(model_forecasts[[5]], function(x) {
+#   if(length(x$mean) < 5){ rep(NA, 5)}else{x$mean}})
+# forecast_mean = data.frame(matrix(unlist(mean_forecast), ncol=length(mean_forecast), byrow=FALSE))
+# #renaming columns based on model name
+# colnames(forecast_mean) <- models$model
+# mean_df <- forecast_mean %>%
+#   mutate(year = 2007:2011)%>%
+#   dplyr::select(year, everything())
+# mean_long <- mean_df %>%
+#   pivot_longer(cols = GOOSE_ACRU:SYLVANIA_TSCA, names_to = "site_taxon", values_to = "value") %>%
+#   separate(site_taxon, into = c("site", "taxon"), sep = "_")
+
+foo = lapply(model_forecasts$forecast, function(x){data.frame(year = as.vector(time(x$mean)),
+                                                              forecast_mean = x$mean, 
+                                                              forecast_lo = x$lower[,"95%"], 
+                                                              forecast_hi = x$upper[,"95%"])})
+
+forecast_long = data.frame(site = rep(model_forecasts[[1]], each=5), 
+                 taxon = rep(model_forecasts[[2]], each=5), 
+                 bind_rows(foo))
+
 
 #upper....
 # upper_forecast <- lapply(model_forecasts[[5]], function(x) {
@@ -232,11 +268,12 @@ sites <- c("GOOSE", "ROOSTER", "HARVARD", "HMC", "NRP", "SYLVANIA")
 taxa = (unique(clim_agbi$taxon))
 
 # Plot
-pdf("report/figures/AGBI_fitted_forecast.pdf")
+pdf("report/figures/AGBI_fitted_forecast.pdf", width=10, height=8)
 for (site in sites) {
   for (taxon in taxa) {
     print(site)
     print(taxon)
+    
     clim_agbi_sub = clim_agbi %>%
       filter(site == !!site,
              taxon == !!taxon)
@@ -245,9 +282,16 @@ for (site in sites) {
       filter(site == !!site,
              taxon == !!taxon)
     
-   p = ggplot(data = clim_agbi_sub) +
-      geom_point(ggplot2::aes(x = year, y = AGBI.mean)) +
-     geom_point(data = fitted_sub, aes(x = year, y = value), color = "blue")
+    forecast_sub = forecast_long %>%
+      filter(site == !!site,
+             taxon == !!taxon)
+    
+   p = ggplot() +
+      geom_point(data = clim_agbi_sub, ggplot2::aes(x = year, y = AGBI.mean)) +
+     geom_point(data = fitted_sub, aes(x = year, y = value), color = "blue") +
+     geom_ribbon(data = forecast_sub, aes(x=year, ymin=forecast_hi, ymax=forecast_lo), alpha=0.5) +
+     geom_point(data = forecast_sub, aes(x = year, y = forecast_mean), color = "orange") +
+     theme_light()
      
    print(p) 
     
@@ -280,31 +324,7 @@ sum_AGBI = clim_agbi %>%
 mean_AGBI = data.frame(mean_abun = unique(mean_AGBI$mean_abun))
 sum_AGBI = data.frame(sum_abun = unique(sum_AGBI$sum_abun))
 
-#new dataframe with seasonal climate data
-#Across seasons, sum PPT, mean Tmean, max Tmax, min Tmin
-clim_seasons = clim_agbi %>% 
-  group_by(year, site, taxon) %>% 
-  mutate(PPT_winter = sum(dplyr::pick('PPT_12', 'PPT_01', 'PPT_02')),
-         PPT_spring = sum(dplyr::pick('PPT_03', 'PPT_04', 'PPT_05')),
-         PPT_summer = sum(dplyr::pick('PPT_06', 'PPT_07', 'PPT_08')),
-         PPT_fall = sum(dplyr::pick('PPT_09', 'PPT_10', 'PPT_11')),
-         Vpdmax_winter = rowMeans(dplyr::pick('Vpdmax_12', 'Vpdmax_01','Vpdmax_02')),
-         Vpdmax_spring = rowMeans(dplyr::pick('Vpdmax_03', 'Vpdmax_04','Vpdmax_05')),
-         Vpdmax_summer = rowMeans(dplyr::pick('Vpdmax_06', 'Vpdmax_07','Vpdmax_08')),
-         Vpdmax_fall = rowMeans(dplyr::pick('Vpdmax_09', 'Vpdmax_10','Vpdmax_11')),
-         Tmin_winter = min(dplyr::pick('Tmin_12', 'Tmin_01', 'Tmin_02')),
-         Tmin_spring = min(dplyr::pick('Tmin_03', 'Tmin_04', 'Tmin_05')),
-         Tmin_summer = min(dplyr::pick('Tmin_06', 'Tmin_07', 'Tmin_08')),
-         Tmin_fall = min(dplyr::pick('Tmin_09', 'Tmin_10', 'Tmin_11')),
-         Tmax_winter = max(dplyr::pick('Tmax_12', 'Tmax_01', 'Tmax_02')),
-         Tmax_spring = max(dplyr::pick('Tmax_03', 'Tmax_04', 'Tmax_05')),
-         Tmax_summer = max(dplyr::pick('Tmax_06', 'Tmax_07', 'Tmax_08')),
-         Tmax_fall = max(dplyr::pick('Tmax_09', 'Tmax_10', 'Tmax_11')),
-         Tmean_winter = rowMeans(dplyr::pick('Tmean_12', 'Tmean_01', 'Tmean_02')),
-         Tmean_spring = rowMeans(dplyr::pick('Tmean_03', 'Tmean_04', 'PPT_05')),
-         Tmean_summer = rowMeans(dplyr::pick('Tmean_06', 'Tmean_07', 'Tmean_08')),
-         Tmean_fall = rowMeans(dplyr::pick('Tmean_09', 'Tmean_10', 'Tmean_11'))
-  )
+
 
 
 #predictor names to be inputted into the model
