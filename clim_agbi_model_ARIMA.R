@@ -199,33 +199,7 @@ model_forecasts <- models %>%
 # Check object
 model_forecasts
 
-#Pulling
-fitted = lapply(model_forecasts[[3]], function(x) {
-    if(length(x$fitted) < 57){ rep(NA, 57)}else{x$fitted}})
 
-fitted_df = data.frame(matrix(unlist(fitted), ncol=length(fitted), byrow=FALSE))
-#changing column names to site_taxon corresponding model
-colnames(fitted_df) <- models$model
-fitted_df <- fitted_df %>%
-  mutate(year = 1950:2006)%>%
-  dplyr::select(year, everything())
-fitted_long <- fitted_df %>%
-  pivot_longer(cols = GOOSE_ACRU:SYLVANIA_TSCA, names_to = "site_taxon", values_to = "value") %>%
-  separate(site_taxon, into = c("site", "taxon"), sep = "_")
-  
-
-# #mean forecast values
-# mean_forecast = lapply(model_forecasts[[5]], function(x) {
-#   if(length(x$mean) < 5){ rep(NA, 5)}else{x$mean}})
-# forecast_mean = data.frame(matrix(unlist(mean_forecast), ncol=length(mean_forecast), byrow=FALSE))
-# #renaming columns based on model name
-# colnames(forecast_mean) <- models$model
-# mean_df <- forecast_mean %>%
-#   mutate(year = 2007:2011)%>%
-#   dplyr::select(year, everything())
-# mean_long <- mean_df %>%
-#   pivot_longer(cols = GOOSE_ACRU:SYLVANIA_TSCA, names_to = "site_taxon", values_to = "value") %>%
-#   separate(site_taxon, into = c("site", "taxon"), sep = "_")
 
 foo = lapply(model_forecasts$forecast, function(x){data.frame(year = as.vector(time(x$mean)),
                                                               forecast_mean = x$mean, 
@@ -236,31 +210,20 @@ forecast_long = data.frame(site = rep(model_forecasts[[1]], each=5),
                  taxon = rep(model_forecasts[[2]], each=5), 
                  bind_rows(foo))
 
-
-#upper....
-# upper_forecast <- lapply(model_forecasts[[5]], function(x) {
-#   if (length(x$upper) < 5) {
-#     rep(NA, 5)
-#   } else {
-#     x$upper[, 2]  # Assuming the 95% interval is in the second column
-#   }
-# })
-# lower_forecast <- lapply(model_forecasts[[5]], function(x) {
-#   if (length(x$lower) < 5) {
-#     rep(NA, 5)
-#   } else {
-#     x$lower[, 2]  # Assuming the 95% interval is in the second column
-#   }
-# })
-# upper = data.frame(matrix(unlist(upper_forecast), ncol=length(upper_forecast), byrow=FALSE))
-# 
-# 
-# 
-# 
-# # lower = lapply(model_forecasts[[5]], function(x) {
-# #   if(length(x$lower) < 10){ rep(NA, 10)}else{x$lower}})
-# # upper = lapply(model_forecasts[[5]], function(x) {
-# #   if(length(x$upper) < 10){ rep(NA, 10)}else{x$upper}})
+fit_res_long <- pmap_dfr(
+  list(model_forecasts$forecast, model_forecasts$site, model_forecasts$taxon),
+  function(fcast, site_val, taxon_val) {
+    if (is.null(fcast)) return(NULL)
+    
+    data.frame(
+      site = site_val,
+      taxon = taxon_val,
+      year = as.vector(time(fcast$fitted)),
+      fitted = as.numeric(fcast$fitted),
+      residuals = as.numeric(fcast$residuals)
+    )
+  }
+)
 
 
 
@@ -274,24 +237,38 @@ for (site in sites) {
     print(site)
     print(taxon)
     
+    
+    
     clim_agbi_sub = clim_agbi %>%
-      filter(site == !!site,
+      dplyr::filter(site == !!site,
              taxon == !!taxon)
     
-    fitted_sub = fitted_long %>%
-      filter(site == !!site,
-             taxon == !!taxon)
+    # fitted_sub = fitted_long %>%
+    #   dplyr::filter(site == !!site,
+    #          taxon == !!taxon)
+  
     
     forecast_sub = forecast_long %>%
       filter(site == !!site,
              taxon == !!taxon)
     
+    res_fit_sub = fit_res_long %>% 
+      filter(site == !!site,
+             taxon == !!taxon)
+    if (nrow(res_fit_sub) == 0){ next}
+    
    p = ggplot() +
-      geom_point(data = clim_agbi_sub, ggplot2::aes(x = year, y = AGBI.mean)) +
-     geom_point(data = fitted_sub, aes(x = year, y = value), color = "blue") +
-     geom_ribbon(data = forecast_sub, aes(x=year, ymin=forecast_hi, ymax=forecast_lo), alpha=0.5) +
-     geom_point(data = forecast_sub, aes(x = year, y = forecast_mean), color = "orange") +
-     theme_light()
+     geom_point(data = clim_agbi_sub, aes(x = year, y = AGBI.mean, color = "Observed")) +
+     geom_point(data = res_fit_sub, aes(x = year, y = fitted, color = "Fitted")) +
+     geom_point(data = res_fit_sub, aes(x = year, y = residuals, color = "Residuals")) +
+     geom_ribbon(data = forecast_sub, aes(x = year, ymin = forecast_lo, ymax = forecast_hi, fill = "Forecast CI"), alpha = 0.5) +
+     geom_point(data = forecast_sub, aes(x = year, y = forecast_mean, color = "Forecast")) +
+     scale_color_manual(name = "Type", values = c("Observed" = "black", "Fitted" = "blue", 
+                                                  "Forecast" = "orange", "Residuals" = "red")) +
+     scale_fill_manual(name = "Ribbon", values = c("Forecast CI" = "gray")) +
+     ggtitle(paste0(site, '; ', taxon)) +
+     theme_light(base_size = 14)
+   
      
    print(p) 
     
@@ -299,6 +276,8 @@ for (site in sites) {
   
 }
 dev.off()
+
+
 
 # +
   # ggplot2::geom_line(ggplot2::aes(x = year, y = agbi_pred)) +
@@ -792,3 +771,33 @@ ggplot(data=rsq_merged) +
 #   mutate(ppt_winter = rowSums(dplyr::pick('PPT_12', 'PPT_01', 'PPT_02')),
 #          Vpdmax_winter = rowMeans(dplyr::pick('Vpdmax_12', 'Vpdmax_01','Vpdmax_02' )))
 
+#Pulling
+fitted = lapply(model_forecasts[[3]], function(x) {
+  if(length(x$fitted) < 57){ rep(NA, 57)}else{x$fitted}})
+fitted_df = data.frame(matrix(unlist(fitted), ncol=length(fitted), byrow=FALSE))
+#changing column names to site_taxon corresponding model
+colnames(fitted_df) <- models$model
+fitted_df <- fitted_df %>%
+  mutate(year = 1950:2006)%>%
+  dplyr::select(year, everything())
+fitted_long <- fitted_df %>%
+  pivot_longer(cols = GOOSE_ACRU:SYLVANIA_TSCA, names_to = "site_taxon", values_to = "value") %>%
+  separate(site_taxon, into = c("site", "taxon"), sep = "_")
+
+
+
+#Pulling residuals
+residuals = lapply(model_forecasts[[3]], function(x) {
+  if(length(x$residuals) < 57){ rep(NA, 57)}else{x$residuals}})
+#changing list of residuals to a df
+residuals_df = data.frame(matrix(unlist(residuals), ncol=length(residuals), byrow=FALSE))
+#changing column names to site_taxon corresponding model
+colnames(residuals_df) <- models$model
+#adding column for year
+residuals_df <- residuals_df %>%
+  mutate(year = 1950:2006)%>%
+  dplyr::select(year, everything())
+#going from wide to long format
+residulas_long <- residuals_df %>%
+  pivot_longer(cols = GOOSE_ACRU:SYLVANIA_TSCA, names_to = "site_taxon", values_to = "value") %>%
+  separate(site_taxon, into = c("site", "taxon"), sep = "_")
