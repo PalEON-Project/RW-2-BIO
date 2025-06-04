@@ -279,6 +279,48 @@ dev.off()
 
 
 
+pdf("report/figures/AGBI_residuals_forecast.pdf", width = 10, height = 8)
+for (site in sites) {
+  for (taxon in taxa) {
+    print(site)
+    print(taxon)
+    
+    # Define disturbance years once, outside the loop
+    disturbance_years <- list(
+      GOOSE = 1981,
+      ROOSTER = c(1983, 1992),
+      HARVARD = 1981,
+     # NRP = 1980,
+      # SYLVANIA = 1990,
+      # HMC = 2000
+    )
+    
+    # Filter data for current site and taxon
+    res_fit_sub <- fit_res_long %>%
+      filter(site == !!site, taxon == !!taxon)
+    
+    if (nrow(res_fit_sub) == 0) next
+    
+    # Get the disturbance year for the current site
+    disturbance <- disturbance_years[[site]]
+    
+    # Plot
+    p <- ggplot() +
+      geom_line(data = res_fit_sub, aes(x = year, y = residuals, color = "Residuals")) +
+      geom_vline(xintercept = disturbance, linetype = "dashed", color = "red") +
+      ggtitle(paste0(site, "; ", taxon)) +
+      theme_light(base_size = 14) +
+      scale_color_manual(values = c("Residuals" = "blue")) +
+      labs(color = "")
+    
+    print(p)
+  }
+}
+
+dev.off()
+
+
+
 # +
   # ggplot2::geom_line(ggplot2::aes(x = year, y = agbi_pred)) +
   # ggplot2::geom_ribbon(ggplot2::aes(x = year, ymin = lower,
