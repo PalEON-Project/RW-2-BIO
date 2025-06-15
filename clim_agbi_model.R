@@ -574,3 +574,34 @@ ggplot(data=rsq_merged) +
 #   mutate(ppt_winter = rowSums(dplyr::pick('PPT_12', 'PPT_01', 'PPT_02')),
 #          Vpdmax_winter = rowMeans(dplyr::pick('Vpdmax_12', 'Vpdmax_01','Vpdmax_02' )))
 
+#Pulling
+fitted = lapply(model_forecasts[[3]], function(x) {
+  if(length(x$fitted) < 57){ rep(NA, 57)}else{x$fitted}})
+fitted_df = data.frame(matrix(unlist(fitted), ncol=length(fitted), byrow=FALSE))
+#changing column names to site_taxon corresponding model
+colnames(fitted_df) <- models$model
+fitted_df <- fitted_df %>%
+  mutate(year = 1950:2006)%>%
+  dplyr::select(year, everything())
+fitted_long <- fitted_df %>%
+  pivot_longer(cols = GOOSE_ACRU:SYLVANIA_TSCA, names_to = "site_taxon", values_to = "value") %>%
+  separate(site_taxon, into = c("site", "taxon"), sep = "_")
+
+
+
+#Pulling residuals
+residuals = lapply(model_forecasts[[3]], function(x) {
+  if(length(x$residuals) < 57){ rep(NA, 57)}else{x$residuals}})
+#changing list of residuals to a df
+residuals_df = data.frame(matrix(unlist(residuals), ncol=length(residuals), byrow=FALSE))
+#changing column names to site_taxon corresponding model
+colnames(residuals_df) <- models$model
+#adding column for year
+residuals_df <- residuals_df %>%
+  mutate(year = 1950:2006)%>%
+  dplyr::select(year, everything())
+#going from wide to long format
+residulas_long <- residuals_df %>%
+  pivot_longer(cols = GOOSE_ACRU:SYLVANIA_TSCA, names_to = "site_taxon", values_to = "value") %>%
+  separate(site_taxon, into = c("site", "taxon"), sep = "_")
+
