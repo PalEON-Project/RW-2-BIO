@@ -225,8 +225,36 @@ fit_res_long <- pmap_dfr(
   }
 )
 
+#sd of the residuals 
+residuals_sd = fit_res_long %>%
+  group_by(site, taxon) %>%
+  summarise(sd_residuals = sd(residuals, na.rm = TRUE))
+
+#residuals standardized
+residuals_standardized <- fit_res_long %>%
+  left_join(residuals_sd, by = c("site", "taxon")) %>%
+  mutate(residuals_standardized = residuals / sd_residuals)
 
 
+#residuals in wide format with all sites for pairwise correlation
+residuals = lapply(model_forecasts[[6]], function(x) {
+  if(length(x$residuals) < 57){ rep(NA, 57)}else{x$residuals}})
+
+#Deleting models with missing data HAVI at Harvard and BEPA at NRP
+#res = res[-c(16, 32)] 
+#creating df where each column has the residuals for each model
+res_df = data.frame(matrix(unlist(residuals), ncol =length(residuals), byrow=FALSE))
+#changing column names to site_taxon corresponding model
+colnames(res_df) <- model_forecasts$model
+res_df <- res_df %>%
+  mutate(year = 1950:2006)%>%
+  dplyr::select(year, everything())
+#removing column with NA values 
+res_df_na <- subset(res_df, select = -c(HARVARD_HAVI, NRP_BEPA)) 
+
+
+
+# PLOTTING ----------------------------------------------------------------
 sites <- c("GOOSE", "ROOSTER", "HARVARD", "HMC", "NRP", "SYLVANIA")
 taxa = (unique(clim_agbi$taxon))
 
@@ -252,7 +280,7 @@ for (site in sites) {
       filter(site == !!site,
              taxon == !!taxon)
     
-    res_fit_sub = fit_res_long %>% 
+    res_fit_sub = residuals_standardized %>% 
       filter(site == !!site,
              taxon == !!taxon)
     if (nrow(res_fit_sub) == 0){ next}
@@ -261,10 +289,12 @@ for (site in sites) {
      geom_point(data = clim_agbi_sub, aes(x = year, y = AGBI.mean, color = "Observed")) +
      geom_point(data = res_fit_sub, aes(x = year, y = fitted, color = "Fitted")) +
      geom_point(data = res_fit_sub, aes(x = year, y = residuals, color = "Residuals")) +
+     geom_point(data = res_fit_sub, aes(x = year, y = residuals_standardized, color = "Residuals standardize")) +
      geom_ribbon(data = forecast_sub, aes(x = year, ymin = forecast_lo, ymax = forecast_hi, fill = "Forecast CI"), alpha = 0.5) +
      geom_point(data = forecast_sub, aes(x = year, y = forecast_mean, color = "Forecast")) +
      scale_color_manual(name = "Type", values = c("Observed" = "black", "Fitted" = "blue", 
-                                                  "Forecast" = "orange", "Residuals" = "red")) +
+                                                  "Forecast" = "orange", "Residuals" = "red", 
+                                                  "Residuals standardize" = "purple")) +
      scale_fill_manual(name = "Ribbon", values = c("Forecast CI" = "gray")) +
      ggtitle(paste0(site, '; ', taxon)) +
      theme_light(base_size = 14)
@@ -289,7 +319,7 @@ for (site in sites) {
     disturbance_years <- list(
       GOOSE = 1981,
       ROOSTER = c(1983, 1992),
-      HARVARD = 1981,
+      HARVARD = 1981
      # NRP = 1980,
       # SYLVANIA = 1990,
       # HMC = 2000
@@ -319,8 +349,23 @@ for (site in sites) {
 
 dev.off()
 
-res_standard = residulas_long %>%
-  group_by(site, taxon) %>%
-  summarise(sd_residuals = sd(value, na.rm = TRUE))
+
+pdf('report/figures/ggpairs_residuals_ARIMA.pdf')
+#ggpairs for each site 
+for (site in sites) {
+  site_data <- res_df_na %>%
+    dplyr::select(starts_with(site))
+  
+  # Skip if no matching columns (to avoid errors)
+  if (ncol(site_data) == 0) next
+  
+  # Clean column names
+  colnames(site_data) <- sub(".*_", "", colnames(site_data))
+  
+  # Plot
+  print(ggpairs(data = site_data, title = paste(site, "Correlations")))
+}
+dev.off()
+
 
 
