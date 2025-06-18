@@ -230,11 +230,32 @@ residuals_sd = fit_res_long %>%
   group_by(site, taxon) %>%
   summarise(sd_residuals = sd(residuals, na.rm = TRUE))
 
+#joining sd(residuals) with residuals and fitted df
+fit_res_long_ci = fit_res_long %>%
+  left_join(residuals_sd, by = c("site", "taxon"))
+
+fit_res_long_ci <- fit_res_long_ci %>%
+  mutate(
+    fitted_lo = fitted - 1.96 * sd_residuals,
+    fitted_hi = fitted + 1.96 * sd_residuals
+  )
+
+#df with CIs for fitted values 
+fit_res_long_ci <- fit_res_long_ci %>%
+  mutate(
+    fitted_lo = fitted - 1.96 * sd_residuals,
+    fitted_hi = fitted + 1.96 * sd_residuals
+  )
+
 #residuals standardized
-residuals_standardized <- fit_res_long %>%
+residuals_standardized = fit_res_long %>%
   left_join(residuals_sd, by = c("site", "taxon")) %>%
   mutate(residuals_standardized = residuals / sd_residuals)
 
+#scaling residuals with AGBI??? idk 
+residuals_AGBI = fit_res_long %>% 
+  left_join(AGBI_data) %>% 
+  mutate(residuals_AGBI = residuals/AGBI.mean)
 
 #residuals in wide format with all sites for pairwise correlation
 residuals = lapply(model_forecasts[[6]], function(x) {
@@ -252,6 +273,9 @@ res_df <- res_df %>%
 #removing column with NA values 
 res_df_na <- subset(res_df, select = -c(HARVARD_HAVI, NRP_BEPA)) 
 
+summed_AGBI = AGBI_data %>% 
+  group_by(site, taxon, year) %>% 
+  summarise(total = sum(AGBI.mean))
 
 
 # PLOTTING ----------------------------------------------------------------
@@ -265,8 +289,13 @@ for (site in sites) {
     print(site)
     print(taxon)
     
-    
+    disturbance_years <- list(
+      GOOSE = 1981,
+      ROOSTER = c(1983, 1992),
+      HARVARD = 1981)
   
+    disturbance <- disturbance_years[[site]]
+    
     clim_agbi_sub = clim_agbi %>%
       dplyr::filter(site == !!site,
              taxon == !!taxon)
@@ -280,7 +309,7 @@ for (site in sites) {
       filter(site == !!site,
              taxon == !!taxon)
     
-    res_fit_sub = residuals_standardized %>% 
+    res_fit_sub = fit_res_long_ci %>% 
       filter(site == !!site,
              taxon == !!taxon)
     if (nrow(res_fit_sub) == 0){ next}
@@ -288,14 +317,13 @@ for (site in sites) {
    p = ggplot() +
      geom_point(data = clim_agbi_sub, aes(x = year, y = AGBI.mean, color = "Observed")) +
      geom_point(data = res_fit_sub, aes(x = year, y = fitted, color = "Fitted")) +
-     geom_point(data = res_fit_sub, aes(x = year, y = residuals, color = "Residuals")) +
-     geom_point(data = res_fit_sub, aes(x = year, y = residuals_standardized, color = "Residuals standardize")) +
+     geom_vline(xintercept = disturbance, linetype = "dashed", color = "red") +
      geom_ribbon(data = forecast_sub, aes(x = year, ymin = forecast_lo, ymax = forecast_hi, fill = "Forecast CI"), alpha = 0.5) +
+     geom_ribbon(data = res_fit_sub, aes(x = year, ymin = fitted_lo, ymax = fitted_hi, fill = "Fitted CI"), alpha = 0.5) +
      geom_point(data = forecast_sub, aes(x = year, y = forecast_mean, color = "Forecast")) +
      scale_color_manual(name = "Type", values = c("Observed" = "black", "Fitted" = "blue", 
-                                                  "Forecast" = "orange", "Residuals" = "red", 
-                                                  "Residuals standardize" = "purple")) +
-     scale_fill_manual(name = "Ribbon", values = c("Forecast CI" = "gray")) +
+                                                  "Forecast" = "orange")) +
+     scale_fill_manual(name = "Ribbon", values = c("Forecast CI" = "gray", "Fitted CI" = "lightblue" )) +
      ggtitle(paste0(site, '; ', taxon)) +
      theme_light(base_size = 14)
    
@@ -349,7 +377,7 @@ for (site in sites) {
 
 dev.off()
 
-
+#correlation of residuals using ggpairs
 pdf('report/figures/ggpairs_residuals_ARIMA.pdf')
 #ggpairs for each site 
 for (site in sites) {
@@ -364,6 +392,60 @@ for (site in sites) {
   
   # Plot
   print(ggpairs(data = site_data, title = paste(site, "Correlations")))
+}
+dev.off()
+
+
+
+#fitted values plotted for each taxa and site 
+pdf("report/figures/AGBI_fitted_res_scaled.pdf", width=10, height=8)
+for (site in sites) {
+  for (taxon in taxa) {
+    print(site)
+    print(taxon)
+    
+    
+    
+    clim_agbi_sub = clim_agbi %>%
+      dplyr::filter(site == !!site,
+                    taxon == !!taxon)
+    
+    # fitted_sub = fitted_long %>%
+    #   dplyr::filter(site == !!site,
+    #          taxon == !!taxon)
+    
+    
+    forecast_sub = forecast_long %>%
+      filter(site == !!site,
+             taxon == !!taxon)
+    
+    res_AGBI_sub = residuals_AGBI %>% 
+      filter(site == !!site,
+             taxon == !!taxon)
+    res_fit_sub = residuals_standardized %>% 
+      filter(site == !!site,
+             taxon == !!taxon)
+    if (nrow(res_fit_sub) == 0){ next}
+    
+    p = ggplot() +
+      geom_point(data = clim_agbi_sub, aes(x = year, y = AGBI.mean, color = "Observed")) +
+      geom_point(data = res_fit_sub, aes(x = year, y = fitted, color = "Fitted")) +
+      geom_point(data = res_AGBI_sub, aes(x = year, y = residuals_AGBI, color = "ResidualsAGBI..")) +
+      geom_point(data = res_fit_sub, aes(x = year, y = residuals_standardized, color = "Residuals standardize")) +
+      #geom_ribbon(data = forecast_sub, aes(x = year, ymin = forecast_lo, ymax = forecast_hi, fill = "Forecast CI"), alpha = 0.5) +
+      geom_point(data = forecast_sub, aes(x = year, y = forecast_mean, color = "Forecast")) +
+      scale_color_manual(name = "Type", values = c("Observed" = "black", "Fitted" = "blue", 
+                                                   "Forecast" = "orange", "ResidualsAGBI.." = "red", 
+                                                   "Residuals standardize" = "purple")) +
+      scale_fill_manual(name = "Ribbon", values = c("Forecast CI" = "gray")) +
+      ggtitle(paste0(site, '; ', taxon)) +
+      theme_light(base_size = 14)
+    
+    
+    print(p) 
+    
+  }
+  
 }
 dev.off()
 
