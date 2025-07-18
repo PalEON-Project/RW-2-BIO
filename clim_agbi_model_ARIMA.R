@@ -273,9 +273,9 @@ res_df <- res_df %>%
 #removing column with NA values 
 res_df_na <- subset(res_df, select = -c(HARVARD_HAVI, NRP_BEPA)) 
 
-summed_AGBI = AGBI_data %>% 
-  group_by(site, taxon, year) %>% 
-  summarise(total = sum(AGBI.mean))
+# summed_AGBI = AGBI_data %>% 
+#   group_by(site, taxon, year) %>% 
+#   summarise(total = sum(AGBI.mean))
 
 
 # PLOTTING ----------------------------------------------------------------
@@ -336,7 +336,7 @@ for (site in sites) {
 dev.off()
 
 
-#residuals plotted
+#residuals plotted with geom_line for each species at each site 
 pdf("report/figures/AGBI_residuals_forecast.pdf", width = 10, height = 8)
 for (site in sites) {
   for (taxon in taxa) {
@@ -398,6 +398,7 @@ dev.off()
 
 
 #fitted values plotted for each taxa and site 
+#scaling data by sd of residuals 
 pdf("report/figures/AGBI_fitted_res_scaled.pdf", width=10, height=8)
 for (site in sites) {
   for (taxon in taxa) {
@@ -451,3 +452,203 @@ dev.off()
 
 
 
+
+# filtering cumsum --------------------------------------------------------
+
+#joining AGBI.mean with 
+fit_res_joined <- fit_res_long_ci %>%
+  left_join(
+    select(clim_agbi, year, site, taxon, AGBI.mean),
+    by = c("year", "site", "taxon")
+  )
+
+#cumulative biomass
+agbi_fraction <- fit_res_joined %>%
+  ungroup() %>% 
+  group_by(site,taxon) %>%  # group by site and year (not taxon!)
+  mutate(taxa.AGBI = sum(AGBI.mean)) %>% 
+  ungroup()%>% 
+  group_by(site) %>% 
+  mutate(site.AGBI = sum(AGBI.mean)) %>% 
+  select(site, taxon, taxa.AGBI, site.AGBI) %>% 
+  distinct() %>% 
+  mutate(frac.AGBI = taxa.AGBI/site.AGBI)
+
+agbi_cumsum = agbi_fraction %>% 
+  arrange(site, desc(frac.AGBI)) %>%   # sort taxa by highest biomass 
+  mutate(
+   cum_sum = cumsum(frac.AGBI)) %>%
+  ungroup()
+
+
+
+#filtering data for those that make up 95% of the total biomass
+agbi_cumsum_filter = agbi_cumsum %>% 
+  filter(cum_sum < 0.95)
+
+#joining fitted, residuals, CI with filtered cumsum %
+filtered_AGBI = inner_join(fit_res_joined, agbi_cumsum_filter[,c('site', 'taxon', 'cum_sum')], by = c('site', 'taxon'))
+#joining forecast 2007-2011, residuals, CI with filtered cumsum %
+filtered_forecast = inner_join(forecast_long, agbi_cumsum_filter[,c('site', 'taxon', 'cum_sum')], by = c('site', 'taxon'))
+#joining AGBI.mean with 
+filtered_forecast2 <- filtered_forecast %>%
+  left_join(
+    select(clim_agbi, year, site, taxon, AGBI.mean),
+    by = c("year", "site", "taxon")
+  )
+
+
+
+#percent of observed values that fall within the CI
+#fitted values will all fall within the CI
+percent_obs = filtered_AGBI %>% 
+  mutate(in.CI = ifelse(AGBI.mean >= fitted_lo & AGBI.mean <= fitted_hi, 1, 0))
+
+foo = percent_obs %>% 
+  group_by(at1 %>% 
+    pivot_wider(names_from = numbers, values_from = value), taxon) %>% 
+  summarize( percent = sum(in.CI)/n())
+write.csv(foo, "fitted_percent_in.csv")
+
+
+res_wide_filter = filtered_AGBI %>% 
+  mutate(site_taxa = paste0(site, "_", taxon)) %>% 
+  subset(select = -c( fitted, fitted_lo, fitted_hi, 
+                     AGBI.mean, cum_sum, sd_residuals, site, taxon)) %>% 
+  pivot_wider(names_from = site_taxa , values_from = residuals)
+
+
+#plotting fitted vs observed with CI at each point 
+pdf("report/figures/AGBI_fitted_vs_observed.pdf", width = 10, height = 8)
+for (site in sites) {
+  for (taxon in taxa) {
+    print(paste(site, taxon))
+    
+    clim_agbi_sub <- fit_res_joined %>%
+      filter(site == !!site, taxon == !!taxon)
+    
+    if (nrow(clim_agbi_sub) == 0 ||
+        all(is.na(clim_agbi_sub$AGBI.mean)) ||
+        all(is.na(clim_agbi_sub$fitted))) next
+    
+    p <- ggplot(clim_agbi_sub, aes(x = AGBI.mean, y = fitted)) +
+      geom_point() +
+      geom_errorbar(aes(ymin = fitted_lo, ymax = fitted_hi), width = 0.01, color = "gray40") +
+      geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dashed") +
+      labs(x = "Observed AGBI.mean", y = "Fitted AGBI", title = paste0(site, "; ", taxon)) +
+      theme_light(base_size = 14)
+    
+    print(p)
+  }
+}
+dev.off()
+
+
+
+
+
+#fitted values plotted for each taxa and site CUMULATIVE SUM
+pdf("report/figures/AGBI_fitted_forecast_CUMSUM.pdf", width=10, height=8)
+for (site in sites) {
+  for (taxon in taxa) {
+    print(site)
+    print(taxon)
+    
+    disturbance_years <- list(
+      GOOSE = 1981,
+      ROOSTER = c(1983, 1992),
+      HARVARD = 1981)
+    
+    disturbance <- disturbance_years[[site]]
+    
+    clim_agbi_sub = filtered_AGBI %>%
+      dplyr::filter(site == !!site,
+                    taxon == !!taxon)
+    
+    # fitted_sub = fitted_long %>%
+    #   dplyr::filter(site == !!site,
+    #          taxon == !!taxon)
+    
+    
+    forecast_sub = filtered_forecast %>%
+      filter(site == !!site,
+             taxon == !!taxon)
+    
+    res_fit_sub = filtered_AGBI %>% 
+      filter(site == !!site,
+             taxon == !!taxon)
+    if (nrow(res_fit_sub) == 0){ next}
+    
+    p = ggplot() +
+      geom_point(data = clim_agbi_sub, aes(x = year, y = AGBI.mean, color = "Observed")) +
+      geom_point(data = res_fit_sub, aes(x = year, y = fitted, color = "Fitted")) +
+      geom_vline(xintercept = disturbance, linetype = "dashed", color = "red") +
+      geom_ribbon(data = forecast_sub, aes(x = year, ymin = forecast_lo, ymax = forecast_hi, fill = "Forecast CI"), alpha = 0.5) +
+      geom_ribbon(data = res_fit_sub, aes(x = year, ymin = fitted_lo, ymax = fitted_hi, fill = "Fitted CI"), alpha = 0.5) +
+      geom_point(data = forecast_sub, aes(x = year, y = forecast_mean, color = "Forecast")) +
+      scale_color_manual(name = "Type", values = c("Observed" = "black", "Fitted" = "blue", 
+                                                   "Forecast" = "orange")) +
+      scale_fill_manual(name = "Ribbon", values = c("Forecast CI" = "gray", "Fitted CI" = "lightblue" )) +
+      ggtitle(paste0(site, '; ', taxon)) +
+      theme_light(base_size = 14)
+    
+    
+    print(p) 
+    
+  }
+  
+}
+dev.off()
+
+
+
+
+#correlation of residuals using ggpairs CUMSUM
+pdf('report/figures/ggpairs_residuals_ARIMA_cumsum.pdf')
+#ggpairs for each site 
+for (site in sites) {
+  site_data <- res_wide_filter %>%
+    dplyr::select(starts_with(site))
+  
+  # Skip if no matching columns (to avoid errors)
+  if (ncol(site_data) == 0) next
+  
+  # Clean column names
+  colnames(site_data) <- sub(".*_", "", colnames(site_data))
+  
+  # Plot
+  print(ggpairs(data = site_data, title = paste(site, "Correlations")))
+}
+dev.off()
+
+
+
+
+#plotting fitted/forecast vs observed with CI at each point 
+pdf("report/figures/AGBI_fitted_vs_observed_filtered.pdf", width = 10, height = 8)
+for (site in sites) {
+  for (taxon in taxa) {
+    print(paste(site, taxon))
+    
+    clim_agbi_sub <- filtered_AGBI %>%
+      filter(site == !!site, taxon == !!taxon)
+    clim_forecast_sub <- filtered_forecast2 %>%
+      filter(site == !!site, taxon == !!taxon)
+    
+    if (nrow(clim_agbi_sub) == 0 ||
+        all(is.na(clim_agbi_sub$AGBI.mean)) ||
+        all(is.na(clim_agbi_sub$fitted))) next
+    
+    p <- ggplot() +
+      geom_point(data = clim_agbi_sub, aes(x = AGBI.mean, y = fitted)) +
+      geom_point(data = clim_forecast_sub, aes(x = AGBI.mean, y =forecast_mean), colour = "blue") +
+      geom_errorbar(data = clim_agbi_sub, aes(x= AGBI.mean, ymin = fitted_lo, ymax = fitted_hi), width = 0.01, color = "gray40") +
+      geom_errorbar(data = clim_forecast_sub, aes(x = AGBI.mean, ymin = forecast_lo, ymax = forecast_hi), width = 0.01, color = "blue") +
+      geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dashed") +
+      labs(x = "Observed AGBI.mean", y = "Fitted AGBI", title = paste0(site, "; ", taxon)) +
+      theme_light(base_size = 14)
+    
+    print(p)
+}
+}
+dev.off()
