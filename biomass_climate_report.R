@@ -249,6 +249,7 @@ head(all_taxon_site_summary)
 
 saveRDS(all_taxon_site_summary, "AGBI_taxon_data.RDS")
 
+#AGBI over time by taxa
 ggplot()+
   geom_line(data = all_taxon_site_summary, aes(x = year, y = AGBI.mean, color = taxon))+
   facet_wrap(~site)+
@@ -481,19 +482,6 @@ ggplot(data=all_taxon_summary) +
   facet_wrap(~site)
 ggsave("report/figures/AGBI_over_time_taxons.jpg")
 
-#AGBI over time by taxon 
-ggplot(data=all_taxon_summary, filter()) +
-  geom_ribbon(aes(x=year, ymin=AGBI.lo, ymax=AGBI.hi, colour=taxon, fill=taxon)) +
-  geom_line(aes(x=year, y=AGBI.mean, colour=taxon)) +
-  theme_bw(14) +
-  xlab('Year') +
-  ylab('AGBI (Mg/ha)') +
-  facet_wrap(~site)
-
-# ggplot(data = res_long %>% filter(site== "HARVARD"))+
-#   geom_point(aes(x = year, y = value, color = taxon))+
-#   # facet_wrap(~site, scales = "free_y")+
-#   theme_light(base_size =11)+
 
 #AGBI over time by taxon, scales = free_y
 ggplot(data=all_taxon_summary) +
@@ -554,8 +542,8 @@ cor_site_AGBI_p <- cor_site_AGBI_p[upper.tri(cor_coefficients, diag = FALSE), ]
 #correlation between sites AGB
 cor_site_AGB = data.frame(cor(AGB_mean_wide[, c('GOOSE', 'ROOSTER', 'SYLVANIA', 'NRP', 'HARVARD', 'HMC')], 
                           use = "complete.obs"))
-ggcorrplot(cor_site_AGB, method = "square", type = "lower", show.diag = TRUE, hc.order = FALSE)+
-  ggtitle("AGB correlation")
+# ggcorrplot(cor_site_AGB, method = "square", type = "lower", show.diag = TRUE, hc.order = FALSE)+
+#   ggtitle("AGB correlation")
 
 #goose correlation
 #complete.obs excludes any rows with NA values 
