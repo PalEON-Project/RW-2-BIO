@@ -511,6 +511,22 @@ foo = percent_obs %>%
 write.csv(foo, "fitted_percent_in.csv")
 
 
+percent_forecast = filtered_forecast2 %>% 
+  mutate(in.CI = ifelse(AGBI.mean >= forecast_lo & AGBI.mean <= forecast_hi, 1, 0))
+percent_forecast_site = percent_forecast %>% 
+  group_by(site) %>% 
+  dplyr::summarize( percent = sum(in.CI)/n())
+#write.csv(foo, "forecast_percent_in.csv")
+
+percent_forecast_taxon = percent_forecast %>% 
+  group_by(site, taxon) %>% 
+  dplyr::summarize( percent = sum(in.CI)/n())
+
+percent_forecast_taxon2 = percent_forecast %>% 
+  group_by(taxon) %>% 
+  dplyr::summarize( percent = sum(in.CI)/n())
+
+
 res_wide_filter = filtered_AGBI %>% 
   mutate(site_taxa = paste0(site, "_", taxon)) %>% 
   subset(select = -c( fitted, fitted_lo, fitted_hi, 
@@ -570,7 +586,7 @@ for (site in sites) {
     #          taxon == !!taxon)
     
     
-    forecast_sub = filtered_forecast %>%
+    forecast_sub = filtered_forecast2 %>%
       filter(site == !!site,
              taxon == !!taxon)
     
@@ -582,13 +598,17 @@ for (site in sites) {
     p = ggplot() +
       geom_point(data = clim_agbi_sub, aes(x = year, y = AGBI.mean, color = "Observed")) +
       geom_point(data = res_fit_sub, aes(x = year, y = fitted, color = "Fitted")) +
+      geom_point(data = forecast_sub, aes(x = year, y = AGBI.mean, color = "Observed")) +
+      geom_line(data = res_fit_sub, aes(x = year, y = fitted, color = "Fitted")) +
       geom_vline(xintercept = disturbance, linetype = "dashed", color = "red") +
       geom_ribbon(data = forecast_sub, aes(x = year, ymin = forecast_lo, ymax = forecast_hi, fill = "Forecast CI"), alpha = 0.5) +
       geom_ribbon(data = res_fit_sub, aes(x = year, ymin = fitted_lo, ymax = fitted_hi, fill = "Fitted CI"), alpha = 0.5) +
       geom_point(data = forecast_sub, aes(x = year, y = forecast_mean, color = "Forecast")) +
+      geom_line(data = forecast_sub, aes(x = year, y = forecast_mean, color = "Forecast")) +
       scale_color_manual(name = "Type", values = c("Observed" = "black", "Fitted" = "blue", 
                                                    "Forecast" = "orange")) +
-      scale_fill_manual(name = "Ribbon", values = c("Forecast CI" = "gray", "Fitted CI" = "lightblue" )) +
+      scale_fill_manual(name = "Ribbon", values = c("Forecast CI" = "orange", "Fitted CI" = "lightblue" )) +
+      labs( x = "Year", y = "biomass increment (Mg/ha)")+
       ggtitle(paste0(site, '; ', taxon)) +
       theme_light(base_size = 14)
     
@@ -652,3 +672,17 @@ for (site in sites) {
 }
 }
 dev.off()
+
+
+ggplot() +
+  geom_point(data = fit_res_joined, aes(x = AGBI.mean, y = fitted, colour = "Fitted")) +
+  geom_point(data = filtered_forecast2, aes(x = AGBI.mean, y =forecast_mean, colour = "Forecast")) +
+  geom_errorbar(data = fit_res_joined, aes(x= AGBI.mean, ymin = fitted_lo, ymax = fitted_hi), width = 0.01, color = "gray40", alpha = 0.5) +
+  geom_errorbar(data = filtered_forecast2, aes(x = AGBI.mean, ymin = forecast_lo, ymax = forecast_hi), width = 0.01, color = "orange") +
+  geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dashed") +
+  facet_wrap(~site, scales = "free")+
+  scale_color_manual(name = "Type", values = c("Fitted" = "black", 
+                                               "Forecast" = "orange")) +
+  #scale_fill_manual(name = "Ribbon", values = c("Forecast CI" = "orange", "Fitted CI" = "lightblue" )) +
+  labs(x = "Observed biomass increment", y = "Fitted and forecast increment")+
+  theme_light(base_size = 14)

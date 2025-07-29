@@ -193,17 +193,6 @@ all_site_summary$period[which(all_site_summary$year<1960)] = "past"
 all_site_summary$period[which(all_site_summary$year>2000)] = "present"
 
 
-
-#AGB ovetime
-ggplot(data=all_site_summary) +
-  geom_ribbon(aes(x=year, ymin=AGB.lo, ymax=AGB.hi, colour=site, fill=site)) +
-  geom_line(aes(x=year, y=AGB.mean, colour=site)) +
-  theme_light(14) 
-  #labs( title = "Aboveground biomass over time", x = "Year", y = "AGB (Mg/ha)")
-ggsave("report/figures/AGB_over_time.png")
-
-
-
 #taxon_group takes the sum of all the trees in one taxon.
 #iterations for each taxon not individual trees 
 all_taxon_plot_by_iter <- all_data |>
@@ -457,39 +446,39 @@ ggpairs(all_site_summary_wide[,2:7], lower=list(continuous="smooth"))+
 
 #AGBI over time from 1950-2011
 ggplot(data=all_site_summary) +
-  geom_ribbon(aes(x=year, ymin=AGBI.lo, ymax=AGBI.hi, colour=site, fill=site)) +
+  geom_ribbon(aes(x=year, ymin=AGBI.lo, ymax=AGBI.hi, colour=site, fill=site), alpha = 0.5) +
   geom_line(aes(x=year, y=AGBI.mean, colour=site)) +
   theme_light(14) +
-  labs( x = "Year", y = "AGBI (Mg/ha)")
+  labs( x = "Year", y = "biomass increment (Mg/ha)")
 ggsave("report/figures/AGBI_over_time.jpg")
 
-#AGB ovetime
+#AGB overtime
 ggplot(data=all_site_summary) +
-  geom_ribbon(aes(x=year, ymin=AGB.lo, ymax=AGB.hi, colour=site, fill=site)) +
+  geom_ribbon(aes(x=year, ymin=AGB.lo, ymax=AGB.hi, colour=site, fill=site), alpha = 0.5) +
   geom_line(aes(x=year, y=AGB.mean, colour=site)) +
   theme_light(14) +
-  labs( x = "Year", y = "AGB (Mg/ha)")
+  labs( x = "Year", y = "biomass (Mg/ha)")
 ggsave("report/figures/AGB_over_time.png")
 
 
 #AGBI over time by taxon 
 ggplot(data=all_taxon_summary) +
-  geom_ribbon(aes(x=year, ymin=AGBI.lo, ymax=AGBI.hi, colour=taxon, fill=taxon)) +
+  geom_ribbon(aes(x=year, ymin=AGBI.lo, ymax=AGBI.hi, colour=taxon, fill=taxon), alpha = 0.5) +
   geom_line(aes(x=year, y=AGBI.mean, colour=taxon)) +
   theme_bw(14) +
   xlab('Year') +
-  ylab('AGBI (Mg/ha)') +
+  ylab('biomass increment (Mg/ha)') +
   facet_wrap(~site)
 ggsave("report/figures/AGBI_over_time_taxons.jpg")
 
 
 #AGBI over time by taxon, scales = free_y
 ggplot(data=all_taxon_summary) +
-  geom_ribbon(aes(x=year, ymin=AGBI.lo, ymax=AGBI.hi, colour=taxon, fill=taxon)) +
+  geom_ribbon(aes(x=year, ymin=AGBI.lo, ymax=AGBI.hi, colour=taxon, fill=taxon), alpha = 0.5) +
   geom_line(aes(x=year, y=AGBI.mean, colour=taxon)) +
   theme_light(14) +
   xlab('Year') +
-  ylab('AGBI (Mg/ha)') +
+  ylab('biomass increment (Mg/ha)') +
   facet_wrap(~site, scales = 'free_y')+
   theme(axis.text.x = element_text(angle = -45))
 ggsave("report/figures/AGBI_over_time_taxons_freey.jpg")
