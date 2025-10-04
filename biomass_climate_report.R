@@ -49,18 +49,30 @@ hmc_total_agb_subset = subset(hmc_total_agb, year > 1949 & year < 2012)
 
 #above ground biomass increment 
 goose_total_agbi <- readRDS('sites/GOOSE/runs/v3.1_012021/output/AGBI_TAXA_STAN_GOOSE_v3.1_012021.RDS')
+goose_total_agbi$year = goose_total_agbi$year + 1
 goose_total_agbi_subset = subset(goose_total_agbi, year > 1949 & year < 2012)
+
+
 # harvard_total_agbi <- readRDS('sites/HARVARD/runs/v2.0_102020/output/AGBI_TAXA_STAN_HARVARD_v2.0_102020.RDS')
 northround_total_agbi <- readRDS('sites/NORTHROUND/runs/v3.1_082020/output/AGBI_TAXA_STAN_NORTHROUND_v3.1_082020.RDS')
+northround_total_agbi$year = northround_total_agbi$year + 1
 northround_total_agbi_subset = subset(northround_total_agbi,year > 1949 & year < 2012)
+
 rooster_total_agbi <- readRDS('sites/ROOSTER/runs/v3.1_082020/output/AGBI_TAXA_STAN_ROOSTER_v3.1_082020.RDS')
+rooster_total_agbi$year = rooster_total_agbi$year + 1
 rooster_total_agbi_subset = subset(rooster_total_agbi, year > 1949 & year < 2012)
+
 sylvania_total_agbi <- readRDS('sites/SYLVANIA/runs/v3.1_082020/output/AGBI_TAXA_STAN_SYLVANIA_v3.1_082020.RDS')
+sylvania_total_agbi$year = sylvania_total_agbi$year + 1
 sylvania_total_agbi_subset = subset(sylvania_total_agbi, year > 1949 & year < 2012)
+
 harvard_total_agbi <- readRDS('sites/HARVARD/runs/v3.1_102020/output/AGBI_TAXA_STAN_HARVARD_v3.1_102020.RDS')
+harvard_total_agbi$year = harvard_total_agbi$year + 1
 harvard_total_agbi_subset = subset(harvard_total_agbi, year > 1949 & year < 2012)
+
 hmc_total_agbi <- readRDS('sites/HMC/runs/v3.1_082020/output/AGBI_TAXA_STAN_HMC_v3.1_082020.RDS')
 hmc_total_agbi$year = hmc_total_agbi$year + 1900 - 1
+hmc_total_agbi$year = hmc_total_agbi$year + 1
 hmc_total_agbi_subset = subset(hmc_total_agbi, year > 1949 & year < 2012)
 
 
@@ -132,8 +144,8 @@ ggplot(data=all_data) + geom_histogram(aes(x=AGB)) + facet_wrap(~site)
 # sum AGB and AGBI across species for a given site, plot, year, and iter
 all_site_plot_by_iter <- all_data |>
   group_by(year, iter, plot, model, site) |>
-  dplyr::summarize(AGB.sum = sum(AGB),
-            AGBI.sum = sum(AGBI),
+  dplyr::summarize(AGB.sum = sum(AGB, na.rm=TRUE),
+            AGBI.sum = sum(AGBI, na.tm = TRUE),
             .groups = 'keep') 
 
 ggplot(data=all_site_plot_by_iter) + geom_histogram(aes(x=AGB.sum)) + facet_wrap(~site)
@@ -158,8 +170,8 @@ ggplot(data=all_site_plot_by_iter) + geom_histogram(aes(x=AGB.sum)) + facet_wrap
 # take mean AGB and AGBI across plots for a given site, year, and iter
 all_site_by_iter <- all_site_plot_by_iter |>
   group_by(year, iter, model, site) |>
-  dplyr::summarize(AGB.iter = mean(AGB.sum),
-                   AGBI.iter = mean(AGBI.sum),
+  dplyr::summarize(AGB.iter = mean(AGB.sum, na.rm=TRUE),
+                   AGBI.iter = mean(AGBI.sum, na.rm = TRUE),
                    .groups = 'keep') 
 
 ggplot(data=all_site_by_iter) + geom_histogram(aes(x=AGB.iter)) + facet_wrap(~site)
@@ -175,12 +187,12 @@ ggplot(data=all_site_by_iter) + geom_histogram(aes(x=AGB.iter)) + facet_wrap(~si
 # summarize mean AGB and AGBI across plots for a given site and year
 all_site_summary = all_site_by_iter %>%
   group_by(year, model, site) %>%
-  dplyr::summarize(AGB.mean = mean(AGB.iter, na.rm = T),
-                   AGB.sd = sd(AGB.iter),
+  dplyr::summarize(AGB.mean = mean(AGB.iter, na.rm = TRUE),
+                   AGB.sd = sd(AGB.iter, na.rm = TRUE),
                    AGB.lo = quantile(AGB.iter, c(0.025), na.rm=TRUE),
                    AGB.hi = quantile(AGB.iter, c(0.975), na.rm=TRUE),
-                   AGBI.mean = mean(AGBI.iter, na.rm = T),
-                   AGBI.sd = sd(AGBI.iter),
+                   AGBI.mean = mean(AGBI.iter, na.rm = TRUE),
+                   AGBI.sd = sd(AGBI.iter, na.rm = TRUE),
                    AGBI.lo = quantile(AGBI.iter, c(0.025), na.rm=TRUE),
                    AGBI.hi = quantile(AGBI.iter, c(0.975), na.rm=TRUE),
                    .groups='keep')
@@ -197,8 +209,8 @@ all_site_summary$period[which(all_site_summary$year>2000)] = "present"
 #iterations for each taxon not individual trees 
 all_taxon_plot_by_iter <- all_data |>
   group_by(year, iter, taxon, plot, model, site) |>
-  dplyr::summarize(AGB.sum = sum(AGB),
-            AGBI.sum = sum(AGBI),
+  dplyr::summarize(AGB.sum = sum(AGB, na.rm=TRUE),
+            AGBI.sum = sum(AGBI, na.rm = TRUE),
             .groups = 'keep') 
 # #taxon plot summary with plot data
 # all_taxon_plot_summary = all_taxon_plot_by_iter %>%

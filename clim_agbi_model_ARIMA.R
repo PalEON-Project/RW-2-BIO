@@ -303,8 +303,7 @@ fit_coefs_long <- fit_coefs_long %>%
 #mean AGBI for each species at a site
 mean_taxa_agbi = clim_agbi %>% 
   group_by(taxon, site) %>% 
-  summarize(mean_abi = mean(AGBI.mean))
-
+  dplyr::summarize(mean_abi = mean(AGBI.mean))
 
 #sd of the residuals 
 residuals_sd = fit_res_long %>%
