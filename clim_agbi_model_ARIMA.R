@@ -24,7 +24,7 @@ tree_yr <- function(df, start_month=12) {
 }
 
 #dataframe with year, site, taxon and AGBI.mean
-AGBI_data = readRDS("AGBI_taxon_data.RDS")
+AGBI_data = readRDS("reboot/AGBI_taxon_data.RDS")
 
 #climate data in long format 
 load('climate/prism_clim.RData')
@@ -40,6 +40,7 @@ clim_data = df %>%
 clim_data$year <- as.numeric(clim_data$year)
 
 #using tree_yr function to make prev and current year 
+#ex. year=1986 is sept-dec of 1985 and jan-aug of 1986
 clim_data$year_tree = tree_yr(clim_data, start_month=9)
 #current clim data jan-sept
 clim_data_current = clim_data[which(clim_data$year == clim_data$year_tree),]
@@ -56,11 +57,14 @@ clim_wide_current =  pivot_wider(data = clim_data_current,
 clim_wide_prev =  pivot_wider(data = subset(clim_data_prev, select = -year),
                                  names_from = month, 
                                  values_from = c(PPT, Tmean, Tmin, Tmax, Vpdmax))
+#renaming year_tree to year 
+#year_tree is clim data from the previous year 
 clim_wide_prev = rename(clim_wide_prev, year = year_tree)
 
-#merging prev and current clim data
-#climate variables in wide format separated tree year
+#merging by year which is the prev sept- current august
+#year_tree in this df is the year_tree from current df which makes it =year 
 clim_wide = merge(clim_wide_current, clim_wide_prev, by = c('site', 'year'))
+
 
 #adding lag years 1+2 to AGBI dateframe 
 AGBI_data = AGBI_data %>%
@@ -123,7 +127,9 @@ clim_seasons = clim_agbi %>%
          Tmean_fall = rowMeans(dplyr::pick('Tmean_09', 'Tmean_10', 'Tmean_11'))
   )
 
-clim_long <- clim_seasons %>%
+#changing to long format of only seasonal climate variables 
+clim_agbi_long <- clim_seasons %>%
+  select(-matches("\\d+$"), -c(year_tree)) %>%  #dropping monthly clim variables
   pivot_longer(
     cols = all_of(predictor_names),
     names_to = "predictor",
@@ -132,7 +138,7 @@ clim_long <- clim_seasons %>%
   separate(predictor, into = c("clim_var", "season"), sep = "_")
 
 #correlation df clim vs. AGBI.mean
-cor_df <- clim_long %>%
+cor_df <- clim_agbi_long %>%
   group_by(site, taxon, clim_var, season) %>%
   summarise(
     cor = cor(value, AGBI.mean, use = "complete.obs"),
@@ -141,7 +147,7 @@ cor_df <- clim_long %>%
   ) %>%
   mutate(sig = ifelse(pval < 0.05, TRUE, NA))
 
-#seperating into seasonal 
+#separating into seasonal 
 cor_df <- cor_df %>%
   mutate(season = factor(season, levels = c("winter", "spring", "summer", "fall")))
 
