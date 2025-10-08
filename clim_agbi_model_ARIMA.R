@@ -170,6 +170,33 @@ for (s in unique(cor_df$site)) {
 dev.off()
 
 
+#plotting AGBI vs climate correlation facet wrap by season 
+# correlation between climate and AGBI
+pdf("report/figures/AGBI_predictor_correlations_facetwrap.pdf", width = 12, height = 8)
+
+for (s in unique(cor_df$site)) {
+  
+  p <- ggplot(filter(cor_df, site == s),
+              aes(x = clim_var, y = taxon, fill = cor)) +
+    geom_tile(color = "white") +
+    geom_point(aes(shape = sig), color = "black", size = 2, na.rm = TRUE) +
+    scale_fill_gradient2(low = "blue", mid = "white", high = "red", limits = c(-1, 1)) +
+    scale_shape_manual(values = c(16, NA)) +
+    theme_minimal(base_size = 14) +
+    labs(title = paste("Correlation between predictors and AGBI.mean\nSite:", s),
+         x = "Predictor",
+         y = "Taxon",
+         fill = "Correlation",
+         shape = "Significant") +
+    theme(axis.text.x = element_text(angle = -45, hjust = 0)) +
+    facet_wrap(~season)   # 👈 puts all seasons for this site on one page
+  
+  print(p)
+}
+
+dev.off()
+
+
 #Remove last five years
 clim_agbi_in <- dplyr::filter(clim_seasons, year < 2007)
 clim_agbi_out <- dplyr::filter(clim_seasons, year > 2006)
@@ -643,31 +670,33 @@ fit_coefs_long <- fit_coefs_long %>%
   ))
 
 # Plotting coefficients for each site
-pdf("report/figures/predictor_coefficients.pdf", width = 10, height = 8)
+pdf("report/figures/predictor_coefficients.pdf", width = 12, height = 8)
 
 for (site in sites) {
   
-  for (var in c("PPT", "Temperature", "VPD")) {  
-    p <- ggplot(
-      data = filter(fit_coefs_long, 
-                    site == !!site & var_group == !!var &
-                      !coef_name %in% c("ar1", "intercept")),
-      aes(x = coef_name, y = coef_value, color = taxon, shape = in_top95)
-    ) +
-      geom_point(size = 3, alpha = 0.7) +
-      theme_light(base_size = 14) +
-      theme(axis.text.x = element_text(angle = -90, hjust = 0)) +
-      labs(title = paste("Predictor Coefficients ", site, "-", var),
-           x = "Coefficient",
-           y = "Value",
-           color = "Taxon",
-           shape = "Dominant taxa") +
-      scale_shape_manual(values = c("TRUE" = 16, "FALSE" = 1))
-    
-    print(p)
-  }
+  p <- ggplot(
+    data = filter(fit_coefs_long, 
+                  site == !!site &
+                    !coef_name %in% c("ar1", "intercept")),
+    aes(x = coef_name, y = coef_value, color = taxon, shape = in_top95)
+  ) +
+    geom_point(size = 3, alpha = 0.7) +
+    theme_light(base_size = 14) +
+    theme(axis.text.x = element_text(angle = -90, hjust = 0)) +
+    labs(title = paste("Predictor Coefficients - Site:", site),
+         x = "Coefficient",
+         y = "Value",
+         color = "Taxon",
+         shape = "Dominant taxa") +
+    scale_shape_manual(values = c("TRUE" = 16, "FALSE" = 1)) +
+    facet_wrap(~var_group, scales = "free")   # 👈 each facet free scales
+  
+  print(p)
 }
+
 dev.off()
+
+
 
 #coefficients with error bars
 pdf("report/figures/predictor_coefficients_errorbars.pdf", width = 10, height = 8)
