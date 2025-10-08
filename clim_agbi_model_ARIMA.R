@@ -596,19 +596,32 @@ dev.off()
 # coefficients ------------------------------------------------------------
 
 
-#coefficients from predictors
 fit_coefs_long <- pmap_dfr(
   list(model_forecasts$site, model_forecasts$taxon, model_forecasts$mod),
   function(site_val, taxon_val, mod_obj) {
+    if (is.null(mod_obj)) return(NULL)
+    
     coefs <- coef(mod_obj)
+    vcov_mat <- tryCatch(mod_obj$var.coef, error = function(e) NULL)
+    
+    if (is.null(vcov_mat)) {
+      se <- rep(NA, length(coefs))
+    } else {
+      se <- sqrt(diag(vcov_mat))
+    }
+    
     tibble(
       site = site_val,
       taxon = taxon_val,
       coef_name = names(coefs),
-      coef_value = as.numeric(coefs)
+      coef_value = as.numeric(coefs),
+      se = se,
+      lower95 = coef_value - 1.96 * se,
+      upper95 = coef_value + 1.96 * se
     )
   }
 )
+
 
 #pulling coefficients from model
 fit_coefs_long <- fit_coefs_long %>%
@@ -634,8 +647,7 @@ pdf("report/figures/predictor_coefficients.pdf", width = 10, height = 8)
 
 for (site in sites) {
   
-  for (var in c("PPT", "Temperature", "VPD")) {   # ✅ now matches your case_when groups
-    
+  for (var in c("PPT", "Temperature", "VPD")) {  
     p <- ggplot(
       data = filter(fit_coefs_long, 
                     site == !!site & var_group == !!var &
@@ -645,20 +657,46 @@ for (site in sites) {
       geom_point(size = 3, alpha = 0.7) +
       theme_light(base_size = 14) +
       theme(axis.text.x = element_text(angle = -90, hjust = 0)) +
-      labs(title = paste("Predictor Coefficients -", site, "-", var),
+      labs(title = paste("Predictor Coefficients ", site, "-", var),
            x = "Coefficient",
            y = "Value",
            color = "Taxon",
            shape = "Dominant taxa") +
-      scale_shape_manual(values = c("TRUE" = 16, "FALSE" = 2))
+      scale_shape_manual(values = c("TRUE" = 16, "FALSE" = 1))
+    
+    print(p)
+  }
+}
+dev.off()
+
+#coefficients with error bars
+pdf("report/figures/predictor_coefficients_errorbars.pdf", width = 10, height = 8)
+
+for (site in sites) {
+  
+  for (var in c("PPT", "Temperature", "VPD")) {  
+    p <- ggplot(
+      data = filter(fit_coefs_long, 
+                    site == !!site & var_group == !!var &
+                      !coef_name %in% c("ar1", "intercept")),
+      aes(x = coef_name, y = coef_value, color = taxon, shape = in_top95)
+    ) +
+      geom_point(size = 3, alpha = 0.7) +
+      geom_errorbar(aes(ymin = lower95, ymax = upper95), width = 0.2, alpha = 0.3) +
+      theme_light(base_size = 14) +
+      theme(axis.text.x = element_text(angle = -90, hjust = 0)) +
+      labs(title = paste("Predictor Coefficients with 95% CI -", site, "-", var),
+           x = "Coefficient",
+           y = "Value",
+           color = "Taxon",
+           shape = "Dominant taxa") +
+      scale_shape_manual(values = c("TRUE" = 16, "FALSE" = 1))
     
     print(p)
   }
 }
 
 dev.off()
-
-
 
 
 #percent of observed values that fall within the CI
@@ -752,6 +790,44 @@ for (site in sites) {
 }
 dev.off()
 
+#plotting fitted/forecast vs observed with CI at each point 
+#cumsum data with forecast!!, facet wrap by taxon
+pdf("report/figures/AGBI_fitted_vs_observed_cumsum_facetwrap.pdf", width = 12, height = 8)
+
+for (site in sites) {
+  message("Processing site: ", site)
+  
+  clim_agbi_sub <- filtered_AGBI %>%
+    filter(site == !!site)
+  
+  clim_forecast_sub <- filtered_forecast2 %>%
+    filter(site == !!site)
+  
+  # Skip empty site
+  if (nrow(clim_agbi_sub) == 0 ||
+      all(is.na(clim_agbi_sub$AGBI.mean)) ||
+      all(is.na(clim_agbi_sub$fitted))) next
+  
+  p <- ggplot() +
+    geom_point(data = clim_agbi_sub, aes(x = AGBI.mean, y = fitted)) +
+    geom_point(data = clim_forecast_sub, aes(x = AGBI.mean, y = forecast_mean), colour = "blue") +
+    geom_errorbar(data = clim_agbi_sub,
+                  aes(x = AGBI.mean, ymin = fitted_lo, ymax = fitted_hi),
+                  width = 0.01, color = "gray40") +
+    geom_errorbar(data = clim_forecast_sub,
+                  aes(x = AGBI.mean, ymin = forecast_lo, ymax = forecast_hi),
+                  width = 0.01, color = "blue") +
+    geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dashed") +
+    facet_wrap(~taxon, scales = "free") +  
+    labs(x = "Observed AGBI.mean",
+         y = "Fitted AGBI",
+         title = paste0("Site: ", site)) +
+    theme_light(base_size = 14)
+  
+  print(p)
+}
+
+dev.off()
 
 #fitted values plotted for each taxa and site CUMULATIVE SUM
 pdf("report/figures/AGBI_fitted_forecast_CUMSUM.pdf", width=10, height=8)
@@ -808,6 +884,48 @@ for (site in sites) {
   }
   
 }
+dev.off()
+
+#plotting fitted and forecast over time for cumsum, facet wrap by taxon 
+pdf("report/figures/AGBI_fitted_forecast_CUMSUM_facetwrap.pdf", width=12, height=8)
+
+for (site in sites) {
+  
+  disturbance_years <- list(
+    GOOSE = 1981,
+    ROOSTER = c(1983, 1992),
+    HARVARD = 1981
+  )
+  
+  disturbance <- disturbance_years[[site]]
+  
+  # Subset data for this site (all taxa at once)
+  clim_agbi_sub <- filtered_AGBI %>% filter(site == !!site)
+  forecast_sub  <- filtered_forecast2 %>% filter(site == !!site)
+  res_fit_sub   <- filtered_AGBI %>% filter(site == !!site)
+  
+  if (nrow(res_fit_sub) == 0) next
+  
+  p <- ggplot() +
+    geom_point(data = clim_agbi_sub, aes(x = year, y = AGBI.mean, color = "Observed")) +
+    geom_point(data = res_fit_sub, aes(x = year, y = fitted, color = "Fitted")) +
+    geom_point(data = forecast_sub, aes(x = year, y = AGBI.mean, color = "Observed")) +
+    geom_line(data = res_fit_sub, aes(x = year, y = fitted, color = "Fitted")) +
+    geom_point(data = forecast_sub, aes(x = year, y = forecast_mean, color = "Forecast")) +
+    geom_line(data = forecast_sub, aes(x = year, y = forecast_mean, color = "Forecast")) +
+    geom_ribbon(data = forecast_sub, aes(x = year, ymin = forecast_lo, ymax = forecast_hi, fill = "Forecast CI"), alpha = 0.5) +
+    geom_ribbon(data = res_fit_sub, aes(x = year, ymin = fitted_lo, ymax = fitted_hi, fill = "Fitted CI"), alpha = 0.5) +
+    geom_vline(xintercept = disturbance, linetype = "dashed", color = "red") +
+    facet_wrap(~taxon, scales = "free_y") +   # 👈 facet by taxon
+    scale_color_manual(name = "Type", values = c("Observed" = "black", "Fitted" = "blue", "Forecast" = "orange")) +
+    scale_fill_manual(name = "Ribbon", values = c("Forecast CI" = "orange", "Fitted CI" = "lightblue")) +
+    labs(x = "Year", y = "Biomass increment (Mg/ha)") +
+    ggtitle(paste0("Site: ", site)) +
+    theme_light(base_size = 14)
+  
+  print(p)
+}
+
 dev.off()
 
 
