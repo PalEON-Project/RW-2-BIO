@@ -113,16 +113,16 @@ clim_seasons = clim_agbi %>%
          Vpdmax_spring = rowMeans(dplyr::pick('Vpdmax_03', 'Vpdmax_04','Vpdmax_05')),
          Vpdmax_summer = rowMeans(dplyr::pick('Vpdmax_06', 'Vpdmax_07','Vpdmax_08')),
          Vpdmax_fall = rowMeans(dplyr::pick('Vpdmax_09', 'Vpdmax_10','Vpdmax_11')),
-         Tmin_winter = min(dplyr::pick('Tmin_12', 'Tmin_01', 'Tmin_02')),
-         Tmin_spring = min(dplyr::pick('Tmin_03', 'Tmin_04', 'Tmin_05')),
-         Tmin_summer = min(dplyr::pick('Tmin_06', 'Tmin_07', 'Tmin_08')),
-         Tmin_fall = min(dplyr::pick('Tmin_09', 'Tmin_10', 'Tmin_11')),
-         Tmax_winter = max(dplyr::pick('Tmax_12', 'Tmax_01', 'Tmax_02')),
-         Tmax_spring = max(dplyr::pick('Tmax_03', 'Tmax_04', 'Tmax_05')),
-         Tmax_summer = max(dplyr::pick('Tmax_06', 'Tmax_07', 'Tmax_08')),
-         Tmax_fall = max(dplyr::pick('Tmax_09', 'Tmax_10', 'Tmax_11')),
+         Tmin_winter = rowMeans(dplyr::pick('Tmin_12', 'Tmin_01', 'Tmin_02')),
+         Tmin_spring = rowMeans(dplyr::pick('Tmin_03', 'Tmin_04', 'Tmin_05')),
+         Tmin_summer = rowMeans(dplyr::pick('Tmin_06', 'Tmin_07', 'Tmin_08')),
+         Tmin_fall = rowMeans(dplyr::pick('Tmin_09', 'Tmin_10', 'Tmin_11')),
+         Tmax_winter = rowMeans(dplyr::pick('Tmax_12', 'Tmax_01', 'Tmax_02')),
+         Tmax_spring = rowMeans(dplyr::pick('Tmax_03', 'Tmax_04', 'Tmax_05')),
+         Tmax_summer = rowMeans(dplyr::pick('Tmax_06', 'Tmax_07', 'Tmax_08')),
+         Tmax_fall = rowMeans(dplyr::pick('Tmax_09', 'Tmax_10', 'Tmax_11')),
          Tmean_winter = rowMeans(dplyr::pick('Tmean_12', 'Tmean_01', 'Tmean_02')),
-         Tmean_spring = rowMeans(dplyr::pick('Tmean_03', 'Tmean_04', 'PPT_05')),
+         Tmean_spring = rowMeans(dplyr::pick('Tmean_03', 'Tmean_04', 'Tmean_05')),
          Tmean_summer = rowMeans(dplyr::pick('Tmean_06', 'Tmean_07', 'Tmean_08')),
          Tmean_fall = rowMeans(dplyr::pick('Tmean_09', 'Tmean_10', 'Tmean_11'))
   )
@@ -133,16 +133,25 @@ clim_agbi_long <- clim_seasons %>%
   pivot_longer(
     cols = all_of(predictor_names),
     names_to = "predictor",
-    values_to = "value"
-  ) %>%
+    values_to = "climvar_value"
+  )%>%
   separate(predictor, into = c("clim_var", "season"), sep = "_")
+
+clim_agbi_long2 <- clim_seasons %>%
+  select(-matches("\\d+$"), -c(year_tree)) %>%  #dropping monthly clim variables
+  pivot_longer(
+    cols = all_of(predictor_names),
+    names_to = "coef_name",
+    values_to = "climvar_value"
+  )
+
 
 #correlation df clim vs. AGBI.mean
 cor_df <- clim_agbi_long %>%
   group_by(site, taxon, clim_var, season) %>%
   summarise(
-    cor = cor(value, AGBI.mean, use = "complete.obs"),
-    pval = cor.test(value, AGBI.mean)$p.value,
+    cor = cor(climvar_value, AGBI.mean, use = "complete.obs"),
+    pval = cor.test(climvar_value, AGBI.mean)$p.value,
     .groups = "drop"
   ) %>%
   mutate(sig = ifelse(pval < 0.05, TRUE, NA))
@@ -152,7 +161,7 @@ cor_df <- cor_df %>%
   mutate(season = factor(season, levels = c("winter", "spring", "summer", "fall")))
 
 #correlation between climate and AGBI
-pdf("report/figures/AGBI_predictor_correlations.pdf", width = 10, height = 8)
+pdf("report/figures2/AGBI_predictor_correlations.pdf", width = 10, height = 8)
 for (s in unique(cor_df$site)) {
   for (ss in levels(cor_df$season)) {
     
@@ -177,8 +186,9 @@ dev.off()
 
 
 #plotting AGBI vs climate correlation facet wrap by season 
+#each season for each site on one page
 # correlation between climate and AGBI
-pdf("report/figures/AGBI_predictor_correlations_facetwrap.pdf", width = 12, height = 8)
+pdf("report/figures2/AGBI_predictor_correlations_facetwrap.pdf", width = 12, height = 8)
 
 for (s in unique(cor_df$site)) {
   
@@ -204,8 +214,14 @@ dev.off()
 
 
 #Remove last five years
-clim_agbi_in <- dplyr::filter(clim_seasons, year < 2007)
-clim_agbi_out <- dplyr::filter(clim_seasons, year > 2006)
+clim_agbi_in <- clim_seasons %>%
+  filter(year < 2007) %>%
+  select(-matches("_[0-9]+$"))   # drop columns ending with _ + one or more digits
+
+clim_agbi_out <- clim_seasons %>%
+  filter(year > 2006) %>%
+  select(-matches("_[0-9]+$"))   # same for forecast period
+
 
 #uses seasonal climate data 
 #making a time series 
@@ -307,14 +323,25 @@ fit_res_long <- pmap_dfr(
   }
 )
 
+#total fitted AGBI at a site 
+site_fitted = fit_res_long %>% 
+  group_by(year, site) %>% 
+  summarise(total_fitted = sum(fitted))
 
+
+#plotting total fitted AGBI from ARIMA model for each site
+ggplot(data= site_fitted) +
+  geom_line(aes(x=year, y= total_fitted, colour=site)) +
+  #geom_ribbon(aes(x=year, ymin=AGBI.lo, ymax=AGBI.hi, colour=site, fill=site), alpha = 0.5) +
+  theme_light(14) +
+  labs( x = "Year", y = "biomass increment (Mg/ha)")
 
 #mean AGBI for each species at a site
 mean_taxa_agbi = clim_agbi %>% 
   group_by(taxon, site) %>% 
   dplyr::summarize(mean_abi = mean(AGBI.mean))
 
-#sd of the residuals 
+#sd of the residuals grouped by taxon 
 residuals_sd = fit_res_long %>%
   group_by(site, taxon) %>%
   summarise(sd_residuals = sd(residuals, na.rm = TRUE))
@@ -372,6 +399,7 @@ res_df_na <- subset(res_df, select = -c(HARVARD_HAVI, NRP_BEPA))
 #   summarise(total = sum(AGBI.mean))
 
 # filtering cumsum --------------------------------------------------------
+disturbance_years <- list(GOOSE = 1981,ROOSTER = c(1983, 1992),HARVARD = 1981)
 
 #joining AGBI.mean with 
 fit_res_joined <- fit_res_long_ci %>%
@@ -379,6 +407,19 @@ fit_res_joined <- fit_res_long_ci %>%
     select(clim_agbi, year, site, taxon, AGBI.mean),
     by = c("year", "site", "taxon")
   )
+
+fit_res_joined <- fit_res_joined %>%
+  rowwise() %>%
+  mutate(
+    disturbance = ifelse(
+      site %in% names(disturbance_years) &&
+        any(year >= disturbance_years[[site]] &
+              year <= disturbance_years[[site]] + 5),
+      1, 0
+    )
+  ) %>%
+  ungroup()
+
 
 # 1. Calculate fraction + cumulative sum
 agbi_fraction <- fit_res_joined %>%
@@ -425,17 +466,15 @@ filtered_forecast2 <- filtered_forecast %>%
 sites <- c("GOOSE", "ROOSTER", "HARVARD", "HMC", "NRP", "SYLVANIA")
 taxa = (unique(clim_agbi$taxon))
 
+
 #fitted values plotted for each taxa and site wit forecast
-pdf("report/figures/AGBI_fitted_forecast.pdf", width=10, height=8)
+pdf("report/figures2/AGBI_fitted_forecast.pdf", width=10, height=8)
 for (site in sites) {
   for (taxon in taxa) {
     print(site)
     print(taxon)
     
-    disturbance_years <- list(
-      GOOSE = 1981,
-      ROOSTER = c(1983, 1992),
-      HARVARD = 1981)
+    
   
     disturbance <- disturbance_years[[site]]
     
@@ -481,7 +520,7 @@ dev.off()
 
 
 #residuals plotted with geom_line for each species at each site on one page
-pdf("report/figures/AGBI_residuals_forecast.pdf", width = 10, height = 8)
+pdf("report/figures2/AGBI_residuals_forecast.pdf", width = 10, height = 8)
 
 # Define disturbance years once
 disturbance_years <- list(
@@ -519,7 +558,7 @@ dev.off()
 
 #residuals plotted with geom_line for each species at each site on one panel for 
 #standardized residuals by mean AGBI of a species
-pdf("report/figures/AGBI_residuals_standardized.pdf", width = 10, height = 8)
+pdf("report/figures2/AGBI_residuals_standardized.pdf", width = 10, height = 8)
 
 # Define disturbance years once
 disturbance_years <- list(
@@ -555,7 +594,7 @@ for (site in sites) {
 dev.off()
 
 #correlation of residuals using ggpairs full dataset
-pdf('report/figures/ggpairs_residuals_ARIMA.pdf')
+pdf('report/figures2/ggpairs_residuals_ARIMA.pdf')
 #ggpairs for each site 
 for (site in sites) {
   site_data <- res_df_na %>%
@@ -668,15 +707,33 @@ fit_coefs_long <- fit_coefs_long %>%
 
 # Collapse coefficient names into groups
 fit_coefs_long <- fit_coefs_long %>%
-  mutate(var_group = case_when(
+  mutate(clim_var = case_when(
     str_detect(coef_name, regex("ppt", ignore_case = TRUE)) ~ "PPT",
-    str_detect(coef_name, regex("tmean|tmin|tmax", ignore_case = TRUE)) ~ "Temperature",
-    str_detect(coef_name, regex("vpd", ignore_case = TRUE)) ~ "VPD",
+    str_detect(coef_name, regex("tmin", ignore_case = TRUE)) ~ "Tmin",
+    str_detect(coef_name, regex("tmax", ignore_case = TRUE)) ~ "Tmax",
+    str_detect(coef_name, regex("tmean", ignore_case = TRUE)) ~ "Tmean",
+    str_detect(coef_name, regex("vpd", ignore_case = TRUE)) ~ "Vpdmax",
     TRUE ~ "Other"
   ))
 
+
+#joining clim variable values with coef of the predictors to create table 
+coefs_climvar = clim_agbi_long2 %>%
+  left_join(fit_coefs_long, by = c("site", "taxon", "coef_name"))
+
+#dataframe where we multiply coef value * matching predictor value 
+multiply_table = coefs_climvar %>% 
+  group_by(year, coef_name, climvar_value, coef_value ) %>% 
+  dplyr::mutate(value = climvar_value * coef_value)
+
+ggplot() +
+  geom_point(data = multiply_table %>% filter(site == "ROOSTER",  
+                                              )  , aes(x= year, y = value, colour = taxon))+
+  facet_wrap(~ coef_name)
+  
+
 # Plotting coefficients for each site
-pdf("report/figures/predictor_coefficients.pdf", width = 12, height = 8)
+pdf("report/figures2/predictor_coefficients.pdf", width = 12, height = 8)
 
 for (site in sites) {
   
@@ -705,7 +762,7 @@ dev.off()
 
 
 #coefficients with error bars
-pdf("report/figures/predictor_coefficients_errorbars.pdf", width = 10, height = 8)
+pdf("report/figures2/predictor_coefficients_errorbars.pdf", width = 10, height = 8)
 
 for (site in sites) {
   
@@ -736,14 +793,14 @@ dev.off()
 
 #percent of observed values that fall within the CI
 #fitted values will all fall within the CI
-percent_obs = filtered_AGBI %>% 
-  mutate(in.CI = ifelse(AGBI.mean >= fitted_lo & AGBI.mean <= fitted_hi, 1, 0))
-
-foo = percent_obs %>% 
-  group_by(at1 %>% 
-    pivot_wider(names_from = numbers, values_from = value), taxon) %>% 
-  summarize( percent = sum(in.CI)/n())
-write.csv(foo, "fitted_percent_in.csv")
+# percent_obs = filtered_AGBI %>% 
+#   mutate(in.CI = ifelse(AGBI.mean >= fitted_lo & AGBI.mean <= fitted_hi, 1, 0))
+# 
+# foo = percent_obs %>% 
+#   group_by(at1 %>% 
+#     pivot_wider(names_from = numbers, values_from = value), taxon) %>% 
+#   summarize( percent = sum(in.CI)/n())
+# write.csv(foo, "fitted_percent_in.csv")
 
 
 percent_forecast = filtered_forecast2 %>% 
@@ -769,9 +826,11 @@ res_wide_filter = filtered_AGBI %>%
   pivot_wider(names_from = site_taxa , values_from = residuals)
 
 
+# model vs. data figures --------------------------------------------------
+
 #plotting fitted vs observed with CI at each point 
 #full dataset
-pdf("report/figures/AGBI_fitted_vs_observed.pdf", width = 10, height = 8)
+pdf("report/figures2/AGBI_fitted_vs_observed.pdf", width = 10, height = 8)
 for (site in sites) {
   for (taxon in taxa) {
     print(paste(site, taxon))
@@ -797,7 +856,7 @@ dev.off()
 
 #plotting fitted/forecast vs observed with CI at each point 
 #cumsum data with forecast!!
-pdf("report/figures/AGBI_fitted_vs_observed_filtered.pdf", width = 10, height = 8)
+pdf("report/figures2/AGBI_fitted_vs_observed_filtered.pdf", width = 10, height = 8)
 for (site in sites) {
   for (taxon in taxa) {
     print(paste(site, taxon))
@@ -812,10 +871,26 @@ for (site in sites) {
         all(is.na(clim_agbi_sub$fitted))) next
     
     p <- ggplot() +
-      geom_point(data = clim_agbi_sub, aes(x = AGBI.mean, y = fitted)) +
-      geom_point(data = clim_forecast_sub, aes(x = AGBI.mean, y =forecast_mean), colour = "blue") +
-      geom_errorbar(data = clim_agbi_sub, aes(x= AGBI.mean, ymin = fitted_lo, ymax = fitted_hi), width = 0.01, color = "gray40") +
-      geom_errorbar(data = clim_forecast_sub, aes(x = AGBI.mean, ymin = forecast_lo, ymax = forecast_hi), width = 0.01, color = "blue") +
+      #non disturbance points
+      geom_point(data = filter(clim_agbi_sub, disturbance ==0),
+                 aes(x = AGBI.mean, y = fitted), color = "black",
+                 size = 2, alpha = 0.6) +
+      #disturbance points
+      geom_point(
+        data = filter(clim_agbi_sub, disturbance == 1),
+        aes(x = AGBI.mean, y = fitted),
+        color = "orange", size = 3) +
+      geom_errorbar( data = filter(clim_agbi_sub, disturbance == 1),
+        aes(x = AGBI.mean, ymin = fitted_lo, ymax = fitted_hi),
+        width = 0.01, color = "orange") +
+      geom_point(data = clim_forecast_sub, 
+                 aes(x = AGBI.mean, y =forecast_mean), colour = "blue") +
+      geom_errorbar(data = filter(clim_agbi_sub, disturbance ==0),
+                    aes(x= AGBI.mean, ymin = fitted_lo, ymax = fitted_hi),
+                    width = 0.01, color = "gray40", alpha = 0.6) +
+      geom_errorbar(data = clim_forecast_sub, 
+                    aes(x = AGBI.mean, ymin = forecast_lo, ymax = forecast_hi), 
+                    width = 0.01, color = "blue") +
       geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dashed") +
       labs(x = "Observed AGBI.mean", y = "Fitted AGBI", title = paste0(site, "; ", taxon)) +
       theme_light(base_size = 14)
@@ -824,10 +899,11 @@ for (site in sites) {
   }
 }
 dev.off()
+  
 
 #plotting fitted/forecast vs observed with CI at each point 
 #cumsum data with forecast!!, facet wrap by taxon
-pdf("report/figures/AGBI_fitted_vs_observed_cumsum_facetwrap.pdf", width = 12, height = 8)
+pdf("report/figures2/AGBI_fitted_vs_observed_cumsum_facetwrap.pdf", width = 12, height = 8)
 
 for (site in sites) {
   message("Processing site: ", site)
@@ -844,13 +920,25 @@ for (site in sites) {
       all(is.na(clim_agbi_sub$fitted))) next
   
   p <- ggplot() +
-    geom_point(data = clim_agbi_sub, aes(x = AGBI.mean, y = fitted)) +
-    geom_point(data = clim_forecast_sub, aes(x = AGBI.mean, y = forecast_mean), colour = "blue") +
-    geom_errorbar(data = clim_agbi_sub,
-                  aes(x = AGBI.mean, ymin = fitted_lo, ymax = fitted_hi),
-                  width = 0.01, color = "gray40") +
-    geom_errorbar(data = clim_forecast_sub,
-                  aes(x = AGBI.mean, ymin = forecast_lo, ymax = forecast_hi),
+    #non disturbance points
+    geom_point(data = filter(clim_agbi_sub, disturbance ==0),
+               aes(x = AGBI.mean, y = fitted), color = "black",
+               size = 2, alpha = 0.6) +
+    #disturbance points
+    geom_point(
+      data = filter(clim_agbi_sub, disturbance == 1),
+      aes(x = AGBI.mean, y = fitted),
+      color = "orange", size = 3) +
+    geom_errorbar( data = filter(clim_agbi_sub, disturbance == 1),
+                   aes(x = AGBI.mean, ymin = fitted_lo, ymax = fitted_hi),
+                   width = 0.01, color = "orange") +
+    geom_point(data = clim_forecast_sub, 
+               aes(x = AGBI.mean, y =forecast_mean), colour = "blue") +
+    geom_errorbar(data = filter(clim_agbi_sub, disturbance ==0),
+                  aes(x= AGBI.mean, ymin = fitted_lo, ymax = fitted_hi),
+                  width = 0.01, color = "gray40", alpha = 0.6) +
+    geom_errorbar(data = clim_forecast_sub, 
+                  aes(x = AGBI.mean, ymin = forecast_lo, ymax = forecast_hi), 
                   width = 0.01, color = "blue") +
     geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dashed") +
     facet_wrap(~taxon, scales = "free") +  
@@ -865,7 +953,7 @@ for (site in sites) {
 dev.off()
 
 #fitted values plotted for each taxa and site CUMULATIVE SUM
-pdf("report/figures/AGBI_fitted_forecast_CUMSUM.pdf", width=10, height=8)
+pdf("report/figures2/AGBI_fitted_forecast_CUMSUM.pdf", width=10, height=8)
 for (site in sites) {
   for (taxon in taxa) {
     print(site)
@@ -922,7 +1010,7 @@ for (site in sites) {
 dev.off()
 
 #plotting fitted and forecast over time for cumsum, facet wrap by taxon 
-pdf("report/figures/AGBI_fitted_forecast_CUMSUM_facetwrap.pdf", width=12, height=8)
+pdf("report/figures2/AGBI_fitted_forecast_CUMSUM_facetwrap.pdf", width=12, height=8)
 
 for (site in sites) {
   
@@ -965,7 +1053,7 @@ dev.off()
 
 
 #correlation of residuals using ggpairs CUMSUM
-pdf('report/figures/ggpairs_residuals_ARIMA_cumsum.pdf')
+pdf('report/figures2/ggpairs_residuals_ARIMA_cumsum.pdf')
 #ggpairs for each site 
 for (site in sites) {
   site_data <- res_wide_filter %>%
