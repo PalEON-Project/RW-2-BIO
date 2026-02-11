@@ -458,11 +458,11 @@ ggpairs(all_site_summary_wide[,2:7], lower=list(continuous="smooth"))+
 
 #AGBI over time from 1950-2011
 ggplot(data=all_site_summary) +
-  geom_ribbon(aes(x=year, ymin=AGBI.lo, ymax=AGBI.hi, colour=site, fill=site), alpha = 0.5) +
   geom_line(aes(x=year, y=AGBI.mean, colour=site)) +
+  geom_ribbon(aes(x=year, ymin=AGBI.lo, ymax=AGBI.hi, colour=site, fill=site), alpha = 0.5) +
   theme_light(14) +
   labs( x = "Year", y = "biomass increment (Mg/ha)")
-ggsave("report/figures/AGBI_over_time.jpg")
+#ggsave("report/figures/AGBI_over_time.jpg")
 
 #AGB overtime
 ggplot(data=all_site_summary) +
