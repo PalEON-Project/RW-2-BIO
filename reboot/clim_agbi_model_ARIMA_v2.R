@@ -90,17 +90,6 @@ predictor_names = c('PPT_winter', 'PPT_spring', 'PPT_summer', 'PPT_fall',
                     'Tmax_winter', 'Tmax_spring', 'Tmax_summer', 'Tmax_fall') 
 
 
-# 
-# # Pseudo-R2
-# fit_stat <- cor(x = fitted(mod),
-#                 y = agbi_ts)^2
-# fit_stat
-# 
-# # Residuals plot
-# forecast::checkresiduals(mod)
-
-# try for all sites and species
-
 #new dataframe with seasonal climate data
 #Across seasons, sum PPT, mean Tmean, max Tmax, min Tmin
 clim_seasons = clim_agbi %>% 
@@ -127,7 +116,8 @@ clim_seasons = clim_agbi %>%
          Tmean_fall = rowMeans(dplyr::pick('Tmean_09', 'Tmean_10', 'Tmean_11'))
   )
 
-#changing to long format of only seasonal climate variables 
+#seasonal clim variables in long format 
+#separate name columns for variable name and season name
 clim_agbi_long <- clim_seasons %>%
   select(-matches("\\d+$"), -c(year_tree)) %>%  #dropping monthly clim variables
   pivot_longer(
@@ -137,13 +127,14 @@ clim_agbi_long <- clim_seasons %>%
   )%>%
   separate(predictor, into = c("clim_var", "season"), sep = "_")
 
+#seasonal clim variables in long format 
+#one column for each varible_season combination
 clim_agbi_long2 <- clim_seasons %>%
   select(-matches("\\d+$"), -c(year_tree)) %>%  #dropping monthly clim variables
   pivot_longer(
     cols = all_of(predictor_names),
     names_to = "coef_name",
-    values_to = "climvar_value"
-  )
+    values_to = "climvar_value")
 
 
 #correlation df clim vs. AGBI.mean
@@ -154,14 +145,17 @@ cor_df <- clim_agbi_long %>%
     pval = cor.test(climvar_value, AGBI.mean)$p.value,
     .groups = "drop"
   ) %>%
-  mutate(sig = ifelse(pval < 0.05, TRUE, NA))
+  mutate(sig = ifelse(pval < 0.05, TRUE, NA),
+         season = factor(season, levels = c("winter", "spring", "summer", "fall")))
 
-#separating into seasonal 
-cor_df <- cor_df %>%
-  mutate(season = factor(season, levels = c("winter", "spring", "summer", "fall")))
+# dont need this?? added into previous chunk 
+# #separating into seasonal 
+# cor_df <- cor_df %>%
+#   mutate(season = factor(season, levels = c("winter", "spring", "summer", "fall")))
+
 
 #correlation between climate and AGBI
-pdf("report/figures2/AGBI_predictor_correlations.pdf", width = 10, height = 8)
+pdf("report/figures/AGBI_predictor_correlations.pdf", width = 10, height = 8)
 for (s in unique(cor_df$site)) {
   for (ss in levels(cor_df$season)) {
     
