@@ -118,6 +118,7 @@ clim_seasons = clim_agbi %>%
 
 #seasonal clim variables in long format 
 #separate name columns for variable name and season name
+#ex. PPT and winter
 clim_agbi_long <- clim_seasons %>%
   select(-matches("\\d+$"), -c(year_tree)) %>%  #dropping monthly clim variables
   pivot_longer(
@@ -129,6 +130,7 @@ clim_agbi_long <- clim_seasons %>%
 
 #seasonal clim variables in long format 
 #one column for each varible_season combination
+#ex. PPT_winter
 clim_agbi_long2 <- clim_seasons %>%
   select(-matches("\\d+$"), -c(year_tree)) %>%  #dropping monthly clim variables
   pivot_longer(
@@ -137,7 +139,7 @@ clim_agbi_long2 <- clim_seasons %>%
     values_to = "climvar_value")
 
 
-#correlation df clim vs. AGBI.mean
+#correlation df climate data vs. AGBI.mean
 cor_df <- clim_agbi_long %>%
   group_by(site, taxon, clim_var, season) %>%
   summarise(
@@ -148,41 +150,35 @@ cor_df <- clim_agbi_long %>%
   mutate(sig = ifelse(pval < 0.05, TRUE, NA),
          season = factor(season, levels = c("winter", "spring", "summer", "fall")))
 
-# dont need this?? added into previous chunk 
-# #separating into seasonal 
-# cor_df <- cor_df %>%
-#   mutate(season = factor(season, levels = c("winter", "spring", "summer", "fall")))
-
-
-#correlation between climate and AGBI
-pdf("report/figures/AGBI_predictor_correlations.pdf", width = 10, height = 8)
-for (s in unique(cor_df$site)) {
-  for (ss in levels(cor_df$season)) {
-    
-    p <- ggplot(filter(cor_df, site == s, season == ss),
-                aes(x = clim_var, y = taxon, fill = cor)) +
-      geom_tile(color = "white") +
-      geom_point(aes(shape = sig), color = "black", size = 2, na.rm = TRUE) +
-      scale_fill_gradient2(low = "blue", mid = "white", high = "red", limits = c(-1, 1)) +
-      scale_shape_manual(values = c(16, NA)) +
-      theme_minimal(base_size = 14) +
-      labs(title = paste("Correlation between predictors and AGBI.mean\nSite:", s, "- Season:", ss),
-           x = "Predictor",
-           y = "Taxon",
-           fill = "Correlation",
-           shape = "Significant") +
-      theme(axis.text.x = element_text(angle = -45, hjust = 0))
-    
-    print(p)
-  }
-}
-dev.off()
+# #correlation between climate and AGBI at each site for each season
+# pdf("report/figures/AGBI_predictor_correlations.pdf", width = 10, height = 8)
+# for (s in unique(cor_df$site)) {
+#   for (ss in levels(cor_df$season)) {
+#     
+#     p <- ggplot(filter(cor_df, site == s, season == ss),
+#                 aes(x = clim_var, y = taxon, fill = cor)) +
+#       geom_tile(color = "white") +
+#       geom_point(aes(shape = sig), color = "black", size = 2, na.rm = TRUE) +
+#       scale_fill_gradient2(low = "blue", mid = "white", high = "red", limits = c(-1, 1)) +
+#       scale_shape_manual(values = c(16, NA)) +
+#       theme_minimal(base_size = 14) +
+#       labs(title = paste("Correlation between predictors and AGBI.mean\nSite:", s, "- Season:", ss),
+#            x = "Predictor",
+#            y = "Taxon",
+#            fill = "Correlation",
+#            shape = "Significant") +
+#       theme(axis.text.x = element_text(angle = -45, hjust = 0))
+#     
+#     print(p)
+#   }
+# }
+# dev.off()
 
 
 #plotting AGBI vs climate correlation facet wrap by season 
 #each season for each site on one page
 # correlation between climate and AGBI
-pdf("report/figures2/AGBI_predictor_correlations_facetwrap.pdf", width = 12, height = 8)
+pdf("report/figures/AGBI_predictor_correlations_facetwrap.pdf", width = 12, height = 8)
 
 for (s in unique(cor_df$site)) {
   
@@ -199,7 +195,7 @@ for (s in unique(cor_df$site)) {
          fill = "Correlation",
          shape = "Significant") +
     theme(axis.text.x = element_text(angle = -45, hjust = 0)) +
-    facet_wrap(~season)   # 👈 puts all seasons for this site on one page
+    facet_wrap(~season)   #puts all seasons for this site on one page
   
   print(p)
 }
@@ -207,6 +203,7 @@ for (s in unique(cor_df$site)) {
 dev.off()
 
 
+#setting up for forecast values
 #Remove last five years
 clim_agbi_in <- clim_seasons %>%
   filter(year < 2007) %>%
@@ -253,6 +250,7 @@ models <- clim_agbi_in %>%
   })
 
 #adding column for naming
+#ex. GOOSE_ACRU
 models <- dplyr::mutate(models, model = paste0(site, "_", taxon))
 
 
@@ -291,17 +289,19 @@ model_forecasts <- models %>%
 model_forecasts
 
 
-
+#pulling forcast values into a dataframe of lists with forecast mean,lo,hi
 forecast_values = lapply(model_forecasts$forecast, function(x){data.frame(year = as.vector(time(x$mean)),
                                                               forecast_mean = x$mean, 
                                                               forecast_lo = x$lower[,"95%"], 
                                                               forecast_hi = x$upper[,"95%"])})
-#lower, upper, and mean of predictions from 2007?-2011
+#lower, upper, and mean of predictions from 2007-2011 in a dataframe
+#site, taxon, year, forecast_mean, forecast_low, forecast_high
 forecast_long = data.frame(site = rep(model_forecasts[[1]], each=5), 
                  taxon = rep(model_forecasts[[2]], each=5), 
                  bind_rows(forecast_values))
 
 #residuals and fitted values in long format
+#pulling fitted, and residuals from the forecast model in a dataframe
 fit_res_long <- pmap_dfr(
   list(model_forecasts$forecast, model_forecasts$site, model_forecasts$taxon), 
   function(fcast, site_val, taxon_val) { 
@@ -317,7 +317,7 @@ fit_res_long <- pmap_dfr(
   }
 )
 
-#total fitted AGBI at a site 
+#summing AGBI at a given site to plot total fitted AGBI
 site_fitted = fit_res_long %>% 
   group_by(year, site) %>% 
   summarise(total_fitted = sum(fitted))
@@ -335,7 +335,8 @@ mean_taxa_agbi = clim_agbi %>%
   group_by(taxon, site) %>% 
   dplyr::summarize(mean_abi = mean(AGBI.mean))
 
-#sd of the residuals grouped by taxon 
+#sd of the model residuals grouped by taxon 
+#used to calculate the 
 residuals_sd = fit_res_long %>%
   group_by(site, taxon) %>%
   summarise(sd_residuals = sd(residuals, na.rm = TRUE))
