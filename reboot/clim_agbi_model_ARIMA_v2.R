@@ -92,13 +92,13 @@ AGBI_data = AGBI_data %>%
          AGBI.mean.prev2 = lag(AGBI.mean, n=2))
 
 #wide format of climate variables with AGBI by tree_year
-clim_agbi <- AGBI_data %>% 
+clim_agbi_taxon <- AGBI_data %>% 
   left_join(clim_wide, by = c('year', 'site'))
 
 
 #new dataframe with seasonal climate data
 #Across seasons, sum PPT, mean Tmean, max Tmax, min Tmin
-clim_seasons = clim_agbi %>% 
+clim_seasons = clim_agbi_taxon %>% 
   group_by(year, site, taxon) %>% 
   mutate(PPT_winter = sum(dplyr::pick('PPT_12', 'PPT_01', 'PPT_02')),
          PPT_spring = sum(dplyr::pick('PPT_03', 'PPT_04', 'PPT_05')),
@@ -138,6 +138,70 @@ clim_agbi_long <- clim_seasons %>%
 #one column for each varible_season combination
 #ex. PPT_winter
 clim_agbi_long2 <- clim_seasons %>%
+  select(-matches("\\d+$"), -c(year_tree)) %>%  #dropping monthly clim variables
+  pivot_longer(
+    cols = all_of(predictor_names),
+    names_to = "coef_name",
+    values_to = "climvar_value")
+
+
+########### merging SITE increment data with climate data #########
+
+
+#adding lag years 1+2 to AGBI dateframe 
+AGBI_site_data = AGB_data %>%
+  group_by(site) %>%
+  arrange(site, taxon, year) %>%
+  mutate(AGBI.mean.prev1 = lag(AGBI.mean, n=1),
+         AGBI.mean.prev2 = lag(AGBI.mean, n=2))
+
+#wide format of climate variables with AGBI by tree_year
+clim_agbi_site <- AGBI_site_data %>% 
+  left_join(clim_wide, by = c('year', 'site'))
+
+
+#new dataframe with seasonal climate data
+#Across seasons, sum PPT, mean Tmean, max Tmax, min Tmin
+clim_seasons_site = clim_agbi_site %>% 
+  group_by(year, site) %>% 
+  mutate(PPT_winter = sum(dplyr::pick('PPT_12', 'PPT_01', 'PPT_02')),
+         PPT_spring = sum(dplyr::pick('PPT_03', 'PPT_04', 'PPT_05')),
+         PPT_summer = sum(dplyr::pick('PPT_06', 'PPT_07', 'PPT_08')),
+         PPT_fall = sum(dplyr::pick('PPT_09', 'PPT_10', 'PPT_11')),
+         Vpdmax_winter = rowMeans(dplyr::pick('Vpdmax_12', 'Vpdmax_01','Vpdmax_02')),
+         Vpdmax_spring = rowMeans(dplyr::pick('Vpdmax_03', 'Vpdmax_04','Vpdmax_05')),
+         Vpdmax_summer = rowMeans(dplyr::pick('Vpdmax_06', 'Vpdmax_07','Vpdmax_08')),
+         Vpdmax_fall = rowMeans(dplyr::pick('Vpdmax_09', 'Vpdmax_10','Vpdmax_11')),
+         Tmin_winter = rowMeans(dplyr::pick('Tmin_12', 'Tmin_01', 'Tmin_02')),
+         Tmin_spring = rowMeans(dplyr::pick('Tmin_03', 'Tmin_04', 'Tmin_05')),
+         Tmin_summer = rowMeans(dplyr::pick('Tmin_06', 'Tmin_07', 'Tmin_08')),
+         Tmin_fall = rowMeans(dplyr::pick('Tmin_09', 'Tmin_10', 'Tmin_11')),
+         Tmax_winter = rowMeans(dplyr::pick('Tmax_12', 'Tmax_01', 'Tmax_02')),
+         Tmax_spring = rowMeans(dplyr::pick('Tmax_03', 'Tmax_04', 'Tmax_05')),
+         Tmax_summer = rowMeans(dplyr::pick('Tmax_06', 'Tmax_07', 'Tmax_08')),
+         Tmax_fall = rowMeans(dplyr::pick('Tmax_09', 'Tmax_10', 'Tmax_11')),
+         Tmean_winter = rowMeans(dplyr::pick('Tmean_12', 'Tmean_01', 'Tmean_02')),
+         Tmean_spring = rowMeans(dplyr::pick('Tmean_03', 'Tmean_04', 'Tmean_05')),
+         Tmean_summer = rowMeans(dplyr::pick('Tmean_06', 'Tmean_07', 'Tmean_08')),
+         Tmean_fall = rowMeans(dplyr::pick('Tmean_09', 'Tmean_10', 'Tmean_11'))
+  )
+
+#seasonal clim variables in long format 
+#separate name columns for variable name and season name
+#ex. PPT and winter
+clim_agbi_long_site <- clim_seasons_site %>%
+  select(-matches("\\d+$"), -c(year_tree)) %>%  #dropping monthly clim variables
+  pivot_longer(
+    cols = all_of(predictor_names),
+    names_to = "predictor",
+    values_to = "climvar_value"
+  )%>%
+  separate(predictor, into = c("clim_var", "season"), sep = "_")
+
+#seasonal clim variables in long format 
+#one column for each varible_season combination
+#ex. PPT_winter
+clim_agbi_long2_site <- clim_seasons_site %>%
   select(-matches("\\d+$"), -c(year_tree)) %>%  #dropping monthly clim variables
   pivot_longer(
     cols = all_of(predictor_names),
@@ -210,7 +274,7 @@ for (s in unique(cor_df$site)) {
 
 dev.off()
 
-# ARIMA Model -------------------------------------------------------------
+# ARIMA taxon Model -------------------------------------------------------------
 
 ### ADD ARIMA
 
@@ -264,6 +328,58 @@ models <- clim_agbi_in %>%
 #ex. GOOSE_ACRU
 models <- dplyr::mutate(models, model = paste0(site, "_", taxon))
 
+# ARIMA site Model -------------------------------------------------------------
+
+### ADD ARIMA
+
+#setting up for forecast values
+#Remove last five years
+clim_agbi_in_site <- clim_seasons_site %>%
+  filter(year < 2007) %>%
+  select(-matches("_[0-9]+$"))   # drop columns ending with _ + one or more digits
+
+# clim_agbi_out <- clim_seasons %>%
+#   filter(year > 2006) %>%
+#   select(-matches("_[0-9]+$"))   # same for forecast period
+
+
+#uses seasonal climate data 
+#making a time series 
+# Fit ARIMA models by site and taxon
+models_site <- clim_agbi_in_site %>%
+  group_by(site) %>%
+  do({
+    df <- .
+    
+    # Drop rows with NA in response or predictors
+    if (any(is.na(df$AGBI.mean)) || any(is.na(df[predictor_names]))) {
+      return(tibble(mod = list(NULL), note = "Missing data"))
+    }
+    
+    # Response variable as time series
+    agbi_ts <- ts(df$AGBI.mean, start = min(df$year), frequency = 1)
+    
+    # External regressors
+    xreg <- as.matrix(df %>% select(all_of(predictor_names)))
+    
+    # Fit ARIMA model
+    model <- tryCatch({
+      forecast::Arima(
+        y = agbi_ts,
+        order = c(1, 0, 0),  # AR(1)
+        xreg = xreg,
+        method = "ML"
+      )
+    }, error = function(e) {
+      warning("ARIMA failed for site=", df$site[1], ", taxon=", df$taxon[1], ": ", e$message)
+      return(NULL)
+    })
+    
+    tibble(mod = list(model), note = if (is.null(model)) "Model failed" else NA)
+  })
+
+
+########### forecasting taxon model ###########
 
 #forecasting
 model_forecasts <- models %>%
@@ -342,7 +458,7 @@ ggplot(data= site_fitted) +
   labs( x = "Year", y = "biomass increment (Mg/ha)")
 
 #mean AGBI for each species at a site
-mean_taxa_agbi = clim_agbi %>% 
+mean_taxa_agbi = clim_agbi_taxon %>% 
   group_by(taxon, site) %>% 
   dplyr::summarize(mean_abi = mean(AGBI.mean))
 
@@ -414,7 +530,7 @@ disturbance_years = data.frame(site = c('GOOSE', 'ROOSTER', 'ROOSTER', 'HARVARD'
 #joining AGBI.mean with 
 fit_res_joined <- fit_res_long_ci %>%
   left_join(
-    select(clim_agbi, year, site, taxon, AGBI.mean),
+    select(clim_agbi_taxon, year, site, taxon, AGBI.mean),
     by = c("year", "site", "taxon")
   )
 
@@ -541,13 +657,13 @@ filtered_forecast = inner_join(forecast_long, agbi_cumsum_filter[,c('site', 'tax
 #joining AGBI.mean with 
 filtered_forecast2 <- filtered_forecast %>%
   left_join(
-    select(clim_agbi, year, site, taxon, AGBI.mean),
+    select(clim_agbi_taxon, year, site, taxon, AGBI.mean),
     by = c("year", "site", "taxon")
   )
 
 # PLOTTING ----------------------------------------------------------------
 sites <- c("GOOSE", "ROOSTER", "HARVARD", "HMC", "NRP", "SYLVANIA")
-taxa = (unique(clim_agbi$taxon))
+taxa = (unique(clim_agbi_taxon$taxon))
 
 
 #fitted values plotted for each taxa and site wit forecast
@@ -561,7 +677,7 @@ for (site in sites) {
   
     disturbance <- disturbance_years[[site]]
     
-    clim_agbi_sub = clim_agbi %>%
+    clim_agbi_sub = clim_agbi_taxon %>%
       dplyr::filter(site == !!site,
              taxon == !!taxon)
     
