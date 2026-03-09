@@ -379,7 +379,7 @@ models_site <- clim_agbi_in_site %>%
   })
 
 
-########### forecasting taxon model ###########
+########### forecasting taxon model #################################
 
 #forecasting
 model_forecasts <- models %>%
@@ -446,6 +446,38 @@ fit_res_long <- model_forecasts %>%
     )
   })
 
+fit_res_long_ci <- fit_res_long %>%
+  mutate(
+    fitted_lo = fitted - 1.96 * sqrt(sigma2),
+    fitted_hi = fitted + 1.96 * sqrt(sigma2)
+  )
+
+####### extracting site model data ###########
+fit_res_long_site <- models_site %>%
+  mutate(sigma2 = purrr::map_dbl(mod, ~ .x$sigma2)) %>%
+  select(site, mod, sigma2) %>%
+  pmap_dfr(function(site, mod, sigma2) {
+    
+    if (is.null(mod)) return(NULL)
+    
+    tibble(
+      site      = site,
+      year      = as.vector(time(mod$fitted)),
+      fitted    = as.numeric(mod$fitted),
+      residuals = as.numeric(mod$residuals),
+      sigma2    = sigma2
+    )
+  })
+#plotting fitted AGBI for site data 
+ggplot(data= fit_res_long_site) +
+  geom_line(aes(x=year, y= fitted, colour=site)) +
+  #geom_ribbon(aes(x=year, ymin=AGBI.lo, ymax=AGBI.hi, colour=site, fill=site), alpha = 0.5) +
+  theme_light(14) +
+  labs( x = "Year", y = "biomass increment (Mg/ha)")
+
+
+######### summing taxon AGBI to get total site AGBI from ARIMA taxon model
+
 #summing AGBI at a given site to plot total fitted AGBI
 site_fitted = fit_res_long %>% 
   group_by(year, site) %>% 
@@ -474,12 +506,6 @@ mean_taxa_agbi = clim_agbi_taxon %>%
 # fit_res_long_ci = fit_res_long %>%
 #   left_join(residuals_sd, by = c("site", "taxon"))
 
-fit_res_long_ci <- fit_res_long %>%
-  mutate(
-    fitted_lo = fitted - 1.96 * sqrt(sigma2),
-    fitted_hi = fitted + 1.96 * sqrt(sigma2)
-  )
-
 
 # #residuals standardized WITH sd of....
 # residuals_standardized_sd = fit_res_long %>%
@@ -495,6 +521,8 @@ fit_res_long_ci <- fit_res_long %>%
 # residuals_AGBI = fit_res_long %>% 
 #   left_join(AGBI_data) %>% 
 #   mutate(residuals_AGBI = residuals/AGBI.mean)
+
+############# residuals #################
 
 #residuals in wide format with all sites for pairwise correlation
 residuals = lapply(model_forecasts[[6]], function(x) {
@@ -512,15 +540,12 @@ res_df <- res_df %>%
 #removing column with NA values 
 res_df_na <- subset(res_df, select = -c(HARVARD_HAVI, NRP_BEPA)) 
 
-# summed_AGBI = AGBI_data %>% 
-#   group_by(site, taxon, year) %>% 
-#   summarise(total = sum(AGBI.mean))
+
 
 # filtering cumsum --------------------------------------------------------
 disturbance_years <- list(GOOSE = 1981,ROOSTER = c(1983, 1992),HARVARD = 1981)
 disturbance_years = data.frame(site = c('GOOSE', 'ROOSTER', 'ROOSTER', 'HARVARD'), 
                                years = c(1981,1983,1992,1981))
-
 
 
 #joining AGBI.mean with 
