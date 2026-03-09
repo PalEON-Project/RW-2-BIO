@@ -22,9 +22,13 @@ tree_yr <- function(df, start_month=12) {
   # Return the water year
   adj.year
 }
+#################loading biomass and climate data##########
 
 #dataframe with year, site, taxon and AGBI.mean
 AGBI_data = readRDS("AGBI_taxon_data.RDS")
+
+#dataframe with AGBI and AGB at each site
+AGB_data = readRDS("AGBI_site_data.RDS")
 
 #climate data in long format 
 load('climate/prism_clim.RData')
@@ -36,8 +40,19 @@ df = subset(clim_data, select = -c(Vpdmin2) )
 #renaming columns in climate dataframe
 clim_data = df %>% 
   dplyr::rename(site = loc, PPT = PPT2, Tmean = Tmean2, Tmin = Tmin2, Tmax = Tmax2, 
-                 Vpdmax = Vpdmax2)
+                Vpdmax = Vpdmax2)
 clim_data$year <- as.numeric(clim_data$year)
+
+
+#climate predictors
+predictor_names = c('PPT_winter', 'PPT_spring', 'PPT_summer', 'PPT_fall',
+                    'Vpdmax_winter','Vpdmax_spring', 'Vpdmax_summer', 'Vpdmax_fall',
+                    'Tmean_winter', 'Tmean_spring', 'Tmean_summer', 'Tmean_fall',
+                    'Tmin_winter', 'Tmin_spring', 'Tmin_summer', 'Tmin_fall',
+                    'Tmax_winter', 'Tmax_spring', 'Tmax_summer', 'Tmax_fall') 
+
+######## reorganizing cliamte data to add tree_year #############
+
 
 #using tree_yr function to make prev and current year 
 #ex. year=1986 is sept-dec of 1985 and jan-aug of 1986
@@ -66,6 +81,9 @@ clim_wide_prev = rename(clim_wide_prev, year = year_tree)
 clim_wide = merge(clim_wide_current, clim_wide_prev, by = c('site', 'year'))
 
 
+########### merging taxon increment data with climate data #########
+
+
 #adding lag years 1+2 to AGBI dateframe 
 AGBI_data = AGBI_data %>%
   group_by(site, taxon) %>%
@@ -76,18 +94,6 @@ AGBI_data = AGBI_data %>%
 #wide format of climate variables with AGBI by tree_year
 clim_agbi <- AGBI_data %>% 
   left_join(clim_wide, by = c('year', 'site'))
-
-
-# ARIMA Model -------------------------------------------------------------
-
-### ADD ARIMA
-
-#climate predictors
-predictor_names = c('PPT_winter', 'PPT_spring', 'PPT_summer', 'PPT_fall',
-                    'Vpdmax_winter','Vpdmax_spring', 'Vpdmax_summer', 'Vpdmax_fall',
-                    'Tmean_winter', 'Tmean_spring', 'Tmean_summer', 'Tmean_fall',
-                    'Tmin_winter', 'Tmin_spring', 'Tmin_summer', 'Tmin_fall',
-                    'Tmax_winter', 'Tmax_spring', 'Tmax_summer', 'Tmax_fall') 
 
 
 #new dataframe with seasonal climate data
@@ -138,6 +144,8 @@ clim_agbi_long2 <- clim_seasons %>%
     names_to = "coef_name",
     values_to = "climvar_value")
 
+
+###########correlation of biomass increment data with climate data #############
 
 #correlation df climate data vs. AGBI.mean
 cor_df <- clim_agbi_long %>%
@@ -202,6 +210,9 @@ for (s in unique(cor_df$site)) {
 
 dev.off()
 
+# ARIMA Model -------------------------------------------------------------
+
+### ADD ARIMA
 
 #setting up for forecast values
 #Remove last five years
