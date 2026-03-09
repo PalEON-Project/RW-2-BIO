@@ -429,20 +429,22 @@ forecast_long = data.frame(site = rep(model_forecasts[[1]], each=5),
 
 #residuals and fitted values in long format
 #pulling fitted, and residuals from the forecast model in a dataframe
-fit_res_long <- pmap_dfr(
-  list(model_forecasts$forecast, model_forecasts$site, model_forecasts$taxon), 
-  function(fcast, site_val, taxon_val) { 
-    if (is.null(fcast)) return(NULL) 
+fit_res_long <- model_forecasts %>%
+  mutate(sigma2 = purrr::map_dbl(mod, ~ .x$sigma2)) %>%
+  select(forecast, site, taxon, sigma2) %>%
+  pmap_dfr(function(forecast, site, taxon, sigma2) {
+    
+    if (is.null(forecast)) return(NULL)
     
     tibble(
-      site      = site_val, 
-      taxon     = taxon_val, 
-      year      = as.vector(time(fcast$fitted)), 
-      fitted    = as.numeric(fcast$fitted), 
-      residuals = as.numeric(fcast$residuals)
+      site      = site,
+      taxon     = taxon,
+      year      = as.vector(time(forecast$fitted)),
+      fitted    = as.numeric(forecast$fitted),
+      residuals = as.numeric(forecast$residuals),
+      sigma2    = sigma2
     )
-  }
-)
+  })
 
 #summing AGBI at a given site to plot total fitted AGBI
 site_fitted = fit_res_long %>% 
@@ -464,36 +466,30 @@ mean_taxa_agbi = clim_agbi_taxon %>%
 
 #sd of the model residuals grouped by taxon 
 #used to calculate the 
-residuals_sd = fit_res_long %>%
-  group_by(site, taxon) %>%
-  summarise(sd_residuals = sd(residuals, na.rm = TRUE))
+# residuals_sd = fit_res_long %>%
+#   group_by(site, taxon) %>%
+#   summarise(sd_residuals = sd(residuals, na.rm = TRUE))
 
 #joining sd(residuals) with residuals and fitted df
-fit_res_long_ci = fit_res_long %>%
-  left_join(residuals_sd, by = c("site", "taxon"))
+# fit_res_long_ci = fit_res_long %>%
+#   left_join(residuals_sd, by = c("site", "taxon"))
 
-fit_res_long_ci <- fit_res_long_ci %>%
+fit_res_long_ci <- fit_res_long %>%
   mutate(
-    fitted_lo = fitted - 1.96 * sd_residuals,
-    fitted_hi = fitted + 1.96 * sd_residuals
+    fitted_lo = fitted - 1.96 * sqrt(sigma2),
+    fitted_hi = fitted + 1.96 * sqrt(sigma2)
   )
 
-#df with CIs for fitted values 
-fit_res_long_ci <- fit_res_long_ci %>%
-  mutate(
-    fitted_lo = fitted - 1.96 * sd_residuals,
-    fitted_hi = fitted + 1.96 * sd_residuals
-  )
 
-#residuals standardized WITH sd of....
-residuals_standardized_sd = fit_res_long %>%
-  left_join(residuals_sd, by = c("site", "taxon")) %>%
-  mutate(residuals_standardized = residuals / sd_residuals)
-
-#residuals standardized by mean AGBI over time for each taxa at each site
-residuals_standardized_mean = fit_res_long %>%
-  left_join(mean_taxa_agbi, by = c("site", "taxon"))%>%
-  mutate(residuals_standard = residuals/mean_abi)
+# #residuals standardized WITH sd of....
+# residuals_standardized_sd = fit_res_long %>%
+#   left_join(residuals_sd, by = c("site", "taxon")) %>%
+#   mutate(residuals_standardized = residuals / sd_residuals)
+# 
+# #residuals standardized by mean AGBI over time for each taxa at each site
+# residuals_standardized_mean = fit_res_long %>%
+#   left_join(mean_taxa_agbi, by = c("site", "taxon"))%>%
+#   mutate(residuals_standard = residuals/mean_abi)
 
 # #scaling residuals with AGBI??? idk 
 # residuals_AGBI = fit_res_long %>% 
