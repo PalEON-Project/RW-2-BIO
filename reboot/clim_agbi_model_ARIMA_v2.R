@@ -468,6 +468,10 @@ fit_res_long_site <- models_site %>%
       sigma2    = sigma2
     )
   })
+
+x = fit_res_long_site %>%
+  mutate(x = sqrt(sigma2) )
+
 #plotting fitted AGBI for site data 
 ggplot(data= fit_res_long_site) +
   geom_line(aes(x=year, y= fitted, colour=site)) +
