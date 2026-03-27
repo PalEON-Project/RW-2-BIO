@@ -30,6 +30,21 @@ AGBI_data = readRDS("AGBI_taxon_data.RDS")
 #dataframe with AGBI and AGB at each site
 AGB_data = readRDS("AGBI_site_data.RDS")
 
+head(AGBI_data)
+
+head(AGB_data)
+
+foo = AGBI_data %>% group_by(year, model, site) %>% 
+  dplyr::summarize(AGB.mean = sum(AGB.mean, na.rm=TRUE), AGBI.mean=sum(AGBI.mean, na.rm=TRUE))
+
+
+bar = merge(foo, AGB_data[,c('year', 'model', 'site', 'AGB.mean', 'AGBI.mean')], by=c('year', 'model', 'site'))
+head(bar)
+ggplot(data=bar) +
+  geom_point(aes(x=AGB.mean.x, y=AGB.mean.y)) +
+  facet_wrap(~site) +
+  geom_abline(slope=1, intercept=0)
+
 #climate data in long format 
 load('climate/prism_clim.RData')
 clim_data = prism_long

@@ -207,11 +207,11 @@ all_site_summary$period[which(all_site_summary$year>2000)] = "present"
 
 #taxon_group takes the sum of all the trees in one taxon.
 #iterations for each taxon not individual trees 
-all_taxon_plot_by_iter <- all_data |>
-  group_by(year, iter, taxon, plot, model, site) |>
-  dplyr::summarize(AGB.sum = sum(AGB, na.rm=TRUE),
-            AGBI.sum = sum(AGBI, na.rm = TRUE),
-            .groups = 'keep') 
+# all_taxon_plot_by_iter <- all_data |>
+#   group_by(year, iter, taxon, plot, model, site) |>
+#   dplyr::summarize(AGB.sum = sum(AGB, na.rm=TRUE),
+#             AGBI.sum = sum(AGBI, na.rm = TRUE),
+#             .groups = 'keep') 
 # #taxon plot summary with plot data
 # all_taxon_plot_summary = all_taxon_plot_by_iter %>%
 #   group_by(year, taxon, plot, model, site) %>% 
@@ -227,10 +227,10 @@ all_taxon_plot_by_iter <- all_data |>
 # head(all_taxon_plot_summary)
 
 #taxon summary data across plots
-all_taxon_site_by_iter = all_taxon_plot_by_iter %>%
+all_taxon_site_by_iter = all_data %>%
   group_by(year, iter, taxon, model, site) %>% 
-  dplyr::summarize(AGB.iter.mean = mean(AGB.sum, na.rm = TRUE),
-                   AGBI.iter.mean = mean(AGBI.sum, na.rm = TRUE),
+  dplyr::summarize(AGB.iter.mean = mean(AGB, na.rm = TRUE),
+                   AGBI.iter.mean = mean(AGBI, na.rm = TRUE),
                    .groups='keep')
 head(all_taxon_site_by_iter)
 
