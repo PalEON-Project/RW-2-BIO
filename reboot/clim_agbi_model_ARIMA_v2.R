@@ -7,7 +7,7 @@ library(ggplot2)
 library(GGally)
 library(stringr)
 library(tidyverse)
-
+library(patchwork)
 #arima(xreg = INDEPENDENT.VARS)
 
 
@@ -478,7 +478,7 @@ fit_res_long_site <- models_site %>%
     tibble(
       site      = site,
       year      = as.vector(time(mod$fitted)),
-      fitted    = as.numeric(mod$fitted),
+      site_fitted    = as.numeric(mod$fitted),
       residuals = as.numeric(mod$residuals),
       sigma2    = sigma2
     )
@@ -487,9 +487,16 @@ fit_res_long_site <- models_site %>%
 x = fit_res_long_site %>%
   mutate(x = sqrt(sigma2) )
 
+
+#data from increment model 
+ggplot(data= AGB_data) +
+  geom_line(aes(x=year, y= AGBI.mean, colour=site)) +
+  theme_light(14) +
+  labs( x = "Year", y = "biomass increment (Mg/ha)")
+
 #plotting fitted AGBI for site data 
 ggplot(data= fit_res_long_site) +
-  geom_line(aes(x=year, y= fitted, colour=site)) +
+  geom_line(aes(x=year, y= site_fitted, colour=site)) +
   #geom_ribbon(aes(x=year, ymin=AGBI.lo, ymax=AGBI.hi, colour=site, fill=site), alpha = 0.5) +
   theme_light(14) +
   labs( x = "Year", y = "biomass increment (Mg/ha)")
@@ -497,23 +504,47 @@ ggplot(data= fit_res_long_site) +
 
 ######### summing taxon AGBI to get total site AGBI from ARIMA taxon model
 
-#summing AGBI at a given site to plot total fitted AGBI
+#summing AGBI at a given site to plot total fitted AGBI from the taxon model 
 site_fitted = fit_res_long %>% 
   group_by(year, site) %>% 
-  summarise(total_fitted = sum(fitted))
+  summarise(t_model_fitted = sum(fitted))
 
 
-#plotting total fitted AGBI from ARIMA model for each site
+#plotting total fitted AGBI from ARIMA model for each site from taxon model 
 ggplot(data= site_fitted) +
-  geom_line(aes(x=year, y= total_fitted, colour=site)) +
+  geom_line(aes(x=year, y= t_model_fitted, colour=site)) +
   #geom_ribbon(aes(x=year, ymin=AGBI.lo, ymax=AGBI.hi, colour=site, fill=site), alpha = 0.5) +
   theme_light(14) +
   labs( x = "Year", y = "biomass increment (Mg/ha)")
 
-#mean AGBI for each species at a site
-mean_taxa_agbi = clim_agbi_taxon %>% 
-  group_by(taxon, site) %>% 
-  dplyr::summarize(mean_abi = mean(AGBI.mean))
+
+
+joined_AGBI = left_join( site_fitted, fit_res_long_site,
+                    by = c("site", "year")) %>% 
+          inner_join(select(AGB_data, c(year, site, AGBI.mean)), by = c("site", "year"))
+
+
+#taxon model summed AGBI v. site model AGBI
+p1 = ggplot(data = joined_AGBI) +
+  geom_point(aes(x=site_fitted, y= t_model_fitted)) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "blue")+
+  theme_light(14)
+
+p2 = ggplot(data = joined_AGBI) +
+  geom_point(aes(x=AGBI.mean, y= t_model_fitted)) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "blue")+
+  theme_light(14)
+
+p3 = ggplot(data = joined_AGBI) +
+  geom_point(aes(x=AGBI.mean, y= site_fitted)) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "blue")+
+  theme_light(14)
+p1+p2+p3
+
+# #mean AGBI for each species at a site
+# mean_taxa_agbi = clim_agbi_taxon %>% 
+#   group_by(taxon, site) %>% 
+#   dplyr::summarize(mean_abi = mean(AGBI.mean))
 
 #sd of the model residuals grouped by taxon 
 #used to calculate the 
@@ -1069,7 +1100,7 @@ res_wide_filter = filtered_AGBI %>%
 
 #plotting fitted vs observed with CI at each point 
 #full dataset
-pdf("report/figures2/AGBI_fitted_vs_observed.pdf", width = 10, height = 8)
+pdf("report/figures/AGBI_fitted_vs_observed.pdf", width = 10, height = 8)
 for (site in sites) {
   for (taxon in taxa) {
     print(paste(site, taxon))
@@ -1086,16 +1117,57 @@ for (site in sites) {
       geom_errorbar(aes(ymin = fitted_lo, ymax = fitted_hi), width = 0.01, color = "gray40") +
       geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dashed") +
       labs(x = "Observed AGBI.mean", y = "Fitted AGBI", title = paste0(site, "; ", taxon)) +
+      theme_light(base_size = 14)+
+      facet_wrap(~taxon, scales = "free") +
+      labs(
+        x = "Observed AGBI.mean",
+        y = "Fitted AGBI",
+        title = paste0("Site: ", site)
+      ) +
       theme_light(base_size = 14)
     
     print(p)
+   
   }
 }
 dev.off()
 
+#observed vs. model AGBI facet_wrapped
+pdf("report/figures/AGBI_fitted_vs_observed_wrapped.pdf", width = 10, height = 8)
+
+for (site in sites) {
+  print(site)
+  
+  clim_agbi_sub <- fit_res_joined %>%
+    filter(site == !!site)
+  
+  if (nrow(clim_agbi_sub) == 0 ||
+      all(is.na(clim_agbi_sub$AGBI.mean)) ||
+      all(is.na(clim_agbi_sub$fitted))) next
+  
+  p <- ggplot(clim_agbi_sub, aes(x = AGBI.mean, y = fitted)) +
+    geom_point() +
+    geom_errorbar(aes(ymin = fitted_lo, ymax = fitted_hi),
+                  width = 0.01, color = "gray40") +
+    geom_abline(intercept = 0, slope = 1,
+                color = "red", linetype = "dashed") +
+    facet_wrap(~taxon, scales = "free") +
+    labs(
+      x = "Observed AGBI.mean",
+      y = "Fitted AGBI",
+      title = paste0("Site: ", site)
+    ) +
+    theme_light(base_size = 14)
+  
+  print(p)
+}
+
+dev.off()
+
+
 #plotting fitted/forecast vs observed with CI at each point 
 #cumsum data with forecast!!
-pdf("report/figures2/AGBI_fitted_vs_observed_filtered.pdf", width = 10, height = 8)
+pdf("report/figures/AGBI_fitted_vs_observed_filtered.pdf", width = 10, height = 8)
 
 for (site in sites) {
   for (taxon in taxa) {
@@ -1172,7 +1244,7 @@ dev.off()
 
 #plotting fitted/forecast vs observed with CI at each point 
 #cumsum data with forecast!!, facet wrap by taxon
-pdf("report/figures2/AGBI_fitted_vs_observed_cumsum_facetwrap.pdf",
+pdf("report/figures/AGBI_fitted_vs_observed_cumsum_facetwrap.pdf",
     width = 12, height = 8)
 
 for (site in sites) {
