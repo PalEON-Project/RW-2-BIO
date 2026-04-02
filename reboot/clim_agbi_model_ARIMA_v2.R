@@ -541,36 +541,6 @@ p3 = ggplot(data = joined_AGBI) +
   theme_light(14)
 p1+p2+p3
 
-# #mean AGBI for each species at a site
-# mean_taxa_agbi = clim_agbi_taxon %>% 
-#   group_by(taxon, site) %>% 
-#   dplyr::summarize(mean_abi = mean(AGBI.mean))
-
-#sd of the model residuals grouped by taxon 
-#used to calculate the 
-# residuals_sd = fit_res_long %>%
-#   group_by(site, taxon) %>%
-#   summarise(sd_residuals = sd(residuals, na.rm = TRUE))
-
-#joining sd(residuals) with residuals and fitted df
-# fit_res_long_ci = fit_res_long %>%
-#   left_join(residuals_sd, by = c("site", "taxon"))
-
-
-# #residuals standardized WITH sd of....
-# residuals_standardized_sd = fit_res_long %>%
-#   left_join(residuals_sd, by = c("site", "taxon")) %>%
-#   mutate(residuals_standardized = residuals / sd_residuals)
-# 
-# #residuals standardized by mean AGBI over time for each taxa at each site
-# residuals_standardized_mean = fit_res_long %>%
-#   left_join(mean_taxa_agbi, by = c("site", "taxon"))%>%
-#   mutate(residuals_standard = residuals/mean_abi)
-
-# #scaling residuals with AGBI??? idk 
-# residuals_AGBI = fit_res_long %>% 
-#   left_join(AGBI_data) %>% 
-#   mutate(residuals_AGBI = residuals/AGBI.mean)
 
 ############# residuals #################
 
