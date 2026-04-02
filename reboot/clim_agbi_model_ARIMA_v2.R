@@ -487,6 +487,8 @@ fit_res_long_site <- models_site %>%
 x = fit_res_long_site %>%
   mutate(x = sqrt(sigma2) )
 
+plot(unique(x$x))
+
 
 #data from increment model 
 ggplot(data= AGB_data) +
@@ -505,38 +507,39 @@ ggplot(data= fit_res_long_site) +
 ######### summing taxon AGBI to get total site AGBI from ARIMA taxon model
 
 #summing AGBI at a given site to plot total fitted AGBI from the taxon model 
-site_fitted = fit_res_long %>% 
+t_model_site_fitted = fit_res_long %>% 
   group_by(year, site) %>% 
-  summarise(t_model_fitted = sum(fitted))
+  dplyr::mutate(t_model_fitted = sum(fitted))
 
 
 #plotting total fitted AGBI from ARIMA model for each site from taxon model 
-ggplot(data= site_fitted) +
+ggplot(data= t_model_site_fitted) +
   geom_line(aes(x=year, y= t_model_fitted, colour=site)) +
   #geom_ribbon(aes(x=year, ymin=AGBI.lo, ymax=AGBI.hi, colour=site, fill=site), alpha = 0.5) +
   theme_light(14) +
   labs( x = "Year", y = "biomass increment (Mg/ha)")
 
 
-
-joined_AGBI = left_join( site_fitted, fit_res_long_site,
+#joining observed AGBI with sum taxon model AGBI and site model AGBI
+joined_AGBI = left_join(select(t_model_site_fitted, c(year, site, t_model_fitted)),
+                        select(fit_res_long_site, c(year, site, site_fitted)),
                     by = c("site", "year")) %>% 
           inner_join(select(AGB_data, c(year, site, AGBI.mean)), by = c("site", "year"))
 
-
+############plotting AGBI########################################
 #taxon model summed AGBI v. site model AGBI
 p1 = ggplot(data = joined_AGBI) +
-  geom_point(aes(x=site_fitted, y= t_model_fitted)) +
+  geom_point(aes(x=site_fitted, y= t_model_fitted, colour = site)) +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "blue")+
   theme_light(14)
 
-p2 = ggplot(data = joined_AGBI) +
-  geom_point(aes(x=AGBI.mean, y= t_model_fitted)) +
+ggplot(data = joined_AGBI) +
+  geom_point(aes(x=AGBI.mean, y= t_model_fitted, colour = site)) +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "blue")+
   theme_light(14)
 
 p3 = ggplot(data = joined_AGBI) +
-  geom_point(aes(x=AGBI.mean, y= site_fitted)) +
+  geom_point(aes(x=AGBI.mean, y= site_fitted, colour = site)) +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "blue")+
   theme_light(14)
 p1+p2+p3
