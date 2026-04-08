@@ -507,9 +507,16 @@ ggplot(data= fit_res_long_site) +
 ######### summing taxon AGBI to get total site AGBI from ARIMA taxon model
 
 #summing AGBI at a given site to plot total fitted AGBI from the taxon model 
+#only goes up to year 2006 since we used model data
 t_model_site_fitted = fit_res_long %>% 
   group_by(year, site) %>% 
-  dplyr::mutate(t_model_fitted = sum(fitted))
+  dplyr::summarise(t_model_fitted = sum(fitted))
+
+#summing AGBI at a given site to plot total fitted AGBI from the DATA
+#goes up to 2011
+AGBI_sum_from_t = AGBI_data %>%
+  group_by(year, site) %>%
+  dplyr::summarise(site_AGBI = sum(AGBI.mean), .keep = "none")
 
 
 #plotting total fitted AGBI from ARIMA model for each site from taxon model 
@@ -521,10 +528,23 @@ ggplot(data= t_model_site_fitted) +
 
 
 #joining observed AGBI with sum taxon model AGBI and site model AGBI
-joined_AGBI = left_join(select(t_model_site_fitted, c(year, site, t_model_fitted)),
+#DATA AGBI from AGB.data
+#goes up to 2006
+joined_AGBI = left_join(t_model_site_fitted,
                         select(fit_res_long_site, c(year, site, site_fitted)),
                     by = c("site", "year")) %>% 
-          inner_join(select(AGB_data, c(year, site, AGBI.mean)), by = c("site", "year"))
+  inner_join(select(AGB_data, c(year, site, AGBI.mean)), by = c("site", "year"))  
+
+
+joined_AGBI_2 = left_join(joined_AGBI, AGBI_sum_from_t, 
+                          by = c("site", "year"))
+
+joined_AGBI_long <- joined_AGBI_2 %>%
+  pivot_longer(
+    cols = c(t_model_fitted, site_fitted, AGBI.mean, site_AGBI), # Columns to transform
+    names_to = "AGBI_type",      # New column for the old column names
+    values_to = "value"      # New column for the cell values
+  )
 
 ############plotting AGBI########################################
 #taxon model summed AGBI v. site model AGBI
@@ -543,6 +563,13 @@ p3 = ggplot(data = joined_AGBI) +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "blue")+
   theme_light(14)
 p1+p2+p3
+
+
+
+ggplot()+
+  geom_line(data = joined_AGBI_long , aes(x = year, y = value, colour = AGBI_type))+
+  facet_wrap(~site)+
+  theme_light(14)
 
 
 ############# residuals #################
