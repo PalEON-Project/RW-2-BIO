@@ -138,14 +138,150 @@ hmc_total <- subset(hmc_total, model == 'Model RW')
 all_data <- rbind(goose_total, nrp_total, rooster_total, sylvania_total, harvard_total, hmc_total)
 # all_data <- rbind(goose_total, nrp_total, rooster_total, sylvania_total)
 
+
+all_data$iter_new = all_data$iter + (all_data$plot - 1) * 1000
+
 ggplot(data=all_data) + geom_histogram(aes(x=AGB)) + facet_wrap(~site)
+
+ggplot(data=all_data) + geom_histogram(aes(x=AGBI)) + facet_wrap(~site)
+
+
+# sum AGB and AGBI across species for a given site, plot, year, and iter
+all_site_by_iter <- all_data |>
+  group_by(year, iter_new, model, site) |>
+  dplyr::summarize(AGB.sum = sum(AGB, na.rm=TRUE),
+                   AGBI.sum = sum(AGBI, na.rm = TRUE),
+                   .groups = 'keep') 
+
+ggplot(data=all_site_by_iter) + geom_histogram(aes(x=AGB.sum)) + facet_wrap(~site)
+
+# #plot summary data 
+# all_site_plot_summary = all_site_plot_by_iter %>%
+#   group_by(year, plot, model, site) %>% 
+#   dplyr::summarize(AGB.mean = mean(AGB.sum, na.rm = T),
+#             AGB.sd = sd(AGB.sum),
+#             AGB.lo = quantile(AGB.sum, c(0.025), na.rm=TRUE),
+#             AGB.hi = quantile(AGB.sum, c(0.975), na.rm=TRUE), 
+#             AGBI.mean = mean(AGBI.sum, na.rm = T),
+#             AGBI.sd = sd(AGBI.sum),
+#             AGBI.lo = quantile(AGBI.sum, c(0.025), na.rm=TRUE),
+#             AGBI.hi = quantile(AGBI.sum, c(0.975), na.rm=TRUE), 
+#             .groups='keep')
+# head(all_site_plot_summary)
+
+# 
+# ggplot(data=all_site_plot_summary) + geom_histogram(aes(x=AGB.mean)) + facet_wrap(~site)
+
+# take mean AGB and AGBI across plots for a given site, year, and iter
+# all_site_by_iter <- all_site_plot_by_iter |>
+#   group_by(year, iter, model, site) |>
+#   dplyr::summarize(AGB.iter = mean(AGB.sum, na.rm=TRUE),
+#                    AGBI.iter = mean(AGBI.sum, na.rm = TRUE),
+#                    .groups = 'keep') 
+
+# ggplot(data=all_site_by_iter) + geom_histogram(aes(x=AGB.iter)) + facet_wrap(~site)
+
+# all_site_by_iter <- all_data |>
+#   group_by(year, iter, model, site) |>
+#   dplyr::summarize(AGB.sum = sum(AGB),
+#             AGBI.sum = sum(AGBI),
+#             .groups = 'keep') 
+# ggplot(data=all_site_by_iter) + geom_histogram(aes(x=AGB.sum)) + facet_wrap(~site)
+
+
+# summarize mean AGB and AGBI across plots for a given site and year
+all_site_summary = all_site_by_iter %>%
+  group_by(year, model, site) %>%
+  dplyr::summarize(AGB.mean = mean(AGB.sum, na.rm = TRUE),
+                   AGB.mid = median(AGB.sum, na.rm = TRUE),
+                   AGB.sd = sd(AGB.sum, na.rm = TRUE),
+                   AGB.lo = quantile(AGB.sum, c(0.025), na.rm=TRUE),
+                   AGB.hi = quantile(AGB.sum, c(0.975), na.rm=TRUE),
+                   AGBI.mean = mean(AGBI.sum, na.rm = TRUE),
+                   AGBI.mid = median(AGBI.sum, na.rm = TRUE),
+                   AGBI.sd = sd(AGBI.sum, na.rm = TRUE),
+                   AGBI.lo = quantile(AGBI.sum, c(0.025), na.rm=TRUE),
+                   AGBI.hi = quantile(AGBI.sum, c(0.975), na.rm=TRUE),
+                   .groups='keep')
+head(all_site_summary)
+ggplot(data=all_site_summary) + geom_histogram(aes(x=AGB.mean)) + facet_wrap(~site)
+# saveRDS(all_site_summary, "AGBI_site_data.RDS")
+saveRDS(all_site_summary, "reboot/AGBI_site_data.RDS")
+
+
+all_site_summary$period = NA
+all_site_summary$period[which(all_site_summary$year<1960)] = "past"
+all_site_summary$period[which(all_site_summary$year>2000)] = "present"
+
+
+#taxon_group takes the sum of all the trees in one taxon.
+#iterations for each taxon not individual trees 
+# all_taxon_plot_by_iter <- all_data |>
+#   group_by(year, iter, taxon, plot, model, site) |>
+#   dplyr::summarize(AGB.sum = sum(AGB, na.rm=TRUE),
+#             AGBI.sum = sum(AGBI, na.rm = TRUE),
+#             .groups = 'keep') 
+# #taxon plot summary with plot data
+# all_taxon_plot_summary = all_taxon_plot_by_iter %>%
+#   group_by(year, taxon, plot, model, site) %>% 
+#   dplyr::summarize(AGB.mean = mean(AGB.sum, na.rm = T),
+#             AGB.sd = sd(AGB.sum),
+#             AGB.lo = quantile(AGB.sum, c(0.025), na.rm=TRUE),
+#             AGB.hi = quantile(AGB.sum, c(0.975), na.rm=TRUE), 
+#             AGBI.mean = mean(AGBI.sum, na.rm = T),
+#             AGBI.sd = sd(AGBI.sum),
+#             AGBI.lo = quantile(AGBI.sum, c(0.025), na.rm=TRUE),
+#             AGBI.hi = quantile(AGBI.sum, c(0.975), na.rm=TRUE), 
+#             .groups='keep')
+# head(all_taxon_plot_summary)
+
+#taxon summary data across plots
+# all_taxon_site_by_iter = all_data %>%
+#   group_by(year, iter_new, taxon, model, site) %>% 
+#   dplyr::summarize(AGB.iter.mean = mean(AGB, na.rm = TRUE),
+#                    AGBI.iter.mean = mean(AGBI, na.rm = TRUE),
+#                    .groups='keep')
+# head(all_taxon_site_by_iter)
+
+
+
+# all_site_by_iter <- all_site_plot_by_iter |>
+#   group_by(year, iter, model, site) |>
+#   dplyr::summarize(AGB.iter = mean(AGB.sum, na.rm=TRUE),
+#                    AGBI.iter = mean(AGBI.sum, na.rm = TRUE),
+#                    .groups = 'keep') 
+
+#taxon summary data without plot 
+all_taxon_site_summary = all_data %>%
+  group_by(year, taxon, model, site) %>% 
+  dplyr::summarize(AGB.mean = mean(AGB, na.rm = TRUE),
+                   AGB.mid = median(AGB, na.rm = TRUE),
+                   AGB.sd = sd(AGB, na.rm=TRUE),
+                   AGB.lo = quantile(AGB, c(0.025), na.rm=TRUE),
+                   AGB.hi = quantile(AGB, c(0.975), na.rm=TRUE), 
+                   AGBI.mean = mean(AGBI, na.rm = TRUE),
+                   AGBI.mid = median(AGBI, na.rm = TRUE),
+                   AGBI.sd = sd(AGBI, na.rm = TRUE),
+                   AGBI.lo = quantile(AGBI, c(0.025), na.rm=TRUE),
+                   AGBI.hi = quantile(AGBI, c(0.975), na.rm=TRUE), 
+                   .groups='keep')
+head(all_taxon_site_summary)
+
+saveRDS(all_taxon_site_summary, "reboot/AGBI_taxon_data.RDS")
+
+
+############## OLD
+
+ggplot(data=all_data) + geom_histogram(aes(x=AGB)) + facet_wrap(~site)
+
+ggplot(data=all_data) + geom_histogram(aes(x=AGBI)) + facet_wrap(~site)
 
 
 # sum AGB and AGBI across species for a given site, plot, year, and iter
 all_site_plot_by_iter <- all_data |>
   group_by(year, iter, plot, model, site) |>
   dplyr::summarize(AGB.sum = sum(AGB, na.rm=TRUE),
-            AGBI.sum = sum(AGBI, na.tm = TRUE),
+            AGBI.sum = sum(AGBI, na.rm = TRUE),
             .groups = 'keep') 
 
 ggplot(data=all_site_plot_by_iter) + geom_histogram(aes(x=AGB.sum)) + facet_wrap(~site)
@@ -198,7 +334,9 @@ all_site_summary = all_site_by_iter %>%
                    .groups='keep')
 head(all_site_summary)
 ggplot(data=all_site_summary) + geom_histogram(aes(x=AGB.mean)) + facet_wrap(~site)
-saveRDS(all_site_summary, "AGBI_site_data.RDS")
+# saveRDS(all_site_summary, "AGBI_site_data.RDS")
+saveRDS(all_site_summary, "reboot/AGBI_site_data.RDS")
+
 
 all_site_summary$period = NA
 all_site_summary$period[which(all_site_summary$year<1960)] = "past"
@@ -234,6 +372,14 @@ all_taxon_site_by_iter = all_data %>%
                    .groups='keep')
 head(all_taxon_site_by_iter)
 
+
+
+# all_site_by_iter <- all_site_plot_by_iter |>
+#   group_by(year, iter, model, site) |>
+#   dplyr::summarize(AGB.iter = mean(AGB.sum, na.rm=TRUE),
+#                    AGBI.iter = mean(AGBI.sum, na.rm = TRUE),
+#                    .groups = 'keep') 
+
 #taxon summary data without plot 
 all_taxon_site_summary = all_taxon_site_by_iter %>%
   group_by(year, taxon, model, site) %>% 
@@ -248,7 +394,7 @@ all_taxon_site_summary = all_taxon_site_by_iter %>%
                    .groups='keep')
 head(all_taxon_site_summary)
 
-saveRDS(all_taxon_site_summary, "AGBI_taxon_data.RDS")
+saveRDS(all_taxon_site_summary, "reboot/AGBI_taxon_data.RDS")
 
 #AGBI over time by taxa
 ggplot()+
