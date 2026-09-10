@@ -712,6 +712,9 @@ AGBI_taxon_disturb = merge(joined_AGBI_taxon,
 AGBI_taxon_disturb$disturb_lag0 = as.numeric(AGBI_taxon_disturb$disturb)
 AGBI_taxon_disturb$disturb_lag0[which(AGBI_taxon_disturb$disturb_lag0 == 0)] = NA
 
+AGBI_taxon_disturb$event = AGBI_taxon_disturb$year
+AGBI_taxon_disturb$event[which(is.na(AGBI_taxon_disturb$disturb_lag0))] = NA
+
 AGBI_taxon_disturb = AGBI_taxon_disturb %>% 
   group_by(site, taxon) %>% 
   arrange(year, .by_group=TRUE) %>%
@@ -722,6 +725,10 @@ AGBI_taxon_disturb = AGBI_taxon_disturb %>%
 AGBI_taxon_disturb = AGBI_taxon_disturb %>% 
   dplyr::mutate(disturb_lag = pmin(disturb_lag0, disturb_lag1, disturb_lag2, disturb_lag3, na.rm=TRUE))
 
+AGBI_taxon_disturb = AGBI_taxon_disturb %>%
+  group_by(site, taxon) %>% 
+  dplyr::mutate(event_year = pmax(event, lag(event, 1), lag(event, 2), lag(event, 3), na.rm=TRUE))
+
 for (site in sites){
   p = ggplot(data=AGBI_taxon_disturb[which(AGBI_taxon_disturb$site==site),]) +
     geom_point(aes(x=AGBI.mid.x, y=fitted, colour=disturb)) +
@@ -729,6 +736,17 @@ for (site in sites){
     geom_abline(intercept=0, slope=1, linetype=2, colour='grey')
   print(p)
 }
+
+p = ggplot(data=subset(AGBI_taxon_disturb, !is.na(disturb_lag))) +
+  geom_boxplot(aes(x=factor(disturb_lag-1), y=-residuals)) +
+  # geom_smooth(method='lm', aes(x=disturb_lag-1, y=-residuals), formula = y ~ poly(x, 2)) +
+  facet_wrap(~taxon, scales='free') + theme_light() + 
+  theme(aspect.ratio=1) +
+  geom_hline(yintercept=0, linetype=2, colour='grey') +
+  xlab('years since disturbance') +
+  ylab('model - data (Mg/ha)') +
+  ggtitle(site)
+print(p)
 
 pdf('figures/AGBI_stat_ARIMA_disturb_scatter.pdf')
 for (site in sites){
@@ -764,6 +782,19 @@ for (site in sites){
     ylab('model - data (Mg/ha)') +
     ggtitle(site)
   print(p)
+  
+  p = ggplot(data=subset(this_AGBI_taxon_disturb, !is.na(disturb_lag))) +
+    geom_point(aes(x=disturb_lag-1, y=-residuals, group=event_year)) +
+    geom_smooth(method='loess', aes(x=disturb_lag-1, y=-residuals, group=event_year), colour='dodgerblue', alpha=0.5) +
+    # geom_smooth(method='loess', aes(x=disturb_lag-1, y=-residuals)) +
+    facet_wrap(~taxon, scales='free') + theme_light() + 
+    theme(aspect.ratio=1) +
+    geom_hline(yintercept=0, linetype=2, colour='grey') +
+    xlab('years since disturbance') +
+    ylab('model - data (Mg/ha)') +
+    ggtitle(site)
+  print(p)
+  
   
   # p = ggplot(data=AGBI_taxon_disturb[which(AGBI_taxon_disturb$site==site),], aes(x=disturb_lag, y=residuals)) +
   #   geom_point() +
@@ -802,6 +833,10 @@ AGBI_site_disturb = merge(joined_AGBI,
 AGBI_site_disturb$disturb_lag0 = as.numeric(AGBI_site_disturb$disturb)
 AGBI_site_disturb$disturb_lag0[which(AGBI_site_disturb$disturb_lag0 == 0)] = NA
 
+AGBI_site_disturb$event = AGBI_site_disturb$year
+AGBI_site_disturb$event[which(is.na(AGBI_site_disturb$disturb_lag0))] = NA
+
+
 AGBI_site_disturb = AGBI_site_disturb %>% 
   group_by(site) %>% 
   arrange(year, .by_group=TRUE) %>%
@@ -812,12 +847,25 @@ AGBI_site_disturb = AGBI_site_disturb %>%
 AGBI_site_disturb = AGBI_site_disturb %>% 
   dplyr::mutate(disturb_lag = pmin(disturb_lag0, disturb_lag1, disturb_lag2, disturb_lag3, na.rm=TRUE))
 
+AGBI_site_disturb = AGBI_site_disturb %>%
+  dplyr::mutate(event_year = pmax(event, lag(event, 1), lag(event, 2), lag(event, 3), na.rm=TRUE))
+
+
 p = ggplot(data=AGBI_site_disturb) +
   geom_point(aes(x=disturb_lag-1, y=diff_site_data)) +
   facet_wrap(~site, scales='free') + theme_light() + 
   theme(aspect.ratio=1) +
   geom_hline(yintercept=0, linetype=2, colour='grey')
 print(p)
+
+p = ggplot(data=AGBI_site_disturb) +
+  geom_point(aes(x=disturb_lag-1, y=diff_site_data, group=event_year)) +
+  geom_smooth(method='loess', aes(x=disturb_lag-1, y=diff_site_data, group=event_year)) +
+  facet_wrap(~site, scales='free') + theme_light() + 
+  theme(aspect.ratio=1) +
+  geom_hline(yintercept=0, linetype=2, colour='grey')
+print(p)
+
 
 p = ggplot(data=AGBI_site_disturb) +
   geom_point(aes(x=factor(disturb_lag), y=diff_site_data)) +
@@ -843,16 +891,16 @@ disturb_years = disturb_years %>% distinct()
 disturb_years$disturb_any = TRUE
 
 
-foo = left_join(AGBI_taxon_disturb, disturb_years)
-foo$disturb_any[which(is.na(foo$disturb_any))] = FALSE
-
-for (site in sites){
-  p = ggplot(data=foo[which(foo$site==site),]) +
-    geom_point(aes(x=AGBI.mid.x, y=fitted, colour=disturb_any)) +
-    facet_wrap(~taxon, scales='free') + theme_light() + theme(aspect.ratio=1) +
-    geom_abline(intercept=0, slope=1, linetype=2, colour='grey')
-  print(p)
-}
+# foo = left_join(AGBI_taxon_disturb, disturb_years)
+# foo$disturb_any[which(is.na(foo$disturb_any))] = FALSE
+# 
+# for (site in sites){
+#   p = ggplot(data=foo[which(foo$site==site),]) +
+#     geom_point(aes(x=AGBI.mid.x, y=fitted, colour=disturb_any)) +
+#     facet_wrap(~taxon, scales='free') + theme_light() + theme(aspect.ratio=1) +
+#     geom_abline(intercept=0, slope=1, linetype=2, colour='grey')
+#   print(p)
+# }
 
 p = ggplot(data=AGBI_site_disturb) +
   geom_point(aes(x=AGBI.mid.x, y=site_fitted, colour=disturb)) +
