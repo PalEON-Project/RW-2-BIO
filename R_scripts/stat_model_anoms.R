@@ -163,6 +163,8 @@ AGBI_taxon_anom$disturb = NA
 k=7
 t0=2
 
+sites <- c("GOOSE", "HARVARD", "NRP", "ROOSTER", "SYLVANIA", "HMC")
+
 pdf(paste0('figures/AGBI_stat_model_anomalies_k', k, '_z', t0*10, '.pdf'), width=10,height=8)
 for (site in sites){
   

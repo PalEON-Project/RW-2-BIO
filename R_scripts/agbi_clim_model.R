@@ -26,19 +26,24 @@ tree_yr <- function(df, start_month=12) {
 
 #dataframe with year, site, taxon and AGBI.mean
 AGBI_taxon = readRDS("reboot/AGBI_taxon_data.RDS")
+AGBI_taxon <- AGBI_taxon %>% 
+  rename(AGBI.mid = AGBI.mean) %>% 
+  rename(AGB.mid = AGB.mean)
+
+
 
 head(AGBI_taxon)
 
 AGBI_taxon_site = AGBI_taxon %>% group_by(year, model, site) %>% 
-  dplyr::summarize(AGB.mid = sum(AGB.mid, na.rm=TRUE), AGBI.mid=sum(AGBI.mid, na.rm=TRUE))
+  dplyr::summarize(AGBI.mid = sum(AGBI.mid, na.rm=TRUE), AGB.mid=sum(AGB.mid, na.rm=TRUE))
 
 
 #adding lag years 1+2 to AGBI dateframe 
 AGBI_taxon = AGBI_taxon %>%
   group_by(site, taxon) %>%
   arrange(site, taxon, year) %>%
-  mutate(AGBI.mid.prev1 = lag(AGBI.mid, n=1),
-         AGBI.mid.prev2 = lag(AGBI.mid, n=2))
+  mutate(AGBI.mid.prev1 = lag(AGBI.mean, n=1),
+         AGBI.mid.prev2 = lag(AGBI.mean, n=2))
 
 
 head(AGBI_taxon_site)
@@ -67,7 +72,7 @@ clim_data = df %>%
 clim_data$year <- as.numeric(clim_data$year)
 
 
-#climate predictors
+#list of climate predictors
 predictor_names = c('PPT_winter', 'PPT_spring', 'PPT_summer', 'PPT_fall',
                     'Vpdmax_winter','Vpdmax_spring', 'Vpdmax_summer', 'Vpdmax_fall',
                     'Tmean_winter', 'Tmean_spring', 'Tmean_summer', 'Tmean_fall',
@@ -161,8 +166,9 @@ clim_agbi_long2_taxon <- clim_seasons_taxon %>%
     values_to = "climvar_value")
 
 
+
 ################################################################################
-## merge climate data: SITE
+# merge climate data: SITE ------------------------------------------------
 ################################################################################
 
 #wide format of climate variables with AGBI by tree_year
@@ -219,7 +225,9 @@ clim_agbi_long2_site <- clim_seasons_site %>%
     values_to = "climvar_value")
 
 
-###########correlation of biomass increment data with climate data #############
+
+# correlation of biomass increment data with climate data -----------------
+
 
 #correlation df climate data vs. AGBI.mean
 cor_df_taxon <- clim_agbi_long_taxon %>%
@@ -392,6 +400,7 @@ models_site <- clim_agbi_in_site %>%
 #adding column for naming
 #ex. GOOSE_ACRU
 models_site <- dplyr::mutate(models_site, model = site)
+
 ########### forecasting taxon model #################################
 
 #forecasting
@@ -441,7 +450,7 @@ fcast_long_taxon = data.frame(site = rep(fcast_taxon[[1]], each=5),
                  bind_rows(fcast_values_taxon))
 
 #residuals and fitted values in long format
-#pulling fitted, and residuals from the forecast model in a dataframe
+#pulling fitted, and residuals from the forecast model in a dataframe for the taxon model
 fitted_res_taxon <- fcast_taxon %>%
   mutate(sigma2 = purrr::map_dbl(mod, ~ .x$sigma2)) %>%
   select(forecast, site, taxon, sigma2) %>%
@@ -465,7 +474,10 @@ fitted_res_ci_taxon <- fitted_res_taxon %>%
     fitted_hi = fitted + 1.96 * sqrt(sigma2)
   )
 
-####### extracting site model data ###########
+
+
+# extracting site model data ----------------------------------------------
+
 fitted_res_site <- models_site %>%
   mutate(sigma2 = purrr::map_dbl(mod, ~ .x$sigma2)) %>%
   select(site, mod, sigma2) %>%
@@ -488,20 +500,24 @@ fitted_res_site <- models_site %>%
 # plot(unique(x$x))
 
 
-#data from increment model
+# plotting AGBI over time (data and site model) ---------------------------
+
+#plotitng AGBI.mean over time (data from increment model)
 ggplot(data= AGBI_taxon_site) +
   geom_line(aes(x=year, y= AGBI.mid, colour=site)) +
   theme_light(14) +
   labs( x = "Year", y = "biomass increment (Mg/ha)")
 
-#plotting fitted AGBI for site data
+#from models_site 
+#plotting fitted AGBI over time
 ggplot(data= fitted_res_site) +
   geom_line(aes(x=year, y= site_fitted, colour=site)) +
   #geom_ribbon(aes(x=year, ymin=AGBI.lo, ymax=AGBI.hi, colour=site, fill=site), alpha = 0.5) +
   theme_light(14) +
   labs( x = "Year", y = "biomass increment (Mg/ha)")
-# 
-#plotting fitted AGBI for site data
+
+#using data (increment model) and fitted values from models_site
+#plotting fitted AGBI and data, by site over time 
 ggplot() +
   geom_line(data= fitted_res_site, aes(x=year, y= site_fitted, colour=site), linetype=2) +
   geom_line(data= AGBI_taxon_site, aes(x=year, y= AGBI.mid, colour=site)) +
@@ -509,11 +525,14 @@ ggplot() +
   theme_light(14) +
   labs( x = "Year", y = "biomass increment (Mg/ha)")
 
-######### summing taxon AGBI to get total site AGBI from ARIMA taxon model
+
+
+# summing taxon AGBI from ARIMA model to get total site AGBI --------
+
 
 #summing AGBI at a given site to plot total fitted AGBI from the taxon model
 #only goes up to year 2006 since we used model data
-fitted_taxon_2_site = fitted_res_taxon %>%
+summed_fit_taxon_2_site = fitted_res_taxon %>%
   group_by(year, site) %>%
   dplyr::summarise(taxon_site_fitted = sum(fitted, na.rm=TRUE))
 
@@ -526,10 +545,12 @@ fitted_taxon_2_site = fitted_res_taxon %>%
 # # AGBI_sum_from_t = AGBI_taxon %>%
 # #   group_by(year, site) %>%
 # #   dplyr::summarise(site_AGBI = sum(AGBI.mid, na.rm=TRUE), .keep = "none")
-# 
-# 
-# #plotting total fitted AGBI from ARIMA model for each site from taxon model 
-ggplot(data= fitted_taxon_2_site) +
+
+
+
+# #plotting summed AGBI from taxon model over time 
+#fitted_taxon_2_site
+ggplot(data= summed_fit_taxon_2_site) +
   geom_line(aes(x=year, y= taxon_site_fitted, colour=site)) +
   #geom_ribbon(aes(x=year, ymin=AGBI.lo, ymax=AGBI.hi, colour=site, fill=site), alpha = 0.5) +
   theme_light(14) +
@@ -539,7 +560,7 @@ ggplot(data= fitted_taxon_2_site) +
 # #joining observed AGBI with sum taxon model AGBI and site model AGBI
 # #DATA AGBI from AGB.data
 # #goes up to 2006
-joined_AGBI = left_join(fitted_taxon_2_site,
+joined_AGBI = left_join(summed_fit_taxon_2_site,
                         select(fitted_res_site, c(year, site, site_fitted)),
                     by = c("site", "year")) %>%
   inner_join(select(AGBI_taxon_site, c(year, site, AGBI.mid)), by = c("site", "year"))
@@ -567,7 +588,8 @@ joined_AGBI_long <- joined_AGBI %>%
     values_to = "value"      # New column for the cell values
   )
 
-############plotting AGBI########################################
+############plotting AGBI over time########################################
+
 #taxon model summed AGBI v. site model AGBI
 p1 = ggplot(data = joined_AGBI) +
   geom_point(aes(x=site_fitted, y= taxon_site_fitted, colour = site)) +
@@ -577,6 +599,7 @@ p1 = ggplot(data = joined_AGBI) +
   ylab('AGBI (mg/ha): taxon model')
 p1
 
+#data vs. taxon model fitted values
 p2 = ggplot(data = joined_AGBI) +
   geom_point(aes(x=AGBI.mid, y= taxon_site_fitted, colour = site)) +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "blue")+
@@ -585,6 +608,7 @@ p2 = ggplot(data = joined_AGBI) +
   ylab('AGBI (mg/ha): taxon model')
 p2
 
+#site model fitted values vs data
 p3 = ggplot(data = joined_AGBI) +
   geom_point(aes(x=AGBI.mid, y= site_fitted, colour = site)) +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "blue")+
@@ -595,6 +619,7 @@ p3
 
 
 #taxon model summed AGBI v. site model AGBI
+#facet wrap by site
 p1 = ggplot(data = joined_AGBI) +
   geom_point(aes(x=site_fitted, y= taxon_site_fitted, colour = site)) +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "blue")+
@@ -604,6 +629,8 @@ p1 = ggplot(data = joined_AGBI) +
   facet_wrap(~site, scales='free')
 p1
 
+#data vs. taxon model fitted values
+#facet_wrap by site
 p2 = ggplot(data = joined_AGBI) +
   geom_point(aes(x=AGBI.mid, y= taxon_site_fitted, colour = site)) +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "blue")+
@@ -613,6 +640,8 @@ p2 = ggplot(data = joined_AGBI) +
   facet_wrap(~site, scales='free')
 p2
 
+#site model fitted values vs data
+#facet_Wrap by site 
 p3 = ggplot(data = joined_AGBI) +
   geom_point(aes(x=AGBI.mid, y= site_fitted, colour = site)) +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "blue")+
@@ -625,6 +654,7 @@ p3
 p1+p2+p3
 
 
+#data vs site model fitted values and taxon summed fitted to site
 p4 = ggplot(data = joined_AGBI) +
   geom_point(aes(x=AGBI.mid, y= site_fitted), colour='grey') +
   geom_point(aes(x=AGBI.mid, y= taxon_site_fitted), alpha=0.5) +
@@ -639,21 +669,29 @@ p4 = ggplot(data = joined_AGBI) +
   geom_line(aes(x=year, y= taxon_site_fitted),  colour='darkorange', alpha=0.7) +
   geom_line(aes(x=year, y= AGBI.mid), colour='dodgerblue', alpha=0.7) +
   theme_light(14) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   facet_wrap(~site, scales='free')
 p4
 
 
+# difference between data and model AGBI  -----------------------------------------------------
+
+#creating column sited_fitted - site_AGBI 
+#creating column sited_fitted - site_AGBI
 joined_AGBI$diff_site_data = joined_AGBI$site_fitted - joined_AGBI$AGBI.mid
 joined_AGBI$diff_taxon_site_data = joined_AGBI$taxon_site_fitted - joined_AGBI$AGBI.mid
 
+#absolute value of differences
 joined_AGBI$abs_diff_site_data = abs(joined_AGBI$diff_site_data)
 joined_AGBI$abs_diff_taxon_site_data = abs(joined_AGBI$taxon_site_fitted - joined_AGBI$AGBI.mid)
 # pivot_long(joined_AGBI, )
 
+#summing total differences between model and data
 sum(joined_AGBI$abs_diff_site_data)
 sum(joined_AGBI$abs_diff_taxon_site_data)
 
 
+#plotting differences against each other (site vs taxon model summed)
 ggplot(data=joined_AGBI) +
   geom_point(aes(x=diff_site_data, y=diff_taxon_site_data))+
   facet_wrap(~site)
@@ -666,6 +704,7 @@ joined_AGBI_diff <- joined_AGBI %>%
     values_to = "value"      # New column for the cell values
   )
 
+#density plot of differences for each site 
 ggplot(data=joined_AGBI_diff) +
   geom_histogram(aes(x=value, y=after_stat(density)))+
   facet_grid(AGBI_diff~site)
@@ -677,15 +716,13 @@ ggplot(data=joined_AGBI_diff) +
 
 ggplot(data=joined_AGBI_diff) +
   geom_line(aes(x=year, y=value, colour=AGBI_diff))+
+  theme_light(14) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   facet_wrap(~site, scales='free_y')
 
 
 
-
-
-
-
-# #joining observed AGBI with sum taxon model AGBI and site model AGBI
+# #joining observed AGBI with taxon model AGBI 
 # #DATA AGBI from AGB.data
 # #goes up to 2006
 joined_AGBI_taxon = inner_join(fitted_res_taxon, select(AGBI_taxon, c(year, taxon, site, AGBI.mid)), 
@@ -698,8 +735,8 @@ joined_AGBI_taxon_long <- joined_AGBI_taxon %>%
     values_to = "value"      # New column for the cell values
   )
 
-##################################################################################
-# disturbance years
+
+# # disturbance years -----------------------------------------------------
 ##################################################################################
 
 AGBI_taxon_anom = readRDS('reboot/AGBI_taxon_anom.RDS')
