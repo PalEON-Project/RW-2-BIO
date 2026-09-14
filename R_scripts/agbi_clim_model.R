@@ -998,9 +998,18 @@ bar2 = AGBI_site_disturb %>% group_by(site, year, disturb_lag) %>% dplyr::summar
 bar3 = left_join(bar, bar2, by=c('site', 'year'))
 
 bar4 = subset(bar3, disturb_lag.x ==1 | disturb_lag.y == 1)
+bar4$disturb_group = ifelse(bar4$disturb_lag.x == 1, 'taxon', 'site')
+bar4$disturb_group[which(is.na(bar4$disturb_group))] = 'site'
 
 ggplot(data=bar4) +
-  geom_point(aes(y=taxon_resid_sum, x=site_resid_sum, colour=factor(disturb_lag.x)))
+  geom_point(aes(y=taxon_resid_sum, x=site_resid_sum, colour=disturb_group))
+
+ggplot(data=bar4) +
+  geom_hline(yintercept =0, colour='grey') +
+  geom_vline(xintercept = 0, colour='grey') +
+  geom_point(aes(y=taxon_resid_sum, x=site_resid_sum, colour=disturb_group)) +
+  facet_wrap(~site,scales='free') +
+  geom_abline(intercept=0, slope=1, linetype=2, colour='grey') 
 
 # make list of disturbance years for each site
 taxon_disturb_years = AGBI_taxon_disturb[which(AGBI_taxon_disturb$disturb),c('site', 'year')]
