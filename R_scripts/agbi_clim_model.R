@@ -26,9 +26,9 @@ tree_yr <- function(df, start_month=12) {
 
 #dataframe with year, site, taxon and AGBI.mean
 AGBI_taxon = readRDS("reboot/AGBI_taxon_data.RDS")
-AGBI_taxon <- AGBI_taxon %>% 
-  rename(AGBI.mid = AGBI.mean) %>% 
-  rename(AGB.mid = AGB.mean)
+# AGBI_taxon <- AGBI_taxon %>% 
+#   rename(AGBI.mid = AGBI.mean) %>% 
+#   rename(AGB.mid = AGB.mean)
 
 
 
@@ -39,11 +39,17 @@ AGBI_taxon_site = AGBI_taxon %>% group_by(year, model, site) %>%
 
 
 #adding lag years 1+2 to AGBI dateframe 
+# AGBI_taxon = AGBI_taxon %>%
+#   group_by(site, taxon) %>%
+#   arrange(site, taxon, year) %>%
+#   mutate(AGBI.mid.prev1 = lag(AGBI.mean, n=1),
+#          AGBI.mid.prev2 = lag(AGBI.mean, n=2))
+
 AGBI_taxon = AGBI_taxon %>%
   group_by(site, taxon) %>%
   arrange(site, taxon, year) %>%
-  mutate(AGBI.mid.prev1 = lag(AGBI.mean, n=1),
-         AGBI.mid.prev2 = lag(AGBI.mean, n=2))
+  mutate(AGBI.mid.prev1 = lag(AGBI.mid, n=1),
+         AGBI.mid.prev2 = lag(AGBI.mid, n=2))
 
 
 head(AGBI_taxon_site)
@@ -494,6 +500,12 @@ fitted_res_site <- models_site %>%
     )
   })
 
+fitted_res_ci_site <- fitted_res_site %>%
+  mutate(
+    fitted_lo = site_fitted - 1.96 * sqrt(sigma2),
+    fitted_hi = site_fitted + 1.96 * sqrt(sigma2)
+  )
+
 # x = fit_res_long_site %>%
 #   mutate(x = sqrt(sigma2) )
 # 
@@ -521,7 +533,7 @@ ggplot(data= fitted_res_site) +
 ggplot() +
   geom_line(data= fitted_res_site, aes(x=year, y= site_fitted, colour=site), linetype=2) +
   geom_line(data= AGBI_taxon_site, aes(x=year, y= AGBI.mid, colour=site)) +
-  #geom_ribbon(aes(x=year, ymin=AGBI.lo, ymax=AGBI.hi, colour=site, fill=site), alpha = 0.5) +
+  # geom_ribbon(aes(x=year, ymin=AGBI.lo, ymax=AGBI.hi, colour=site, fill=site), alpha = 0.5) +
   theme_light(14) +
   labs( x = "Year", y = "biomass increment (Mg/ha)")
 
@@ -721,6 +733,18 @@ ggplot(data=joined_AGBI_diff) +
   facet_wrap(~site, scales='free_y')
 
 
+ggplot(data=joined_AGBI_diff, aes(x=abs_diff_taxon_site_data, y=abs_diff_site_data)) +
+  geom_point() +
+  geom_abline(intercept=0, slope=1) +
+  geom_smooth(method='lm', ) + facet_wrap(~site, scales='free')
+
+
+
+# ggplot(data=joined_AGBI_diff, aes(x=abs_diff_taxon_site_data, y=abs_diff_site_data)) +
+#   geom_histogram() +
+#   geom_abline(intercept=0, slope=1) +
+#   geom_smooth(method='lm', ) + facet_wrap(~site, scales='free')
+
 
 # #joining observed AGBI with taxon model AGBI 
 # #DATA AGBI from AGB.data
@@ -746,6 +770,7 @@ AGBI_taxon_site_anom = readRDS('reboot/AGBI_taxon_site_anom.RDS')
 AGBI_taxon_disturb = merge(joined_AGBI_taxon, 
                                AGBI_taxon_anom[,c('year', 'taxon', 'site', 'AGBI.mid', 'disturb')], 
                                by = c('year', 'taxon', 'site'))
+AGBI_taxon_disturb$residuals = -AGBI_taxon_disturb$residuals
 AGBI_taxon_disturb$disturb_lag0 = as.numeric(AGBI_taxon_disturb$disturb)
 AGBI_taxon_disturb$disturb_lag0[which(AGBI_taxon_disturb$disturb_lag0 == 0)] = NA
 
@@ -775,14 +800,13 @@ for (site in sites){
 }
 
 p = ggplot(data=subset(AGBI_taxon_disturb, !is.na(disturb_lag))) +
-  geom_boxplot(aes(x=factor(disturb_lag-1), y=-residuals)) +
+  geom_boxplot(aes(x=factor(disturb_lag-1), y=residuals)) +
   # geom_smooth(method='lm', aes(x=disturb_lag-1, y=-residuals), formula = y ~ poly(x, 2)) +
   facet_wrap(~taxon, scales='free') + theme_light() + 
   theme(aspect.ratio=1) +
   geom_hline(yintercept=0, linetype=2, colour='grey') +
   xlab('years since disturbance') +
-  ylab('model - data (Mg/ha)') +
-  ggtitle(site)
+  ylab('model - data (Mg/ha)') 
 print(p)
 
 pdf('figures/AGBI_stat_ARIMA_disturb_scatter.pdf')
@@ -790,15 +814,14 @@ for (site in sites){
   
   this_AGBI_taxon_disturb = AGBI_taxon_disturb[which(AGBI_taxon_disturb$site==site),]
   
-  this_disturb_resids = this_AGBI_taxon_disturb[which(AGBI_taxon_disturb$disturb_lag==1), ]
+  this_disturb_resids = this_AGBI_taxon_disturb[which(this_AGBI_taxon_disturb$disturb_lag==1), ]
   
-  # p = ggplot(data=this_AGBI_taxon_disturb) +
-  #   geom_point(aes(x=AGBI.mid.x, y=fitted, colour=factor(disturb_lag))) +
-  #   facet_wrap(~taxon, scales='free') + theme_light() + theme(aspect.ratio=1) +
-  #   geom_abline(intercept=0, slope=1, linetype=2, colour='grey')
-  # print(p)
-  
-  this_AGBI_taxon_disturb = AGBI_taxon_disturb[which(AGBI_taxon_disturb$site==site),]
+  p = ggplot(data=this_disturb_resids) +
+    geom_point(aes(y=residuals, x=taxon)) +
+    # facet_wrap(~taxon, scales='free') +
+    theme_light() + theme(aspect.ratio=1) #+
+    # geom_abline(intercept=0, slope=1, linetype=2, colour='grey')
+  print(p)
   
   
   # p = ggplot(data=subset(this_AGBI_taxon_disturb, !is.na(disturb_lag))) +
@@ -811,7 +834,7 @@ for (site in sites){
   # print(p)
   
   p = ggplot(data=subset(this_AGBI_taxon_disturb, !is.na(disturb_lag))) +
-    geom_point(aes(x=disturb_lag-1, y=-residuals)) +
+    geom_point(aes(x=disturb_lag-1, y=residuals)) +
     facet_wrap(~taxon, scales='free') + theme_light() + 
     theme(aspect.ratio=1) +
     geom_hline(yintercept=0, linetype=2, colour='grey') +
@@ -820,17 +843,17 @@ for (site in sites){
     ggtitle(site)
   print(p)
   
-  p = ggplot(data=subset(this_AGBI_taxon_disturb, !is.na(disturb_lag))) +
-    geom_point(aes(x=disturb_lag-1, y=-residuals, group=event_year)) +
-    geom_smooth(method='loess', aes(x=disturb_lag-1, y=-residuals, group=event_year), colour='dodgerblue', alpha=0.5) +
-    # geom_smooth(method='loess', aes(x=disturb_lag-1, y=-residuals)) +
-    facet_wrap(~taxon, scales='free') + theme_light() + 
-    theme(aspect.ratio=1) +
-    geom_hline(yintercept=0, linetype=2, colour='grey') +
-    xlab('years since disturbance') +
-    ylab('model - data (Mg/ha)') +
-    ggtitle(site)
-  print(p)
+  # p = ggplot(data=subset(this_AGBI_taxon_disturb, !is.na(disturb_lag))) +
+  #   geom_point(aes(x=disturb_lag-1, y=-residuals, group=event_year)) +
+  #   geom_smooth(method='loess', aes(x=disturb_lag-1, y=-residuals, group=event_year), colour='dodgerblue', alpha=0.5) +
+  #   # geom_smooth(method='loess', aes(x=disturb_lag-1, y=-residuals)) +
+  #   facet_wrap(~taxon, scales='free') + theme_light() + 
+  #   theme(aspect.ratio=1) +
+  #   geom_hline(yintercept=0, linetype=2, colour='grey') +
+  #   xlab('years since disturbance') +
+  #   ylab('model - data (Mg/ha)') +
+  #   ggtitle(site)
+  # print(p)
   
   
   # p = ggplot(data=AGBI_taxon_disturb[which(AGBI_taxon_disturb$site==site),], aes(x=disturb_lag, y=residuals)) +
@@ -844,7 +867,18 @@ for (site in sites){
   
   
   p = ggplot(data=AGBI_taxon_disturb[which(AGBI_taxon_disturb$site==site),]) +
-    geom_point(aes(x=factor(disturb_lag-1), y=-residuals)) +
+    geom_point(aes(x=factor(disturb_lag-1), y=residuals)) +
+    facet_wrap(~taxon, scales='free') + theme_light() + 
+    theme(aspect.ratio=1) +
+    geom_hline(yintercept=0, linetype=2, colour='grey') +
+    xlab('years since disturbance') +
+    ylab('model - data (Mg/ha)') +
+    ggtitle(site)
+  print(p)
+  
+  
+  p = ggplot(data=AGBI_taxon_disturb[which(AGBI_taxon_disturb$site==site),]) +
+    geom_boxplot(aes(x=factor(disturb_lag-1), y=residuals)) +
     facet_wrap(~taxon, scales='free') + theme_light() + 
     theme(aspect.ratio=1) +
     geom_hline(yintercept=0, linetype=2, colour='grey') +
@@ -890,6 +924,21 @@ AGBI_site_disturb = AGBI_site_disturb %>%
 
 p = ggplot(data=AGBI_site_disturb) +
   geom_point(aes(x=disturb_lag-1, y=diff_site_data)) +
+  # facet_wrap(~site, scales='free') + 
+  theme_light() + 
+  theme(aspect.ratio=1) +
+  geom_hline(yintercept=0, linetype=2, colour='grey')
+print(p)
+
+p = ggplot(data=AGBI_site_disturb) +
+  geom_point(aes(x=disturb_lag-1, y=diff_site_data)) +
+  facet_wrap(~site, scales='free') + theme_light() + 
+  theme(aspect.ratio=1) +
+  geom_hline(yintercept=0, linetype=2, colour='grey')
+print(p)
+
+p = ggplot(data=AGBI_site_disturb) +
+  geom_boxplot(aes(x=factor(disturb_lag-1), y=diff_site_data)) +
   facet_wrap(~site, scales='free') + theme_light() + 
   theme(aspect.ratio=1) +
   geom_hline(yintercept=0, linetype=2, colour='grey')
@@ -911,6 +960,12 @@ p = ggplot(data=AGBI_site_disturb) +
   geom_hline(yintercept=0, linetype=2, colour='grey')
 print(p)
 
+p = ggplot(data=AGBI_site_disturb) +
+  geom_density(aes(x=-diff_site_data)) +
+  facet_wrap(~site, scales='free') + theme_light() + 
+  theme(aspect.ratio=1) +
+  geom_hline(yintercept=0, linetype=2, colour='grey')
+print(p)
 
 p = ggplot(data=AGBI_site_disturb) +
   geom_point(aes(x=AGBI.mid.x, y=site_fitted, colour=disturb)) +
@@ -918,6 +973,34 @@ p = ggplot(data=AGBI_site_disturb) +
   geom_abline(intercept=0, slope=1, linetype=2, colour='grey')
 print(p)
 
+
+foo = data.frame(AGBI_site_disturb[c('year', 'site', 'diff_site_data', 'disturb_lag', 'event')], taxon='site')
+colnames(foo) = c('year', 'site', 'residuals', 'disturb_lag', 'event', 'taxon')
+
+AGBI_disturb_merged = bind_rows(AGBI_taxon_disturb[c('year', 'taxon', 'site', 'residuals', 'disturb_lag', 'event')], foo)
+
+
+taxa = levels(factor(AGBI_disturb_merged$taxon))
+taxa = taxa[which(taxa!='site')]
+AGBI_disturb_merged$taxon = factor(AGBI_disturb_merged$taxon, levels = c(taxa, 'site'))
+
+p = ggplot(data=subset(AGBI_disturb_merged, disturb_lag==1)) +
+  geom_point(aes(y=residuals, x=taxon)) +
+  facet_wrap(~site, scales='free') +
+  theme_light() + theme(aspect.ratio=1) #+
+# geom_abline(intercept=0, slope=1, linetype=2, colour='grey')
+print(p)
+
+bar = AGBI_taxon_disturb %>% group_by(site, year, disturb_lag) %>% dplyr::summarize(taxon_resid_sum = sum(residuals, na.rm=TRUE)) 
+
+bar2 = AGBI_site_disturb %>% group_by(site, year, disturb_lag) %>% dplyr::summarize(site_resid_sum = sum(diff_site_data, na.rm=TRUE)) 
+
+bar3 = left_join(bar, bar2, by=c('site', 'year'))
+
+bar4 = subset(bar3, disturb_lag.x ==1 | disturb_lag.y == 1)
+
+ggplot(data=bar4) +
+  geom_point(aes(y=taxon_resid_sum, x=site_resid_sum, colour=factor(disturb_lag.x)))
 
 # make list of disturbance years for each site
 taxon_disturb_years = AGBI_taxon_disturb[which(AGBI_taxon_disturb$disturb),c('site', 'year')]
