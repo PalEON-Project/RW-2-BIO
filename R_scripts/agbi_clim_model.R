@@ -600,6 +600,13 @@ joined_AGBI_long <- joined_AGBI %>%
     values_to = "value"      # New column for the cell values
   )
 
+ggplot()+
+  geom_line(data = joined_AGBI_long, aes(x=year, y = value, colour = AGBI_type))+
+  theme_light(14)+
+  facet_wrap(~site)+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+
 ############plotting AGBI over time########################################
 
 #taxon model summed AGBI v. site model AGBI
