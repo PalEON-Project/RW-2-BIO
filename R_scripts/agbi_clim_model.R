@@ -706,9 +706,11 @@ sum(joined_AGBI$abs_diff_taxon_site_data)
 #plotting differences against each other (site vs taxon model summed)
 ggplot(data=joined_AGBI) +
   geom_point(aes(x=diff_site_data, y=diff_taxon_site_data))+
+  theme_light(14) +
   facet_wrap(~site)
 
 
+#joined data with model AGBI data
 joined_AGBI_diff <- joined_AGBI %>%
   pivot_longer(
     cols = c(diff_site_data, diff_taxon_site_data), # Columns to transform
@@ -719,20 +721,25 @@ joined_AGBI_diff <- joined_AGBI %>%
 #density plot of differences for each site 
 ggplot(data=joined_AGBI_diff) +
   geom_histogram(aes(x=value, y=after_stat(density)))+
+  theme_light(14) +
   facet_grid(AGBI_diff~site)
 
+#density plot of differences for each site
 ggplot(data=joined_AGBI_diff) +
   geom_density(aes(x=value, y=after_stat(density), fill=AGBI_diff))+
+  theme_light(14) +
   facet_grid(site~.)
 
 
+#AGBI differences over time 
 ggplot(data=joined_AGBI_diff) +
   geom_line(aes(x=year, y=value, colour=AGBI_diff))+
   theme_light(14) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   facet_wrap(~site, scales='free_y')
 
-
+#differences compared against each other (Site vs taxa)
+#with 1:1 line 
 ggplot(data=joined_AGBI_diff, aes(x=abs_diff_taxon_site_data, y=abs_diff_site_data)) +
   geom_point() +
   geom_abline(intercept=0, slope=1) +
@@ -1040,20 +1047,20 @@ print(p)
 ############# residuals #################
 
 #residuals in wide format with all sites for pairwise correlation
-residuals = lapply(model_forecasts_taxon[[6]], function(x) {
+taxa_residuals = lapply(fcast_taxon[[6]], function(x) {
   if(length(x$residuals) < 57){ rep(NA, 57)}else{x$residuals}})
 
 #Deleting models with missing data HAVI at Harvard and BEPA at NRP
 #res = res[-c(16, 32)] 
 #creating df where each column has the residuals for each model
-res_df = data.frame(matrix(unlist(residuals), ncol =length(residuals), byrow=FALSE))
+res_taxa_df = data.frame(matrix(unlist(taxa_residuals), ncol =length(taxa_residuals), byrow=FALSE))
 #changing column names to site_taxon corresponding model
-colnames(res_df) <- model_forecasts$model
-res_df <- res_df %>%
+colnames(res_taxa_df) <- fcast_taxon$model
+res_taxa_df <- res_taxa_df %>%
   mutate(year = 1950:2006)%>%
   dplyr::select(year, everything())
 #removing column with NA values 
-res_df_na <- subset(res_df, select = -c(HARVARD_HAVI, NRP_BEPA)) 
+res_taxa_df_na <- subset(res_taxa_df, select = -c(HARVARD_HAVI, NRP_BEPA)) 
 
 
 
