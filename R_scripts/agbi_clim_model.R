@@ -26,19 +26,21 @@ tree_yr <- function(df, start_month=12) {
 
 #dataframe with year, site, taxon and AGBI.mean
 AGBI_taxon = readRDS("reboot/AGBI_taxon_data.RDS")
-AGBI_taxon <- AGBI_taxon %>%
-  rename(AGBI.mid = AGBI.mean) %>%
-  rename(AGB.mid = AGB.mean)
-
-
 
 head(AGBI_taxon)
 
+#aggregating to site level from taxon data
 AGBI_taxon_site = AGBI_taxon %>% group_by(year, model, site) %>% 
-  dplyr::summarize(AGBI.mid = sum(AGBI.mid, na.rm=TRUE), AGB.mid=sum(AGB.mid, na.rm=TRUE))
+  dplyr::summarize(AGB.mid = sum(AGB.mid, na.rm=TRUE), AGBI.mid=sum(AGBI.mid, na.rm=TRUE))
 
+#plotitng AGBI.mid over time (data from increment model)
+#full data 1950-2011
+ggplot(data= AGBI_taxon_site) +
+  geom_line(aes(x=year, y= AGBI.mid, colour=site)) +
+  theme_light(14) +
+  labs( x = "Year", y = "biomass increment (Mg/ha)")
 
-#adding lag years 1+2 to AGBI dateframe 
+#adding lag years 1+2 to AGBI dateframe at the taxon level
 AGBI_taxon = AGBI_taxon %>%
   group_by(site, taxon) %>%
   arrange(site, taxon, year) %>%
@@ -46,18 +48,16 @@ AGBI_taxon = AGBI_taxon %>%
          AGBI.mid.prev2 = lag(AGBI.mid, n=2))
 
 
-head(AGBI_taxon_site)
 
-#adding lag years 1+2 to AGBI dateframe 
+#adding lag years 1+2 to AGBI dateframe at the site level
 AGBI_taxon_site = AGBI_taxon_site %>%
   group_by(site) %>%
   arrange(site, year) %>%
   mutate(AGBI.mid.prev1 = lag(AGBI.mid, n=1),
          AGBI.mid.prev2 = lag(AGBI.mid, n=2))
 
-################################################################################
-## climate data
-################################################################################
+
+# climate data ------------------------------------------------------------
 #climate data in long format 
 load('climate/prism_clim.RData')
 clim_data = prism_long
@@ -79,8 +79,7 @@ predictor_names = c('PPT_winter', 'PPT_spring', 'PPT_summer', 'PPT_fall',
                     'Tmin_winter', 'Tmin_spring', 'Tmin_summer', 'Tmin_fall',
                     'Tmax_winter', 'Tmax_spring', 'Tmax_summer', 'Tmax_fall') 
 
-######## reorganizing cliamte data to add tree_year #############
-
+######## reorganizing climate data to add tree_year #############
 
 #using tree_yr function to make prev and current year 
 #ex. year=1986 is sept-dec of 1985 and jan-aug of 1986
@@ -104,6 +103,8 @@ clim_wide_prev =  pivot_wider(data = subset(clim_data_prev, select = -year),
 #year_tree is clim data from the previous year 
 clim_wide_prev = rename(clim_wide_prev, year = year_tree)
 
+
+
 #merging by year which is the prev sept- current august
 #year_tree in this df is the year_tree from current df which makes it =year 
 clim_wide = merge(clim_wide_current, clim_wide_prev, by = c('site', 'year'))
@@ -114,6 +115,7 @@ clim_wide = merge(clim_wide_current, clim_wide_prev, by = c('site', 'year'))
 ################################################################################
 
 #wide format of climate variables with AGBI by tree_year
+#taxon level
 clim_agbi_taxon <- AGBI_taxon %>% 
   left_join(clim_wide, by = c('year', 'site'))
 
@@ -226,8 +228,8 @@ clim_agbi_long2_site <- clim_seasons_site %>%
 
 
 
-# correlation of biomass increment data with climate data -----------------
 
+# correlation of biomass increment data with climate data -----------------
 
 #correlation df climate data vs. AGBI.mean
 cor_df_taxon <- clim_agbi_long_taxon %>%
@@ -443,11 +445,17 @@ fcast_values_taxon = lapply(fcast_taxon$forecast, function(x){data.frame(year = 
                                                               forecast_mean = x$mean, 
                                                               forecast_lo = x$lower[,"95%"], 
                                                               forecast_hi = x$upper[,"95%"])})
+saveRDS(fcast_values_taxon, "reboot/forecast_taxon.RDS")
+
 #lower, upper, and mean of predictions from 2007-2011 in a dataframe
 #site, taxon, year, forecast_mean, forecast_low, forecast_high
 fcast_long_taxon = data.frame(site = rep(fcast_taxon[[1]], each=5), 
                  taxon = rep(fcast_taxon[[2]], each=5), 
                  bind_rows(fcast_values_taxon))
+
+saveRDS(fcast_long_taxon, "reboot/forecast_taxon_long.RDS")
+
+# extracting taxon model data ---------------------------------------------
 
 #residuals and fitted values in long format
 #pulling fitted, and residuals from the forecast model in a dataframe for the taxon model
@@ -474,6 +482,8 @@ fitted_res_ci_taxon <- fitted_res_taxon %>%
     fitted_hi = fitted + 1.96 * sqrt(sigma2)
   )
 
+
+saveRDS(fitted_res_ci_taxon, "reboot/fitted_taxon.RDS")
 
 # forecasting site level --------------------------------------------------
 
@@ -534,11 +544,14 @@ fcast_values_site <- lapply(fcast_site$forecast, function(x) {
 })
   
 
+saveRDS(fcast_values_site, "reboot/forecast_site.RDS")
+
 fcast_long_site = data.frame(
   site = rep(fcast_site[[1]], each = 5), 
   bind_rows(fcast_values_site)
 )
 
+saveRDS(fcast_long_site, "reboot/forecast_site_long.RDS")
 
 # extracting site model data ----------------------------------------------
 
@@ -564,16 +577,19 @@ fitted_res_ci_site <- fitted_res_site %>%
     fitted_hi = site_fitted + 1.96 * sqrt(sigma2)
   )
 
-# summing taxon AGBI from ARIMA model to get total site AGBI --------
+saveRDS(fitted_res_ci_site, "reboot/fitted_site.RDS")
 
+# summing taxon AGBI from ARIMA model to get total site AGBI --------
 
 #summing AGBI at a given site to plot total fitted AGBI from the taxon model
 #only goes up to year 2006 since we used model data
-summed_fit_taxon_2_site = fitted_res_taxon %>%
+# summed_fit_taxon_2_site = fitted_res_taxon %>%
+#   group_by(year, site) %>%
+#   dplyr::summarise(taxon_site_fitted = sum(fitted, na.rm=TRUE))
+
+arima_taxon_2_site = fitted_res_taxon %>%
   group_by(year, site) %>%
-  dplyr::summarise(taxon_site_fitted = sum(fitted, na.rm=TRUE))
-
-
+  dplyr::summarise(taxon_2site_fitted = sum(fitted, na.rm=TRUE))
 
 
 # joining data with fitted (taxon model) ----------------------------------
@@ -582,14 +598,18 @@ summed_fit_taxon_2_site = fitted_res_taxon %>%
 # #joining observed AGBI with sum taxon model AGBI and site model AGBI
 # #DATA AGBI from AGB.data
 # #goes up to 2006
-joined_AGBI = left_join(summed_fit_taxon_2_site,
+# joined_AGBI = left_join(summed_fit_taxon_2_site,
+#                         select(fitted_res_site, c(year, site, site_fitted)),
+#                         by = c("site", "year")) %>%
+#   inner_join(select(AGBI_taxon_site, c(year, site, AGBI.mid)), by = c("site", "year"))
+
+joined_site_AGBIs = left_join(arima_taxon_2_site,
                         select(fitted_res_site, c(year, site, site_fitted)),
                         by = c("site", "year")) %>%
   inner_join(select(AGBI_taxon_site, c(year, site, AGBI.mid)), by = c("site", "year"))
 
+saveRDS(joined_site_AGBIs, "reboot/joined_site_AGBIs.RDS")
 
-# joined_AGBI_2 = left_join(joined_AGBI, AGBI_sum_from_t, 
-#                           by = c("site", "year"))
 # 
 # joined_AGBI_long <- joined_AGBI_2 %>%
 #   pivot_longer(
@@ -603,15 +623,25 @@ joined_AGBI = left_join(summed_fit_taxon_2_site,
 
 
 
-joined_AGBI_long <- joined_AGBI %>%
+# joined_AGBI_long <- joined_AGBI %>%
+#   pivot_longer(
+#     cols = c(taxon_site_fitted, site_fitted, AGBI.mid), # Columns to transform
+#     names_to = "AGBI_type",      # New column for the old column names
+#     values_to = "value"      # New column for the cell values
+#   )
+
+#site AGBIs in long format 
+AGBI_sites_long <- joined_site_AGBIs %>%
   pivot_longer(
-    cols = c(taxon_site_fitted, site_fitted, AGBI.mid), # Columns to transform
+    cols = c(taxon_2site_fitted, site_fitted, AGBI.mid), # Columns to transform
     names_to = "AGBI_type",      # New column for the old column names
     values_to = "value"      # New column for the cell values
-  )
+)
 
+#plotting site AGBI types across time
+#data, fitted site from model, taxon aggregated to site from fitted 
 ggplot()+
-  geom_line(data = joined_AGBI_long, aes(x=year, y = value, colour = AGBI_type))+
+  geom_line(data = AGBI_sites_long, aes(x=year, y = value, colour = AGBI_type))+
   theme_light(14)+
   facet_wrap(~site)+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
