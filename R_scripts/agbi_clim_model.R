@@ -119,6 +119,9 @@ clim_wide = merge(clim_wide_current, clim_wide_prev, by = c('site', 'year'))
 clim_agbi_taxon <- AGBI_taxon %>% 
   left_join(clim_wide, by = c('year', 'site'))
 
+saveRDS(clim_agbi_taxon, "reboot/clim_taxon.RDS")
+
+
 #new dataframe with seasonal climate data
 #Across seasons, sum PPT, mean Tmean, max Tmax, min Tmin
 clim_seasons_taxon = clim_agbi_taxon %>% 
@@ -145,6 +148,8 @@ clim_seasons_taxon = clim_agbi_taxon %>%
          Tmean_fall = rowMeans(dplyr::pick('Tmean_09', 'Tmean_10', 'Tmean_11'))
   )
 
+saveRDS(clim_seasons_taxon, "reboot/clim_seasons_taxon.RDS")
+
 #seasonal clim variables in long format 
 #separate name columns for variable name and season name
 #ex. PPT and winter
@@ -157,6 +162,8 @@ clim_agbi_long_taxon <- clim_seasons_taxon %>%
   )%>%
   separate(predictor, into = c("clim_var", "season"), sep = "_")
 
+
+
 #seasonal clim variables in long format 
 #one column for each varible_season combination
 #ex. PPT_winter
@@ -167,7 +174,7 @@ clim_agbi_long2_taxon <- clim_seasons_taxon %>%
     names_to = "coef_name",
     values_to = "climvar_value")
 
-
+saveRDS(clim_agbi_long2_taxon, "reboot/clim_seasons_taxon_long.RDS")
 
 ################################################################################
 # merge climate data: SITE ------------------------------------------------
