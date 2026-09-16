@@ -583,10 +583,6 @@ saveRDS(fitted_res_ci_site, "reboot/fitted_site.RDS")
 
 #summing AGBI at a given site to plot total fitted AGBI from the taxon model
 #only goes up to year 2006 since we used model data
-# summed_fit_taxon_2_site = fitted_res_taxon %>%
-#   group_by(year, site) %>%
-#   dplyr::summarise(taxon_site_fitted = sum(fitted, na.rm=TRUE))
-
 arima_taxon_2_site = fitted_res_taxon %>%
   group_by(year, site) %>%
   dplyr::summarise(taxon_2site_fitted = sum(fitted, na.rm=TRUE))
@@ -598,11 +594,6 @@ arima_taxon_2_site = fitted_res_taxon %>%
 # #joining observed AGBI with sum taxon model AGBI and site model AGBI
 # #DATA AGBI from AGB.data
 # #goes up to 2006
-# joined_AGBI = left_join(summed_fit_taxon_2_site,
-#                         select(fitted_res_site, c(year, site, site_fitted)),
-#                         by = c("site", "year")) %>%
-#   inner_join(select(AGBI_taxon_site, c(year, site, AGBI.mid)), by = c("site", "year"))
-
 joined_site_AGBIs = left_join(arima_taxon_2_site,
                         select(fitted_res_site, c(year, site, site_fitted)),
                         by = c("site", "year")) %>%
@@ -610,25 +601,6 @@ joined_site_AGBIs = left_join(arima_taxon_2_site,
 
 saveRDS(joined_site_AGBIs, "reboot/joined_site_AGBIs.RDS")
 
-# 
-# joined_AGBI_long <- joined_AGBI_2 %>%
-#   pivot_longer(
-#     cols = c(t_model_fitted, site_fitted, AGBI.mid, site_AGBI), # Columns to transform
-#     names_to = "AGBI_type",      # New column for the old column names
-#     values_to = "value"      # New column for the cell values
-#   )
-# 
-# joined_AGBI_2 = left_join(joined_AGBI, AGBI_sum_from_t, 
-#                           by = c("site", "year"))
-
-
-
-# joined_AGBI_long <- joined_AGBI %>%
-#   pivot_longer(
-#     cols = c(taxon_site_fitted, site_fitted, AGBI.mid), # Columns to transform
-#     names_to = "AGBI_type",      # New column for the old column names
-#     values_to = "value"      # New column for the cell values
-#   )
 
 #site AGBIs in long format 
 AGBI_sites_long <- joined_site_AGBIs %>%
