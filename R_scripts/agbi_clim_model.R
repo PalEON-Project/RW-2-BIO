@@ -588,7 +588,27 @@ arima_taxon_2_site = fitted_res_taxon %>%
   dplyr::summarise(taxon_2site_fitted = sum(fitted, na.rm=TRUE))
 
 
-# joining data with fitted (taxon model) ----------------------------------
+
+# joining data with fitted taxa -------------------------------------------
+
+# #joining observed AGBI with taxon model AGBI 
+# #DATA AGBI from AGB.data
+# #goes up to 2006
+joined_AGBI_taxon = inner_join(fitted_res_taxon, select(AGBI_taxon, c(year, taxon, site, AGBI.mid)), 
+                               by = c("site", "taxon", "year"))
+
+saveRDS(joined_AGBI_taxon, "reboot/joined_taxon_AGBI.RDS")
+
+joined_AGBI_taxon_long <- joined_AGBI_taxon %>%
+  pivot_longer(
+    cols = c(fitted, AGBI.mid), # Columns to transform
+    names_to = "AGBI_type",      # New column for the old column names
+    values_to = "value"      # New column for the cell values
+  )
+#saveRDS(joined_AGBI_taxon_long, "reboot/joined_taxon_AGBI.RDS")
+
+
+# joining data with fitted site data across all types ----------------------------------
 
 
 # #joining observed AGBI with sum taxon model AGBI and site model AGBI
