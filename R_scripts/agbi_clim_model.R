@@ -110,9 +110,8 @@ clim_wide_prev = rename(clim_wide_prev, year = year_tree)
 clim_wide = merge(clim_wide_current, clim_wide_prev, by = c('site', 'year'))
 
 
-################################################################################
-## merge climate data: TAXON
-################################################################################
+
+#  merge climate data: TAXON ----------------------------------------------
 
 #wide format of climate variables with AGBI by tree_year
 #taxon level
@@ -176,14 +175,15 @@ clim_agbi_long2_taxon <- clim_seasons_taxon %>%
 
 saveRDS(clim_agbi_long2_taxon, "reboot/clim_seasons_taxon_long.RDS")
 
-################################################################################
+
+
 # merge climate data: SITE ------------------------------------------------
-################################################################################
 
 #wide format of climate variables with AGBI by tree_year
 clim_agbi_site <- AGBI_taxon_site %>% 
   left_join(clim_wide, by = c('year', 'site'))
 
+saveRDS(clim_agbi_site, "reboot/clim_site.RDS")
 
 #new dataframe with seasonal climate data
 #Across seasons, sum PPT, mean Tmean, max Tmax, min Tmin
@@ -211,6 +211,8 @@ clim_seasons_site = clim_agbi_site %>%
          Tmean_fall = rowMeans(dplyr::pick('Tmean_09', 'Tmean_10', 'Tmean_11'))
   )
 
+saveRDS(clim_seasons_site, "reboot/clim_seasons_site.RDS")
+
 #seasonal clim variables in long format 
 #separate name columns for variable name and season name
 #ex. PPT and winter
@@ -233,7 +235,7 @@ clim_agbi_long2_site <- clim_seasons_site %>%
     names_to = "coef_name",
     values_to = "climvar_value")
 
-
+saveRDS(clim_agbi_long2_site, "reboot/clim_seasons_site_long.RDS")
 
 
 # correlation of biomass increment data with climate data -----------------
@@ -460,7 +462,14 @@ fcast_long_taxon = data.frame(site = rep(fcast_taxon[[1]], each=5),
                  taxon = rep(fcast_taxon[[2]], each=5), 
                  bind_rows(fcast_values_taxon))
 
-saveRDS(fcast_long_taxon, "reboot/forecast_taxon_long.RDS")
+#adding AGBI.mid column
+fcast_long_taxon2 = left_join(
+  fcast_long_taxon,
+  select(AGBI_taxon, year, site, taxon, AGBI.mid),
+  by = c("site", "year", "taxon")
+)
+  
+saveRDS(fcast_long_taxon2, "reboot/forecast_taxon_long.RDS")
 
 # extracting taxon model data ---------------------------------------------
 
@@ -490,7 +499,7 @@ fitted_res_ci_taxon <- fitted_res_taxon %>%
   )
 
 
-saveRDS(fitted_res_ci_taxon, "reboot/fitted_taxon.RDS")
+#saveRDS(fitted_res_ci_taxon, "reboot/fitted_taxon.RDS")
 
 # forecasting site level --------------------------------------------------
 
@@ -558,7 +567,14 @@ fcast_long_site = data.frame(
   bind_rows(fcast_values_site)
 )
 
-saveRDS(fcast_long_site, "reboot/forecast_site_long.RDS")
+#adding AGBI.mid column
+fcast_long_site2 = left_join(
+  fcast_long_site,
+  select(AGBI_taxon_site, year, site, AGBI.mid),
+  by = c("site", "year")
+)
+
+saveRDS(fcast_long_site2, "reboot/forecast_site_long.RDS")
 
 # extracting site model data ----------------------------------------------
 
@@ -601,7 +617,7 @@ arima_taxon_2_site = fitted_res_taxon %>%
 # #joining observed AGBI with taxon model AGBI 
 # #DATA AGBI from AGB.data
 # #goes up to 2006
-joined_AGBI_taxon = inner_join(fitted_res_taxon, select(AGBI_taxon, c(year, taxon, site, AGBI.mid)), 
+joined_AGBI_taxon = inner_join(fitted_res_ci_taxon, select(AGBI_taxon, c(year, taxon, site, AGBI.mid)), 
                                by = c("site", "taxon", "year"))
 
 saveRDS(joined_AGBI_taxon, "reboot/joined_taxon_AGBI.RDS")
@@ -621,10 +637,19 @@ joined_AGBI_taxon_long <- joined_AGBI_taxon %>%
 # #joining observed AGBI with sum taxon model AGBI and site model AGBI
 # #DATA AGBI from AGB.data
 # #goes up to 2006
-joined_site_AGBIs = left_join(arima_taxon_2_site,
-                        select(fitted_res_site, c(year, site, site_fitted)),
-                        by = c("site", "year")) %>%
-  inner_join(select(AGBI_taxon_site, c(year, site, AGBI.mid)), by = c("site", "year"))
+joined_site_AGBIs = left_join(
+  arima_taxon_2_site,
+  select(fitted_res_site, year, site, site_fitted),
+  by = c("site", "year")
+) %>%
+  inner_join(
+    select(AGBI_taxon_site, year, site, AGBI.mid),
+    by = c("site", "year")
+  ) %>% 
+  left_join(
+    select(fitted_res_ci_site, year, site, residuals, sigma2, fitted_lo, fitted_hi),
+    by = c("site", "year")
+  )
 
 saveRDS(joined_site_AGBIs, "reboot/joined_site_AGBIs.RDS")
 
