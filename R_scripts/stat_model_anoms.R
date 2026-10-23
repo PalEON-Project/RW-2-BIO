@@ -2,6 +2,12 @@ library(tibbletime)
 library(lubridate)
 library(anomalize)
 
+
+AGBI_taxon = readRDS("reboot/AGBI_taxon_data.RDS")
+AGBI_taxon_site = readRDS("reboot/AGBI_taxon_site_data.RDS")
+
+
+
 head(AGBI_taxon)
 
 
