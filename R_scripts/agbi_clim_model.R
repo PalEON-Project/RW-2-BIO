@@ -109,7 +109,7 @@ clim_wide_prev = rename(clim_wide_prev, year = year_tree)
 #year_tree in this df is the year_tree from current df which makes it =year 
 clim_wide = merge(clim_wide_current, clim_wide_prev, by = c('site', 'year'))
 
-
+saveRDS(clim_wide, 'reboot/clim.RDS')
 
 #  merge climate data: TAXON ----------------------------------------------
 
