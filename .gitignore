@@ -6,3 +6,11 @@
 sites/*/runs/*
 sites/*/output/*
 sites/*/figures/*
+test.pdf
+sites/
+scripts/random_forest.R
+scripts/climate_NPP_relationship/Annual_PCA.R
+scripts/arima_example.R
+out/
+data/
+AGBI_clim_correlation_by_variable.pdf
