@@ -295,3 +295,40 @@ agbi_climate_count_plot <- ggplot(
   theme_minimal() +
   theme(legend.position = "bottom")
 print(agbi_climate_count_plot)
+
+# Per-site AGBI time series by taxon; vlines mark AGBI anomalies, colored by same-year climate anomaly.
+agbi_series_plot_data <- AGBI_taxon[AGBI_taxon$year >= plot_start_year, ]
+agbi_event_vlines <- agbi_climate_correspondence[
+  agbi_climate_correspondence$year >= plot_start_year,
+]
+agbi_site_series_plots <- list()
+for (site_name in sort(unique(agbi_series_plot_data$site))) {
+  site_series <- agbi_series_plot_data[agbi_series_plot_data$site == site_name, ]
+  site_events <- agbi_event_vlines[agbi_event_vlines$site == site_name, ]
+
+  agbi_site_series_plots[[site_name]] <- ggplot(site_series, aes(x = year, y = AGBI.mid)) +
+    geom_line(color = "grey35") +
+    geom_vline(
+      data = site_events,
+      aes(xintercept = year, color = event_status),
+      linewidth = 0.5,
+      alpha = 0.8
+    ) +
+    facet_wrap(vars(taxon), scales = "free_y") +
+    scale_color_manual(
+      name = "Same-year climate flags",
+      values = c(
+        "AGBI + climate anomaly same year" = "steelblue",
+        "AGBI anomaly; no climate anomaly detected" = "firebrick"
+      ),
+      drop = FALSE
+    ) +
+    labs(
+      title = paste(site_name, "taxon AGBI time series and AGBI anomalies"),
+      x = "Year",
+      y = "AGBI.mid"
+    ) +
+    theme_minimal() +
+    theme(legend.position = "bottom")
+  print(agbi_site_series_plots[[site_name]])
+}
