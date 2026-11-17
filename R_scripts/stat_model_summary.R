@@ -207,6 +207,10 @@ head(all_site_summary)
 ggplot(data=all_site_summary) + geom_histogram(aes(x=AGB.mean)) + facet_wrap(~site)
 # saveRDS(all_site_summary, "AGBI_site_data.RDS")
 saveRDS(all_site_summary, "reboot/AGBI_site_data.RDS")
+
+# Save with iterations
+saveRDS(all_site_by_iter, 'reboot/AGBI_site_iter.RDS')
+
 # 
 # 
 # all_site_summary$period = NA
@@ -268,6 +272,9 @@ all_taxon_site_summary = all_data %>%
 head(all_taxon_site_summary)
 
 saveRDS(all_taxon_site_summary, "reboot/AGBI_taxon_data.RDS")
+
+# Save with iterations
+saveRDS(dplyr::select(all_data, -iter), 'reboot/AGBI_taxon_iter.RDS')
 
 ###
 AGBI_taxon = readRDS("reboot/AGBI_taxon_data.RDS")
