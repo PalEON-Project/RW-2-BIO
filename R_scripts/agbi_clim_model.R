@@ -10,6 +10,7 @@ library(tidyverse)
 library(patchwork)
 #arima(xreg = INDEPENDENT.VARS)
 
+rm(list = ls())
 
 # COMBINING AGBI AND CLIM DF ----------------------------------------------
 

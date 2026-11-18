@@ -274,7 +274,7 @@ head(all_taxon_site_summary)
 saveRDS(all_taxon_site_summary, "reboot/AGBI_taxon_data.RDS")
 
 # Save with iterations
-saveRDS(dplyr::select(all_data, -iter), 'reboot/AGBI_taxon_iter.RDS')
+saveRDS(all_data, 'reboot/AGBI_taxon_iter.RDS')
 
 ###
 AGBI_taxon = readRDS("reboot/AGBI_taxon_data.RDS")
